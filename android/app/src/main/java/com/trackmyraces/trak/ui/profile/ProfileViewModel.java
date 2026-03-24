@@ -11,6 +11,7 @@ import com.trackmyraces.trak.data.repository.RaceResultRepository;
 import com.trackmyraces.trak.data.repository.RunnerProfileRepository;
 
 import java.util.UUID;
+import com.trackmyraces.trak.data.repository.RaceResultRepository.RepositoryCallback;
 
 public class ProfileViewModel extends AndroidViewModel {
 
@@ -40,13 +41,13 @@ public class ProfileViewModel extends AndroidViewModel {
         entity.status         = "active";
 
         if (current == null) {
-            mRepo.createProfile(entity, new RaceResultRepository.RepositoryCallback<Object>() {
-                @Override public void onSuccess(Object r) { callback.onResult(true, null); }
+            mRepo.createProfile(entity, new RaceResultRepository.RepositoryCallback<com.trackmyraces.trak.data.network.dto.ProfileResponse>() {
+                @Override public void onSuccess(com.trackmyraces.trak.data.network.dto.ProfileResponse r) { callback.onResult(true, null); }
                 @Override public void onError(String m)   { callback.onResult(false, m);  }
             });
         } else {
-            mRepo.updateProfile(entity, new RaceResultRepository.RepositoryCallback<Object>() {
-                @Override public void onSuccess(Object r) { callback.onResult(true, null); }
+            mRepo.updateProfile(entity, new RaceResultRepository.RepositoryCallback<com.trackmyraces.trak.data.network.dto.ProfileResponse>() {
+                @Override public void onSuccess(com.trackmyraces.trak.data.network.dto.ProfileResponse r) { callback.onResult(true, null); }
                 @Override public void onError(String m)   { callback.onResult(false, m);  }
             });
         }

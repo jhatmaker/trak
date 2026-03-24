@@ -25,7 +25,7 @@ import androidx.annotation.NonNull;
         onDelete      = ForeignKey.CASCADE
     )
 )
-class ResultSplitEntity {
+public class ResultSplitEntity {
 
     @PrimaryKey
     @NonNull
@@ -67,7 +67,7 @@ class ResultSplitEntity {
     tableName = "result_claim",
     indices = { @Index(value = {"race_event_id"}), @Index(value = {"result_id"}) }
 )
-class ResultClaimEntity {
+public class ResultClaimEntity {
 
     @PrimaryKey
     @NonNull
@@ -117,7 +117,7 @@ class ResultClaimEntity {
     tableName = "credential_entry",
     indices = { @Index(value = {"site_url"}, unique = true) }
 )
-class CredentialEntryEntity {
+public class CredentialEntryEntity {
 
     @PrimaryKey
     @NonNull
@@ -170,7 +170,7 @@ class CredentialEntryEntity {
  * e.g. "All my trail ultras", "Marathon PRs", "Last 3 years 5Ks"
  */
 @Entity(tableName = "saved_view")
-class SavedViewEntity {
+public class SavedViewEntity {
 
     @PrimaryKey
     @NonNull
