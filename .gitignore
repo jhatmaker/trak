@@ -1,0 +1,55 @@
+# ── macOS ─────────────────────────────────────────────────────────────────────
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# ── IDE ───────────────────────────────────────────────────────────────────────
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/
+*.swp
+*.swo
+
+# ── Node / Backend ────────────────────────────────────────────────────────────
+backend/node_modules/
+backend/.aws-sam/
+backend/.env
+backend/env.local.json
+
+# ── Android ───────────────────────────────────────────────────────────────────
+android/.gradle/
+android/local.properties
+android/app/build/
+android/build/
+android/captures/
+
+# Signing keys — NEVER commit these
+*.keystore
+*.jks
+!android/app/debug.keystore
+
+# Generated release APK/AAB
+android/app/release/
+*.apk
+*.aab
+
+# ── AWS / Secrets ─────────────────────────────────────────────────────────────
+.aws/credentials
+secrets/
+*.pem
+*.key
+env.*.json
+!env.example.json
+
+# ── Build artifacts ───────────────────────────────────────────────────────────
+*.zip
+*.tar.gz
+dist/
+out/
+
+# ── Logs ──────────────────────────────────────────────────────────────────────
+*.log
+npm-debug.log*

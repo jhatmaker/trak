@@ -1,0 +1,7 @@
+{
+  "httpMethod": "POST",
+  "path": "/claims",
+  "headers": { "Content-Type": "application/json", "Authorization": "Bearer test-token" },
+  "requestContext": { "authorizer": { "runnerId": "runner-test-123" } },
+  "body": "{\"extractionId\": \"extr-uuid-here\", \"edits\": { \"notes\": \"Great race!\", \"ageGroupLabel\": \"F40-44\" }}"
+}

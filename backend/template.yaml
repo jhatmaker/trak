@@ -1,0 +1,300 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Trak backend — AI-powered race result extraction platform
+
+# ─── Parameters ──────────────────────────────────────────────────────────────
+Parameters:
+  Stage:
+    Type: String
+    Default: dev
+    AllowedValues: [dev, staging, prod]
+  AnthropicSecretName:
+    Type: String
+    Default: trak/anthropic-api-key
+  JwtSecretName:
+    Type: String
+    Default: trak/jwt-secret
+
+# ─── Globals ──────────────────────────────────────────────────────────────────
+Globals:
+  Function:
+    Runtime: nodejs20.x
+    Timeout: 60
+    MemorySize: 512
+    Environment:
+      Variables:
+        STAGE:                 !Ref Stage
+        DYNAMODB_TABLE_NAME:   !Ref TrakTable
+        ANTHROPIC_SECRET_NAME: !Ref AnthropicSecretName
+        JWT_SECRET_NAME:       !Ref JwtSecretName
+        AWS_NODEJS_CONNECTION_REUSE_ENABLED: "1"
+    Layers:
+      - !Ref SharedLayer
+    Tracing: Active
+
+# ─── Resources ────────────────────────────────────────────────────────────────
+Resources:
+
+  # ── Shared layer (shared/ code + node_modules) ───────────────────────────
+  SharedLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: !Sub trak-shared-${Stage}
+      Description: Shared utilities, DB client, constants
+      ContentUri: shared/
+      CompatibleRuntimes: [nodejs20.x]
+      RetentionPolicy: Delete
+    Metadata:
+      BuildMethod: nodejs20.x
+
+  # ── DynamoDB single-table ────────────────────────────────────────────────
+  TrakTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    Properties:
+      TableName: !Sub trak-${Stage}
+      BillingMode: PAY_PER_REQUEST
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      AttributeDefinitions:
+        - { AttributeName: PK,          AttributeType: S }
+        - { AttributeName: SK,          AttributeType: S }
+        - { AttributeName: GSI1PK,      AttributeType: S }
+        - { AttributeName: GSI1SK,      AttributeType: S }
+        - { AttributeName: GSI2PK,      AttributeType: S }
+        - { AttributeName: GSI2SK,      AttributeType: S }
+      KeySchema:
+        - { AttributeName: PK, KeyType: HASH  }
+        - { AttributeName: SK, KeyType: RANGE }
+      GlobalSecondaryIndexes:
+        # GSI1: query all claims for a race event (club leaderboard)
+        - IndexName: byRaceEvent
+          KeySchema:
+            - { AttributeName: GSI1PK, KeyType: HASH  }
+            - { AttributeName: GSI1SK, KeyType: RANGE }
+          Projection: { ProjectionType: ALL }
+        # GSI2: query by canonical race name (race-over-years view)
+        - IndexName: byCanonicalRace
+          KeySchema:
+            - { AttributeName: GSI2PK, KeyType: HASH  }
+            - { AttributeName: GSI2SK, KeyType: RANGE }
+          Projection: { ProjectionType: ALL }
+      Tags:
+        - { Key: Project, Value: Trak }
+        - { Key: Stage,   Value: !Ref Stage  }
+
+  # ── API Gateway ──────────────────────────────────────────────────────────
+  TrakApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: !Sub trak-api-${Stage}
+      StageName: !Ref Stage
+      Cors:
+        AllowMethods: "'GET,POST,PUT,DELETE,OPTIONS'"
+        AllowHeaders: "'Content-Type,Authorization,X-Runner-Id'"
+        AllowOrigin:  "'*'"
+      Auth:
+        DefaultAuthorizer: JwtAuthorizer
+        Authorizers:
+          JwtAuthorizer:
+            FunctionArn: !GetAtt AuthFunction.Arn
+            Identity:
+              Header: Authorization
+              ReauthorizeEvery: 300
+        AddDefaultAuthorizerToCorsPreflight: false
+
+  # ── IAM role shared by all Lambdas ───────────────────────────────────────
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub trak-lambda-role-${Stage}
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: { Service: lambda.amazonaws.com }
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess
+      Policies:
+        - PolicyName: TrakPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:PutItem
+                  - dynamodb:UpdateItem
+                  - dynamodb:DeleteItem
+                  - dynamodb:Query
+                  - dynamodb:BatchGetItem
+                  - dynamodb:BatchWriteItem
+                Resource:
+                  - !GetAtt TrakTable.Arn
+                  - !Sub "${TrakTable.Arn}/index/*"
+              - Effect: Allow
+                Action: secretsmanager:GetSecretValue
+                Resource:
+                  - !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${AnthropicSecretName}*"
+                  - !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${JwtSecretName}*"
+
+  # ── Lambda: Auth (JWT authoriser) ────────────────────────────────────────
+  AuthFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub trak-auth-${Stage}
+      CodeUri: functions/auth/
+      Handler: index.handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Description: JWT token authoriser for API Gateway
+
+  # ── Lambda: Extract ──────────────────────────────────────────────────────
+  ExtractFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub trak-extract-${Stage}
+      CodeUri: functions/extract/
+      Handler: index.handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Timeout: 90
+      MemorySize: 1024
+      Description: AI-powered race result extraction via Anthropic
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            RestApiId: !Ref TrakApi
+            Path: /extract
+            Method: POST
+
+  # ── Lambda: Claims ───────────────────────────────────────────────────────
+  ClaimsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub trak-claims-${Stage}
+      CodeUri: functions/claims/
+      Handler: index.handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Description: Create, confirm, and manage result claims
+      Events:
+        Create:
+          Type: Api
+          Properties:
+            RestApiId: !Ref TrakApi
+            Path: /claims
+            Method: POST
+        Delete:
+          Type: Api
+          Properties:
+            RestApiId: !Ref TrakApi
+            Path: /claims/{claimId}
+            Method: DELETE
+
+  # ── Lambda: Results ──────────────────────────────────────────────────────
+  ResultsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub trak-results-${Stage}
+      CodeUri: functions/results/
+      Handler: index.handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Description: Fetch and filter race result lists
+      Events:
+        List:
+          Type: Api
+          Properties:
+            RestApiId: !Ref TrakApi
+            Path: /results
+            Method: GET
+        Single:
+          Type: Api
+          Properties:
+            RestApiId: !Ref TrakApi
+            Path: /results/{resultId}
+            Method: GET
+        Update:
+          Type: Api
+          Properties:
+            RestApiId: !Ref TrakApi
+            Path: /results/{resultId}
+            Method: PUT
+
+  # ── Lambda: Profile ──────────────────────────────────────────────────────
+  ProfileFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub trak-profile-${Stage}
+      CodeUri: functions/profile/
+      Handler: index.handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Description: Runner profile CRUD
+      Events:
+        Get:
+          Type: Api
+          Properties:
+            RestApiId: !Ref TrakApi
+            Path: /profile
+            Method: GET
+        Put:
+          Type: Api
+          Properties:
+            RestApiId: !Ref TrakApi
+            Path: /profile
+            Method: PUT
+        Create:
+          Type: Api
+          Properties:
+            RestApiId: !Ref TrakApi
+            Path: /profile
+            Method: POST
+        Delete:
+          Type: Api
+          Properties:
+            RestApiId: !Ref TrakApi
+            Path: /profile
+            Method: DELETE
+
+  # ── Lambda: Views ────────────────────────────────────────────────────────
+  ViewsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub trak-views-${Stage}
+      CodeUri: functions/views/
+      Handler: index.handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Description: Saved view presets CRUD
+      Events:
+        List:
+          Type: Api
+          Properties:
+            RestApiId: !Ref TrakApi
+            Path: /views
+            Method: GET
+        Upsert:
+          Type: Api
+          Properties:
+            RestApiId: !Ref TrakApi
+            Path: /views/{viewId}
+            Method: PUT
+        Delete:
+          Type: Api
+          Properties:
+            RestApiId: !Ref TrakApi
+            Path: /views/{viewId}
+            Method: DELETE
+
+# ─── Outputs ──────────────────────────────────────────────────────────────────
+Outputs:
+  ApiUrl:
+    Description: API Gateway endpoint
+    Value: !Sub "https://${TrakApi}.execute-api.${AWS::Region}.amazonaws.com/${Stage}"
+    Export:
+      Name: !Sub TrakApiUrl-${Stage}
+
+  TableName:
+    Description: DynamoDB table name
+    Value: !Ref TrakTable
+    Export:
+      Name: !Sub TrakTable-${Stage}

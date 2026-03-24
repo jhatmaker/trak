@@ -1,0 +1,34 @@
+{
+  "name": "trak-backend",
+  "version": "1.0.0",
+  "description": "Trak Lambda backend — AI-powered race result extraction",
+  "type": "commonjs",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "test":        "jest --runInBand",
+    "test:unit":   "jest tests/unit --runInBand",
+    "test:int":    "jest tests/integration --runInBand",
+    "test:watch":  "jest --watch",
+    "lint":        "eslint functions/ shared/",
+    "local:extract": "sam local invoke ExtractFunction --event events/extract-public.json",
+    "local:claims":  "sam local invoke ClaimsFunction  --event events/claim-confirm.json",
+    "deploy:dev":    "sam deploy --config-env dev",
+    "deploy:prod":   "sam deploy --config-env prod"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "@aws-sdk/client-dynamodb":        "^3.600.0",
+    "@aws-sdk/client-secrets-manager": "^3.600.0",
+    "@aws-sdk/lib-dynamodb":           "^3.600.0",
+    "uuid": "^9.0.0"
+  },
+  "devDependencies": {
+    "jest":    "^29.7.0",
+    "eslint":  "^8.57.0"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "testMatch": ["**/tests/**/*.test.js"],
+    "collectCoverageFrom": ["functions/**/*.js", "shared/**/*.js"]
+  }
+}

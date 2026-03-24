@@ -1,0 +1,110 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.trackmyraces.trak'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId "com.trackmyraces.trak"
+        minSdk 26
+        targetSdk 35
+        versionCode 1
+        versionName "1.0.0"
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+
+        // API base URL injected at build time — override in local.properties or CI
+        buildConfigField "String", "API_BASE_URL", "\"${project.findProperty('trak.api.url') ?: 'https://api.trackmyraces.com/prod'}\""
+        buildConfigField "String", "APP_VERSION",  "\"${versionName}\""
+    }
+
+    buildTypes {
+        debug {
+            applicationIdSuffix ".debug"
+            versionNameSuffix "-debug"
+            buildConfigField "String", "API_BASE_URL", "\"${project.findProperty('trak.api.url.dev') ?: 'https://api.trackmyraces.com/dev'}\""
+            debuggable true
+        }
+        release {
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    buildFeatures {
+        buildConfig true
+        viewBinding true
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    testOptions {
+        unitTests.returnDefaultValues = true
+        unitTests.all {
+            jvmArgs '-Xmx1024m'
+        }
+    }
+}
+
+dependencies {
+    // ── AndroidX core ──────────────────────────────────────────────────────
+    implementation 'androidx.appcompat:appcompat:1.7.0'
+    implementation 'androidx.core:core:1.13.1'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+    implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.1.0'
+
+    // ── Material Design ────────────────────────────────────────────────────
+    implementation 'com.google.android.material:material:1.12.0'
+
+    // ── Navigation component ────────────────────────────────────────────────
+    implementation 'androidx.navigation:navigation-fragment:2.7.7'
+    implementation 'androidx.navigation:navigation-ui:2.7.7'
+
+    // ── ViewModel + LiveData ───────────────────────────────────────────────
+    implementation 'androidx.lifecycle:lifecycle-viewmodel:2.8.2'
+    implementation 'androidx.lifecycle:lifecycle-livedata:2.8.2'
+    implementation 'androidx.lifecycle:lifecycle-runtime:2.8.2'
+    annotationProcessor 'androidx.lifecycle:lifecycle-compiler:2.8.2'
+
+    // ── Room DB ────────────────────────────────────────────────────────────
+    implementation 'androidx.room:room-runtime:2.6.1'
+    annotationProcessor 'androidx.room:room-compiler:2.6.1'
+
+    // ── WorkManager ────────────────────────────────────────────────────────
+    implementation 'androidx.work:work-runtime:2.9.0'
+
+    // ── Retrofit + OkHttp ─────────────────────────────────────────────────
+    implementation 'com.squareup.retrofit2:retrofit:2.11.0'
+    implementation 'com.squareup.retrofit2:converter-gson:2.11.0'
+    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+    implementation 'com.squareup.okhttp3:logging-interceptor:4.12.0'
+
+    // ── RecyclerView + CardView ────────────────────────────────────────────
+    implementation 'androidx.recyclerview:recyclerview:1.3.2'
+    implementation 'androidx.cardview:cardview:1.0.0'
+
+    // ── Preference (Settings screen) ───────────────────────────────────────
+    implementation 'androidx.preference:preference:1.2.1'
+
+    // ── Security (EncryptedSharedPreferences + Keystore) ───────────────────
+    implementation 'androidx.security:security-crypto:1.1.0-alpha06'
+
+    // ── Charts ────────────────────────────────────────────────────────────
+    implementation 'com.github.PhilJay:MPAndroidChart:v3.1.0'
+
+    // ── Gson ──────────────────────────────────────────────────────────────
+    implementation 'com.google.code.gson:gson:2.10.1'
+
+    // ── Testing ───────────────────────────────────────────────────────────
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.mockito:mockito-core:5.11.0'
+    testImplementation 'androidx.arch.core:core-testing:2.2.0'
+    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
+    androidTestImplementation 'androidx.room:room-testing:2.6.1'
+}

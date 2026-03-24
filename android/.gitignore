@@ -1,0 +1,30 @@
+# ── Node / Backend ────────────────────────────────────────────────────────────
+node_modules/
+.aws-sam/
+.env
+env.local.json
+*.zip
+
+# ── Android ───────────────────────────────────────────────────────────────────
+*.iml
+.gradle/
+/local.properties
+/.idea/
+.DS_Store
+/android/build/
+/android/app/build/
+/android/captures/
+/android/app/release/
+*.keystore
+!debug.keystore
+
+# ── AWS / Secrets ─────────────────────────────────────────────────────────────
+.aws/credentials
+secrets/
+*.pem
+*.key
+
+# ── General ───────────────────────────────────────────────────────────────────
+*.log
+.DS_Store
+Thumbs.db

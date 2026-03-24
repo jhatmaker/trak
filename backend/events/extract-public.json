@@ -1,0 +1,7 @@
+{
+  "httpMethod": "POST",
+  "path": "/extract",
+  "headers": { "Content-Type": "application/json", "Authorization": "Bearer test-token" },
+  "requestContext": { "authorizer": { "runnerId": "runner-test-123" } },
+  "body": "{\"url\": \"https://runsignup.com/Race/Results/12345\", \"runnerName\": \"Jane Smith\", \"bibNumber\": \"1042\", \"extraContext\": \"female, age group 40-44\"}"
+}
