@@ -1,0 +1,4 @@
+ignore_checks:
+  - W3011  # DeletionPolicy/UpdateReplacePolicy — suppressed for ephemeral SAM resources
+            # (Lambda functions, API Gateway stages, IAM roles). TrakTable is the only
+            # stateful resource and has both policies set explicitly in template.yaml.
