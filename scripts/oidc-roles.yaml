@@ -111,8 +111,8 @@ Resources:
                   - s3:GetObject
                   - s3:PutBucketVersioning
                 Resource:
-                  - arn:aws:s3:::aws-sam-cli-managed-dev-*
-                  - arn:aws:s3:::aws-sam-cli-managed-dev-*/*
+                  - arn:aws:s3:::trak-sam-artifacts-dev
+                  - arn:aws:s3:::trak-sam-artifacts-dev/*
               - Sid: Lambda
                 Effect: Allow
                 Action:
@@ -203,8 +203,8 @@ Resources:
                   - s3:GetObject
                   - s3:PutBucketVersioning
                 Resource:
-                  - arn:aws:s3:::aws-sam-cli-managed-prod-*
-                  - arn:aws:s3:::aws-sam-cli-managed-prod-*/*
+                  - arn:aws:s3:::trak-sam-artifacts-prod
+                  - arn:aws:s3:::trak-sam-artifacts-prod/*
               - Sid: Lambda
                 Effect: Allow
                 Action:
