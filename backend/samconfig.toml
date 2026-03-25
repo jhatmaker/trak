@@ -5,33 +5,31 @@ version = 0.1
 stack_name = "trak"
 
 [default.build.parameters]
-cached = true
+cached   = true
 parallel = true
 
 [default.validate.parameters]
 lint = true
 
-# ── Dev environment ──────────────────────────────────────────────────────────
-[dev.deploy.parameters]
-stack_name         = "trak-dev"
-s3_bucket          = "trak-sam-artifacts-dev"
-s3_prefix          = "trak-dev"
-region             = "us-east-1"
-confirm_changeset  = true
-capabilities       = "CAPABILITY_IAM CAPABILITY_NAMED_IAM"
-parameter_overrides = "Stage=\"dev\" AnthropicSecretName=\"trak/anthropic-api-key\" JwtSecretName=\"trak/jwt-secret\""
-
-# ── Production environment ───────────────────────────────────────────────────
-resolve_s3 = true
-image_repositories = []
-
+# ── Dev environment ───────────────────────────────────────────────────────────
 [dev.global.parameters]
 region = "us-east-1"
+
+[dev.deploy.parameters]
+stack_name          = "trak-dev"
+s3_bucket           = "trak-sam-artifacts-dev"
+s3_prefix           = "trak-dev"
+region              = "us-east-1"
+confirm_changeset   = true
+capabilities        = "CAPABILITY_IAM CAPABILITY_NAMED_IAM"
+parameter_overrides = "Stage=\"dev\" AnthropicSecretName=\"trak/anthropic-api-key\" JwtSecretName=\"trak/jwt-secret\""
+
+# ── Production environment ────────────────────────────────────────────────────
 [prod.deploy.parameters]
-stack_name         = "trak-prod"
-s3_bucket          = "trak-sam-artifacts-prod"
-s3_prefix          = "trak"
-region             = "us-east-1"
-confirm_changeset  = true
-capabilities       = "CAPABILITY_IAM CAPABILITY_NAMED_IAM"
-parameter_overrides = "Stage=prod"
+stack_name          = "trak-prod"
+s3_bucket           = "trak-sam-artifacts-prod"
+s3_prefix           = "trak"
+region              = "us-east-1"
+confirm_changeset   = true
+capabilities        = "CAPABILITY_IAM CAPABILITY_NAMED_IAM"
+parameter_overrides = "Stage=\"prod\" AnthropicSecretName=\"trak/anthropic-api-key\" JwtSecretName=\"trak/jwt-secret\""
