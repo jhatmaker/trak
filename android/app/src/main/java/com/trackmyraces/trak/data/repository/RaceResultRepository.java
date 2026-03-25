@@ -74,6 +74,15 @@ public class RaceResultRepository {
         return mDao.getByYearRange(from, to);
     }
 
+
+    public LiveData<List<RaceResultEntity>> getRecentResults(int limit) {
+        return mDao.getRecentResults(limit);
+    }
+
+    public LiveData<Integer> getUniqueRaceCount() {
+        return mDao.getUniqueRaceCount();
+    }
+
     public LiveData<RaceResultEntity> getResultById(String id) {
         return mDao.getById(id);
     }

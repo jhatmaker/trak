@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <style name="Theme.Trak" parent="Theme.MaterialComponents.DayNight.DarkActionBar">
+        <item name="colorPrimary">@color/trak_primary</item>
+        <item name="colorPrimaryVariant">@color/trak_primary_dark</item>
+        <item name="colorOnPrimary">@color/text_on_primary</item>
+        <item name="colorSecondary">@color/trak_secondary</item>
+        <item name="colorOnSecondary">@color/text_on_primary</item>
+        <item name="android:colorBackground">@color/background</item>
+        <item name="colorSurface">@color/surface</item>
+        <item name="colorError">@color/error</item>
+        <item name="android:statusBarColor">@color/trak_primary_dark</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+
+    <!-- No action bar variant for fragments that manage their own toolbar -->
+    <style name="Theme.Trak.NoActionBar">
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+    </style>
+
+    <!-- Card style -->
+    <style name="Trak.Card" parent="Widget.MaterialComponents.CardView">
+        <item name="cardBackgroundColor">@color/card_background</item>
+        <item name="cardCornerRadius">12dp</item>
+        <item name="cardElevation">2dp</item>
+        <item name="contentPadding">0dp</item>
+    </style>
+
+    <!-- Badge pill -->
+    <style name="Trak.Badge">
+        <item name="android:paddingStart">8dp</item>
+        <item name="android:paddingEnd">8dp</item>
+        <item name="android:paddingTop">2dp</item>
+        <item name="android:paddingBottom">2dp</item>
+        <item name="android:textSize">11sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="Trak.Badge.PR">
+        <item name="android:background">@drawable/bg_badge_pr</item>
+        <item name="android:textColor">@color/badge_pr_text</item>
+    </style>
+
+    <style name="Trak.Badge.BQ">
+        <item name="android:background">@drawable/bg_badge_bq</item>
+        <item name="android:textColor">@color/badge_bq_text</item>
+    </style>
+
+    <!-- Section header -->
+    <style name="Trak.SectionHeader">
+        <item name="android:textSize">13sp</item>
+        <item name="android:textColor">@color/text_secondary</item>
+        <item name="android:textAllCaps">true</item>
+        <item name="android:letterSpacing">0.08</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+    </style>
+
+    <!-- Stat value (large number on dashboard) -->
+    <style name="Trak.StatValue">
+        <item name="android:textSize">28sp</item>
+        <item name="android:textColor">@color/text_primary</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+    </style>
+
+    <!-- Stat label -->
+    <style name="Trak.StatLabel">
+        <item name="android:textSize">12sp</item>
+        <item name="android:textColor">@color/text_secondary</item>
+    </style>
+
+    <!-- Primary button -->
+    <style name="Trak.Button" parent="Widget.MaterialComponents.Button">
+        <item name="backgroundTint">@color/trak_primary</item>
+        <item name="android:textColor">@color/text_on_primary</item>
+        <item name="cornerRadius">8dp</item>
+        <item name="android:paddingTop">12dp</item>
+        <item name="android:paddingBottom">12dp</item>
+    </style>
+
+    <!-- Text/outlined button -->
+    <style name="Trak.Button.Outlined" parent="Widget.MaterialComponents.Button.OutlinedButton">
+        <item name="strokeColor">@color/trak_primary</item>
+        <item name="android:textColor">@color/trak_primary</item>
+        <item name="cornerRadius">8dp</item>
+    </style>
+
+</resources>

@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Brand -->
+    <color name="trak_primary">#1B5E20</color>        <!-- Deep forest green -->
+    <color name="trak_primary_dark">#003300</color>
+    <color name="trak_primary_light">#4CAF50</color>
+    <color name="trak_secondary">#FF6F00</color>       <!-- Amber — PRs and highlights -->
+    <color name="trak_secondary_light">#FFB300</color>
+
+    <!-- Surface -->
+    <color name="surface">#FFFFFF</color>
+    <color name="surface_variant">#F5F5F5</color>
+    <color name="background">#FAFAFA</color>
+
+    <!-- Text -->
+    <color name="text_primary">#1A1A1A</color>
+    <color name="text_secondary">#616161</color>
+    <color name="text_hint">#9E9E9E</color>
+    <color name="text_on_primary">#FFFFFF</color>
+
+    <!-- Badges -->
+    <color name="badge_pr_bg">#FFF8E1</color>
+    <color name="badge_pr_text">#E65100</color>
+    <color name="badge_bq_bg">#E8F5E9</color>
+    <color name="badge_bq_text">#1B5E20</color>
+    <color name="badge_trail_bg">#F3E5F5</color>
+    <color name="badge_trail_text">#4A148C</color>
+
+    <!-- Divider -->
+    <color name="divider">#E0E0E0</color>
+
+    <!-- Status -->
+    <color name="error">#B71C1C</color>
+    <color name="success">#2E7D32</color>
+    <color name="warning">#F57F17</color>
+    <color name="info">#1565C0</color>
+
+    <!-- Night mode overrides in values-night/colors.xml -->
+    <color name="card_background">#FFFFFF</color>
+    <color name="bottom_nav_bg">#FFFFFF</color>
+</resources>

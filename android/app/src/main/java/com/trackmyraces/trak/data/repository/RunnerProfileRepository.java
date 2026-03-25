@@ -122,6 +122,12 @@ public class RunnerProfileRepository {
         });
     }
 
+
+    /** Synchronous profile fetch for use in ViewModels on background thread */
+    public RunnerProfileEntity getProfileSync() {
+        return mDao.getProfileSync();
+    }
+
     /** Store auth token locally after login */
     public void saveAuthToken(String profileId, String token) {
         mExecutor.execute(() -> mDao.updateAuthToken(profileId, token));

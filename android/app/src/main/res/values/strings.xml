@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- App -->
+    <string name="app_name">Trak</string>
+    <string name="app_tagline">Track every race. Own your history.</string>
+
+    <!-- Bottom nav -->
+    <string name="nav_dashboard">Dashboard</string>
+    <string name="nav_history">History</string>
+    <string name="nav_add">Add Result</string>
+    <string name="nav_profile">Profile</string>
+
+    <!-- Dashboard -->
+    <string name="dashboard_greeting">Hi, %1$s</string>
+    <string name="dashboard_total_races">Total races</string>
+    <string name="dashboard_total_distance">Total distance</string>
+    <string name="dashboard_unique_races">Unique races</string>
+    <string name="dashboard_pr_board">Personal records</string>
+    <string name="dashboard_recent">Recent results</string>
+    <string name="dashboard_empty">No results yet.\nTap + to add your first race.</string>
+    <string name="dashboard_syncing">Syncing…</string>
+    <string name="dashboard_sync_error">Sync failed — showing cached results</string>
+
+    <!-- History / Results list -->
+    <string name="history_title">Race history</string>
+    <string name="history_empty">No results match your filters.</string>
+    <string name="history_filter">Filter</string>
+    <string name="history_sort">Sort</string>
+    <string name="history_clear_filters">Clear filters</string>
+    <string name="history_pr_badge">PR</string>
+    <string name="history_bq_badge">BQ</string>
+    <string name="filter_all_distances">All distances</string>
+    <string name="filter_all_surfaces">All surfaces</string>
+    <string name="filter_all_years">All years</string>
+    <string name="filter_pr_only">PRs only</string>
+
+    <!-- Result detail -->
+    <string name="detail_title">Result</string>
+    <string name="detail_finish_time">Finish time</string>
+    <string name="detail_chip_time">Chip time</string>
+    <string name="detail_pace">Pace</string>
+    <string name="detail_overall">Overall</string>
+    <string name="detail_gender">Gender</string>
+    <string name="detail_age_group">Age group</string>
+    <string name="detail_age_at_race">Age on race day</string>
+    <string name="detail_age_grade">Age grade</string>
+    <string name="detail_bq_gap">BQ gap</string>
+    <string name="detail_splits">Splits</string>
+    <string name="detail_source">Source</string>
+    <string name="detail_notes">Notes</string>
+    <string name="detail_edit">Edit</string>
+    <string name="detail_delete">Delete result</string>
+    <string name="detail_delete_confirm">Remove this result from your history?</string>
+    <string name="detail_share">Share</string>
+
+    <!-- Add result / Claim flow -->
+    <string name="add_title">Add result</string>
+    <string name="add_url_hint">Race results page URL</string>
+    <string name="add_name_hint">Your name (as it appears in results)</string>
+    <string name="add_bib_hint">Bib number (optional)</string>
+    <string name="add_context_hint">Extra context — e.g. female, age group 40–44 (optional)</string>
+    <string name="add_extract_button">Find my result</string>
+    <string name="add_manual_button">Enter manually</string>
+    <string name="add_extracting">Searching for your result…\nThis can take up to 20 seconds.</string>
+    <string name="add_not_found">Runner not found on this page.\nTry adding your bib number or extra context.</string>
+    <string name="add_review_title">Review result</string>
+    <string name="add_review_hint">Check all fields before claiming. Tap any field to correct it.</string>
+    <string name="add_claim_button">Claim this result</string>
+    <string name="add_claiming">Saving…</string>
+    <string name="add_success_pr">New personal record! 🎉</string>
+    <string name="add_success">Result added to your history.</string>
+    <string name="add_credential_hint">This site requires login. Tap here to add your credentials.</string>
+
+    <!-- Profile -->
+    <string name="profile_title">Profile</string>
+    <string name="profile_name_hint">Full name</string>
+    <string name="profile_dob_hint">Date of birth</string>
+    <string name="profile_gender_hint">Gender</string>
+    <string name="profile_location_hint">City, state</string>
+    <string name="profile_units_hint">Units</string>
+    <string name="profile_save">Save changes</string>
+    <string name="profile_linked_sites">Linked sites</string>
+    <string name="profile_add_site">Add a site login</string>
+    <string name="profile_site_url_hint">Site URL (e.g. https://club.example.com)</string>
+    <string name="profile_site_label_hint">Site name (e.g. Quincy Running Club)</string>
+    <string name="profile_username_hint">Username</string>
+    <string name="profile_password_hint">Password</string>
+    <string name="profile_credential_warning">Your password is stored securely on this device only. It is never sent to Trak servers.</string>
+    <string name="profile_test_login">Test login</string>
+    <string name="profile_login_ok">Login successful</string>
+    <string name="profile_login_failed">Login failed — check your credentials</string>
+    <string name="profile_units_metric">Metric (km)</string>
+    <string name="profile_units_imperial">Imperial (miles)</string>
+    <string name="profile_gender_m">Male</string>
+    <string name="profile_gender_f">Female</string>
+    <string name="profile_gender_nb">Non-binary</string>
+    <string name="profile_gender_na">Prefer not to say</string>
+
+    <!-- Onboarding -->
+    <string name="onboard_title">Welcome to Trak</string>
+    <string name="onboard_subtitle">Your complete race history, in one place.</string>
+    <string name="onboard_create">Create your profile</string>
+    <string name="onboard_dob_required">Date of birth is used to calculate your age group and BQ eligibility.</string>
+
+    <!-- Common -->
+    <string name="ok">OK</string>
+    <string name="cancel">Cancel</string>
+    <string name="delete">Delete</string>
+    <string name="save">Save</string>
+    <string name="edit">Edit</string>
+    <string name="retry">Retry</string>
+    <string name="loading">Loading…</string>
+    <string name="offline_banner">Offline — showing cached results</string>
+    <string name="error_generic">Something went wrong. Please try again.</string>
+    <string name="error_network">No connection. Check your internet and try again.</string>
+    <string name="place_of">%1$d of %2$d</string>
+    <string name="year_label">%1$d</string>
+</resources>

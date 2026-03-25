@@ -10,7 +10,7 @@ import java.util.Map;
 // Extraction
 // ─────────────────────────────────────────────────────────────────────────────
 
-class ExtractionRequest {
+public class ExtractionRequest {
     @SerializedName("url")          public String url;
     @SerializedName("runnerName")   public String runnerName;
     @SerializedName("bibNumber")    public String bibNumber;
@@ -18,7 +18,7 @@ class ExtractionRequest {
     @SerializedName("extraContext") public String extraContext;
 }
 
-class ExtractionResponse {
+public class ExtractionResponse {
     @SerializedName("found")              public boolean found;
     @SerializedName("extractionId")       public String  extractionId;
     @SerializedName("raceName")           public String  raceName;
@@ -60,12 +60,12 @@ class ExtractionResponse {
 // Claims
 // ─────────────────────────────────────────────────────────────────────────────
 
-class ClaimRequest {
+public class ClaimRequest {
     @SerializedName("extractionId") public String              extractionId;
     @SerializedName("edits")        public Map<String, Object> edits;
 }
 
-class ClaimResponse {
+public class ClaimResponse {
     @SerializedName("claimId")          public String  claimId;
     @SerializedName("resultId")         public String  resultId;
     @SerializedName("raceEventId")      public String  raceEventId;
@@ -80,7 +80,7 @@ class ClaimResponse {
 // Results
 // ─────────────────────────────────────────────────────────────────────────────
 
-class ResultResponse {
+public class ResultResponse {
     @SerializedName("id")                 public String  id;
     @SerializedName("claimId")            public String  claimId;
     @SerializedName("raceEventId")        public String  raceEventId;
@@ -169,7 +169,7 @@ class ResultResponse {
     }
 }
 
-class ResultsListResponse {
+public class ResultsListResponse {
     @SerializedName("total")   public int                total;
     @SerializedName("count")   public int                count;
     @SerializedName("results") public List<ResultResponse> results;
@@ -187,7 +187,7 @@ class ResultsListResponse {
 // Profile
 // ─────────────────────────────────────────────────────────────────────────────
 
-class ProfileRequest {
+public class ProfileRequest {
     @SerializedName("name")           public String name;
     @SerializedName("dateOfBirth")    public String dateOfBirth;
     @SerializedName("gender")         public String gender;
@@ -197,7 +197,7 @@ class ProfileRequest {
     @SerializedName("preferredUnits") public String preferredUnits;
 }
 
-class ProfileResponse {
+public class ProfileResponse {
     @SerializedName("id")             public String id;
     @SerializedName("name")           public String name;
     @SerializedName("email")          public String email;
@@ -216,7 +216,7 @@ class ProfileResponse {
 // Saved Views
 // ─────────────────────────────────────────────────────────────────────────────
 
-class SavedViewRequest {
+public class SavedViewRequest {
     @SerializedName("name")         public String  name;
     @SerializedName("viewType")     public String  viewType;
     @SerializedName("distance")     public String  distance;
@@ -228,7 +228,7 @@ class SavedViewRequest {
     @SerializedName("order")        public String  order;
 }
 
-class SavedViewResponse {
+public class SavedViewResponse {
     @SerializedName("id")           public String  id;
     @SerializedName("name")         public String  name;
     @SerializedName("viewType")     public String  viewType;
@@ -241,7 +241,7 @@ class SavedViewResponse {
     @SerializedName("order")        public String  order;
 }
 
-class ViewsListResponse {
+public class ViewsListResponse {
     @SerializedName("views") public List<SavedViewResponse> views;
 }
 
@@ -249,7 +249,7 @@ class ViewsListResponse {
 // Shared
 // ─────────────────────────────────────────────────────────────────────────────
 
-class SplitDto {
+public class SplitDto {
     @SerializedName("label")          public String  label;
     @SerializedName("distanceMeters") public double  distanceMeters;
     @SerializedName("elapsedSeconds") public int     elapsedSeconds;
