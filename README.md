@@ -40,6 +40,7 @@ trak/                         ← monorepo root
 ├── docs/                     ← Architecture docs
 │   └── architecture.docx
 └── scripts/                  ← Dev utilities
+    ├── oidc-roles.yaml       ← CloudFormation: GitHub Actions IAM roles (one-time setup)
     ├── bootstrap-secrets.sh  ← Create AWS Secrets Manager entries
     ├── gen-token.js          ← Generate a dev JWT for local testing
     └── sync_changed.sh       ← Version diff/sync utility
@@ -115,9 +116,33 @@ sudo xattr -dr com.apple.quarantine ~/Library/Android/sdk/platform-tools
 
 **Flow:** `feature/my-thing` → PR to `develop` → CI runs → merge → PR `develop` to `main` → deploy
 
+## CI/CD setup (one-time, new environments)
+
+GitHub Actions authenticates to AWS via OIDC — no stored access keys required.
+Before the first push, deploy the IAM roles with your personal admin credentials:
+
+```bash
+aws cloudformation deploy \
+  --template-file scripts/oidc-roles.yaml \
+  --stack-name trak-github-oidc \
+  --capabilities CAPABILITY_NAMED_IAM \
+  --region us-east-1
+```
+
+Three scoped roles are created:
+
+| Role | Branch restriction | Permissions |
+|---|---|---|
+| `trak-github-validate` | any | `cloudformation:ValidateTemplate` only |
+| `trak-github-deploy-dev` | `develop` only | Lambda, DynamoDB, API Gateway, IAM — dev resources only |
+| `trak-github-deploy-prod` | `main` only | Lambda, DynamoDB, API Gateway, IAM — prod resources only |
+
+No GitHub secrets needed after this step. To update a role policy, edit
+`scripts/oidc-roles.yaml` and re-run the same `aws cloudformation deploy` command.
+
 ## Deployment
 
-Backend deploys automatically via GitHub Actions on merge to `main`.  
+Backend deploys automatically via GitHub Actions on merge to `develop` (dev) or `main` (prod).
 Android release builds are triggered manually via the Actions tab.
 
 ## Domain
