@@ -95,6 +95,7 @@ Resources:
                   - cloudformation:DeleteChangeSet
                   - cloudformation:DescribeChangeSet
                   - cloudformation:DescribeStacks
+                  - cloudformation:DescribeStackEvents
                   - cloudformation:ExecuteChangeSet
                   - cloudformation:GetTemplateSummary
                   - cloudformation:ValidateTemplate
@@ -187,6 +188,7 @@ Resources:
                   - cloudformation:DeleteChangeSet
                   - cloudformation:DescribeChangeSet
                   - cloudformation:DescribeStacks
+                  - cloudformation:DescribeStackEvents
                   - cloudformation:ExecuteChangeSet
                   - cloudformation:GetTemplateSummary
                   - cloudformation:ValidateTemplate
