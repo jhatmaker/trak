@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/dashboardFragment">
+
+    <!-- Dashboard -->
+    <fragment
+        android:id="@+id/dashboardFragment"
+        android:name="com.trackmyraces.trak.ui.dashboard.DashboardFragment"
+        android:label="@string/nav_dashboard"
+        tools:layout="@layout/fragment_dashboard">
+
+        <action
+            android:id="@+id/action_dashboard_to_detail"
+            app:destination="@id/resultDetailFragment" />
+
+    </fragment>
+
+    <!-- History -->
+    <fragment
+        android:id="@+id/historyFragment"
+        android:name="com.trackmyraces.trak.ui.results.HistoryFragment"
+        android:label="@string/nav_history"
+        tools:layout="@layout/fragment_history">
+
+        <action
+            android:id="@+id/action_history_to_detail"
+            app:destination="@id/resultDetailFragment" />
+
+    </fragment>
+
+    <!-- Add Result -->
+    <fragment
+        android:id="@+id/addResultFragment"
+        android:name="com.trackmyraces.trak.ui.claims.AddResultFragment"
+        android:label="@string/nav_add"
+        tools:layout="@layout/fragment_add_result">
+
+        <action
+            android:id="@+id/action_add_to_detail"
+            app:destination="@id/resultDetailFragment"
+            app:popUpTo="@id/addResultFragment"
+            app:popUpToInclusive="true" />
+
+    </fragment>
+
+    <!-- Profile -->
+    <fragment
+        android:id="@+id/profileFragment"
+        android:name="com.trackmyraces.trak.ui.profile.ProfileFragment"
+        android:label="@string/nav_profile"
+        tools:layout="@layout/fragment_profile" />
+
+    <!-- Result detail (navigated to from Dashboard, History, or Add) -->
+    <fragment
+        android:id="@+id/resultDetailFragment"
+        android:name="com.trackmyraces.trak.ui.results.ResultDetailFragment"
+        android:label="@string/detail_title"
+        tools:layout="@layout/fragment_result_detail">
+
+        <argument
+            android:name="resultId"
+            app:argType="string" />
+
+    </fragment>
+
+</navigation>

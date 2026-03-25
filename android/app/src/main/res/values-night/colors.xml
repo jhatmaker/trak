@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="surface">#1E1E1E</color>
+    <color name="surface_variant">#2C2C2C</color>
+    <color name="background">#121212</color>
+    <color name="text_primary">#EEEEEE</color>
+    <color name="text_secondary">#BDBDBD</color>
+    <color name="text_hint">#757575</color>
+    <color name="divider">#424242</color>
+    <color name="card_background">#1E1E1E</color>
+    <color name="bottom_nav_bg">#1E1E1E</color>
+</resources>

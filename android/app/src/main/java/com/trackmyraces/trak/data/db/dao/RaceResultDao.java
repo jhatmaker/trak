@@ -109,6 +109,12 @@ public interface RaceResultDao {
     @Query("SELECT MIN(COALESCE(chip_seconds, finish_seconds)) FROM race_result WHERE status != 'deleted' AND distance_canonical = :distanceCanonical")
     LiveData<Integer> getFastestSecondsForDistance(String distanceCanonical);
 
+
+    // ── Added for Dashboard ───────────────────────────────────────────────
+
+    @Query("SELECT * FROM race_result WHERE status != 'deleted' ORDER BY race_date DESC LIMIT :limit")
+    LiveData<List<RaceResultEntity>> getRecentResults(int limit);
+
     @Query("SELECT DISTINCT CAST(substr(race_date, 1, 4) AS INTEGER) FROM race_result WHERE status != 'deleted' ORDER BY race_date DESC")
     LiveData<List<Integer>> getActiveYears();
 }

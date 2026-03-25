@@ -1,0 +1,117 @@
+package com.trackmyraces.trak.ui.dashboard;
+
+import android.os.Bundle;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
+import androidx.navigation.Navigation;
+import androidx.recyclerview.widget.LinearLayoutManager;
+
+import com.trackmyraces.trak.R;
+import com.trackmyraces.trak.databinding.FragmentDashboardBinding;
+import com.trackmyraces.trak.ui.results.RaceResultAdapter;
+import com.trackmyraces.trak.util.TimeFormatter;
+
+/**
+ * DashboardFragment — home screen.
+ *
+ * Shows summary stats, PR board, and recent results.
+ * Pull-to-refresh triggers a backend sync via DashboardViewModel.
+ */
+public class DashboardFragment extends Fragment {
+
+    private FragmentDashboardBinding mBinding;
+    private DashboardViewModel       mViewModel;
+    private RaceResultAdapter        mPRAdapter;
+    private RaceResultAdapter        mRecentAdapter;
+
+    @Override
+    public View onCreateView(@NonNull LayoutInflater inflater,
+                             ViewGroup container, Bundle savedInstanceState) {
+        mBinding = FragmentDashboardBinding.inflate(inflater, container, false);
+        return mBinding.getRoot();
+    }
+
+    @Override
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+
+        mViewModel = new ViewModelProvider(this).get(DashboardViewModel.class);
+
+        setupRecyclerViews();
+        observeViewModel();
+
+        // Pull-to-refresh
+        mBinding.swipeRefresh.setColorSchemeResources(R.color.trak_primary);
+        mBinding.swipeRefresh.setOnRefreshListener(() -> mViewModel.refresh());
+    }
+
+    private void setupRecyclerViews() {
+        // PR board — horizontal scroll of PR cards
+        mPRAdapter = new RaceResultAdapter(result -> navigateToDetail(result.id));
+        mBinding.rvPrs.setLayoutManager(
+            new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false));
+        mBinding.rvPrs.setAdapter(mPRAdapter);
+
+        // Recent results — vertical list
+        mRecentAdapter = new RaceResultAdapter(result -> navigateToDetail(result.id));
+        mBinding.rvRecent.setLayoutManager(new LinearLayoutManager(getContext()));
+        mBinding.rvRecent.setAdapter(mRecentAdapter);
+    }
+
+    private void observeViewModel() {
+        // Stats
+        mViewModel.totalRaceCount.observe(getViewLifecycleOwner(), count -> {
+            mBinding.tvRaceCount.setText(count != null ? String.valueOf(count) : "0");
+        });
+
+        mViewModel.totalDistanceMeters.observe(getViewLifecycleOwner(), meters -> {
+            if (meters == null || meters == 0) {
+                mBinding.tvTotalDistance.setText("0 km");
+            } else {
+                mBinding.tvTotalDistance.setText(TimeFormatter.formatDistance(meters, false));
+            }
+        });
+
+        mViewModel.uniqueRaceCount.observe(getViewLifecycleOwner(), count -> {
+            mBinding.tvUniqueRaces.setText(count != null ? String.valueOf(count) : "0");
+        });
+
+        // PR board
+        mViewModel.prList.observe(getViewLifecycleOwner(), prs -> {
+            mPRAdapter.submitList(prs);
+        });
+
+        // Recent results
+        mViewModel.recentResults.observe(getViewLifecycleOwner(), results -> {
+            mRecentAdapter.submitList(results);
+            boolean empty = results == null || results.isEmpty();
+            mBinding.tvEmpty.setVisibility(empty ? View.VISIBLE : View.GONE);
+            mBinding.rvRecent.setVisibility(empty ? View.GONE : View.VISIBLE);
+            mBinding.rvPrs.setVisibility(empty ? View.GONE : View.VISIBLE);
+        });
+
+        // Sync state → drive SwipeRefreshLayout
+        mViewModel.syncState.observe(getViewLifecycleOwner(), state -> {
+            mBinding.swipeRefresh.setRefreshing(state == DashboardViewModel.SyncState.SYNCING);
+        });
+    }
+
+    private void navigateToDetail(String resultId) {
+        Bundle args = new Bundle();
+        args.putString("resultId", resultId);
+        Navigation.findNavController(requireView())
+            .navigate(R.id.action_dashboard_to_detail, args);
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        mBinding = null;
+    }
+}
