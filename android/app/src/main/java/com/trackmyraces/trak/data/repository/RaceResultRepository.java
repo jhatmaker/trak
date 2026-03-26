@@ -177,6 +177,30 @@ public class RaceResultRepository {
         });
     }
 
+    // ── Manual entry (offline) ────────────────────────────────────────────
+
+    /**
+     * Save a manually-entered result directly to Room.
+     * Does NOT call the backend — result is queued for sync later (isSynced=false).
+     *
+     * @param entity   Fully-populated entity (id must be set by caller)
+     * @param callback Called on the executor thread with the saved resultId or error
+     */
+    public void saveManualResult(RaceResultEntity entity, RepositoryCallback<String> callback) {
+        mExecutor.execute(() -> {
+            try {
+                mDao.insertOrReplace(entity);
+                if (entity.distanceCanonical != null) {
+                    recalculatePRs(entity.distanceCanonical);
+                }
+                callback.onSuccess(entity.id);
+            } catch (Exception e) {
+                Log.e(TAG, "Failed to save manual result", e);
+                callback.onError(e.getMessage());
+            }
+        });
+    }
+
     // ── Delete ────────────────────────────────────────────────────────────
 
     public void deleteResult(String resultId, String claimId, RepositoryCallback<Void> callback) {

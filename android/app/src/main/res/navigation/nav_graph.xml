@@ -45,6 +45,25 @@
             app:popUpTo="@id/addResultFragment"
             app:popUpToInclusive="true" />
 
+        <action
+            android:id="@+id/action_add_to_manual"
+            app:destination="@id/manualEntryFragment" />
+
+    </fragment>
+
+    <!-- Manual Entry -->
+    <fragment
+        android:id="@+id/manualEntryFragment"
+        android:name="com.trackmyraces.trak.ui.claims.ManualEntryFragment"
+        android:label="@string/manual_entry_title"
+        tools:layout="@layout/fragment_manual_entry">
+
+        <action
+            android:id="@+id/action_manual_to_detail"
+            app:destination="@id/resultDetailFragment"
+            app:popUpTo="@id/addResultFragment"
+            app:popUpToInclusive="true" />
+
     </fragment>
 
     <!-- Profile -->

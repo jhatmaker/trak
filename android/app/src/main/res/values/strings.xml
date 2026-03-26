@@ -102,6 +102,19 @@
     <string name="onboard_create">Create your profile</string>
     <string name="onboard_dob_required">Date of birth is used to calculate your age group and BQ eligibility.</string>
 
+    <!-- Manual entry -->
+    <string name="manual_entry_title">Enter result manually</string>
+    <string name="manual_race_name_hint">Race name</string>
+    <string name="manual_race_date_hint">Race date</string>
+    <string name="manual_distance_hint">Distance</string>
+    <string name="manual_finish_time_hint">Finish time</string>
+    <string name="manual_finish_time_format">e.g. 1:23:45 or 25:30</string>
+    <string name="manual_save_button">Save result</string>
+    <string name="manual_error_required">This field is required</string>
+    <string name="manual_error_time_format">Enter time as H:MM:SS or MM:SS</string>
+    <string name="manual_error_save">Failed to save result. Please try again.</string>
+    <string name="add_offline_hint">No connection — AI extraction unavailable. Use Enter manually below.</string>
+
     <!-- Common -->
     <string name="ok">OK</string>
     <string name="cancel">Cancel</string>

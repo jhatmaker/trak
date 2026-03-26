@@ -15,6 +15,7 @@ import androidx.navigation.Navigation;
 
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.trackmyraces.trak.R;
+import com.trackmyraces.trak.TrakApplication;
 import com.trackmyraces.trak.data.db.entity.RunnerProfileEntity;
 import com.trackmyraces.trak.data.network.dto.ExtractionResponse;
 import com.trackmyraces.trak.databinding.FragmentAddResultBinding;
@@ -37,6 +38,7 @@ public class AddResultFragment extends Fragment {
     private FragmentAddResultBinding mBinding;
     private ClaimViewModel           mViewModel;
     private RunnerProfileEntity      mProfile;
+    private boolean                  mIsOnline = true;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
@@ -53,6 +55,13 @@ public class AddResultFragment extends Fragment {
         // Observe profile via activity scope so it's loaded regardless of which tab was visited first
         new ViewModelProvider(requireActivity()).get(ProfileViewModel.class)
             .profile.observe(getViewLifecycleOwner(), profile -> mProfile = profile);
+
+        // Observe network state — disable AI extraction when offline
+        TrakApplication.getInstance().getNetworkMonitor()
+            .observe(getViewLifecycleOwner(), isOnline -> {
+                mIsOnline = isOnline;
+                updateExtractButtonState(isOnline);
+            });
 
         setupClickListeners();
         observeViewModel();
@@ -88,16 +97,23 @@ public class AddResultFragment extends Fragment {
                                null, context.isEmpty() ? null : context);
         });
 
-        // Manual entry (placeholder — navigates to manual entry screen in a future build)
-        mBinding.btnManual.setOnClickListener(v -> {
-            // TODO: navigate to manual entry fragment
-        });
+        // Manual entry — navigate to manual entry form
+        mBinding.btnManual.setOnClickListener(v ->
+            Navigation.findNavController(requireView())
+                .navigate(R.id.action_add_to_manual));
 
         // Step 3: Claim
         mBinding.btnClaim.setOnClickListener(v -> mViewModel.confirmClaim());
 
         // Back to input from review
         mBinding.btnBackToInput.setOnClickListener(v -> mViewModel.reset());
+    }
+
+    private void updateExtractButtonState(boolean isOnline) {
+        mBinding.btnExtract.setEnabled(isOnline);
+        mBinding.btnExtract.setAlpha(isOnline ? 1.0f : 0.5f);
+        // Show a hint below the button when offline
+        mBinding.tvOfflineHint.setVisibility(isOnline ? View.GONE : View.VISIBLE);
     }
 
     private void observeViewModel() {

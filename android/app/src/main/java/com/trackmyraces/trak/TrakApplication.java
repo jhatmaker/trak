@@ -6,6 +6,7 @@ import android.util.Log;
 import com.trackmyraces.trak.data.db.TrakDatabase;
 import com.trackmyraces.trak.data.network.ApiClient;
 import com.trackmyraces.trak.sync.SyncManager;
+import com.trackmyraces.trak.util.NetworkMonitor;
 
 /**
  * TrakApplication
@@ -23,6 +24,7 @@ public class TrakApplication extends Application {
     private TrakDatabase   mDatabase;
     private ApiClient      mApiClient;
     private SyncManager    mSyncManager;
+    private NetworkMonitor mNetworkMonitor;
 
     @Override
     public void onCreate() {
@@ -60,5 +62,13 @@ public class TrakApplication extends Application {
             mSyncManager = new SyncManager(this);
         }
         return mSyncManager;
+    }
+
+    /** Returns the singleton NetworkMonitor, creating it on first call. */
+    public synchronized NetworkMonitor getNetworkMonitor() {
+        if (mNetworkMonitor == null) {
+            mNetworkMonitor = new NetworkMonitor(this);
+        }
+        return mNetworkMonitor;
     }
 }

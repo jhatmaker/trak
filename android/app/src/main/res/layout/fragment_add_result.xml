@@ -106,6 +106,17 @@
                 android:text="@string/add_extract_button"
                 style="@style/Trak.Button" />
 
+            <TextView
+                android:id="@+id/tv_offline_hint"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:gravity="center"
+                android:text="@string/add_offline_hint"
+                android:textColor="@color/text_secondary"
+                android:textSize="13sp"
+                android:visibility="gone" />
+
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_manual"
                 android:layout_width="match_parent"

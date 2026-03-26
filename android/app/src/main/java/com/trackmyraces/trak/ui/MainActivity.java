@@ -2,6 +2,7 @@ package com.trackmyraces.trak.ui;
 
 import android.os.Bundle;
 import android.view.MenuItem;
+import android.view.View;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -59,6 +60,11 @@ public class MainActivity extends AppCompatActivity {
         // Wire toolbar and bottom nav to nav controller
         NavigationUI.setupActionBarWithNavController(this, mNavController, appBarConfig);
         NavigationUI.setupWithNavController(mBinding.bottomNav, mNavController);
+
+        // Observe network state — show/hide offline banner
+        TrakApplication.getInstance().getNetworkMonitor().observe(this, isOnline ->
+            mBinding.offlineBanner.setVisibility(isOnline ? View.GONE : View.VISIBLE)
+        );
 
         // Kick off background sync on launch
         TrakApplication.getInstance().getSyncManager().syncIfOnline((success, message) ->
