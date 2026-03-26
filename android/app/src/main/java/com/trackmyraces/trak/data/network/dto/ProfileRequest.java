@@ -9,6 +9,7 @@ public class ProfileRequest {
     @SerializedName("city")           public String city;
     @SerializedName("state")          public String state;
     @SerializedName("country")        public String country;
-    @SerializedName("preferredUnits") public String preferredUnits;
-    @SerializedName("interests")      public java.util.List<String> interests;
+    @SerializedName("preferredUnits")    public String preferredUnits;
+    @SerializedName("preferredTempUnit") public String preferredTempUnit;
+    @SerializedName("interests")         public java.util.List<String> interests;
 }

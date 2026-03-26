@@ -111,11 +111,12 @@ public class ProfileFragment extends Fragment {
             else if (mBinding.chipGenderF.isChecked()) gender = "F";
             else if (mBinding.chipGenderNb.isChecked()) gender = "NB";
 
-            String units     = mBinding.chipMetric.isChecked() ? "metric" : "imperial";
+            String units    = mBinding.chipMetric.isChecked() ? "metric" : "imperial";
+            String tempUnit = mBinding.chipCelsius.isChecked() ? "celsius" : "fahrenheit";
             String interests = getSelectedInterests();
 
             boolean isFirstSave = mIsNewProfile;
-            mViewModel.saveProfile(name, dob, gender, units, interests, (success, message) ->
+            mViewModel.saveProfile(name, dob, gender, units, tempUnit, interests, (success, message) ->
                 requireActivity().runOnUiThread(() -> {
                     if (!success) {
                         Toast.makeText(requireContext(),
@@ -155,8 +156,13 @@ public class ProfileFragment extends Fragment {
             else if ("F".equals(profile.gender)) mBinding.chipGenderF.setChecked(true);
             else if ("NB".equals(profile.gender))mBinding.chipGenderNb.setChecked(true);
 
-            if ("imperial".equals(profile.preferredUnits)) mBinding.chipImperial.setChecked(true);
-            else mBinding.chipMetric.setChecked(true);
+            // Distance — default to imperial (miles)
+            if ("metric".equals(profile.preferredUnits)) mBinding.chipMetric.setChecked(true);
+            else mBinding.chipImperial.setChecked(true);
+
+            // Temperature — default to fahrenheit
+            if ("celsius".equals(profile.preferredTempUnit)) mBinding.chipCelsius.setChecked(true);
+            else mBinding.chipFahrenheit.setChecked(true);
 
             // Restore interest chips
             java.util.List<String> saved = profile.getInterestList();

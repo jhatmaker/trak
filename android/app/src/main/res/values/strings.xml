@@ -77,7 +77,8 @@
     <string name="profile_dob_hint">Date of birth</string>
     <string name="profile_gender_hint">Gender</string>
     <string name="profile_location_hint">City, state</string>
-    <string name="profile_units_hint">Units</string>
+    <string name="profile_distance_units_hint">Distance</string>
+    <string name="profile_temp_units_hint">Temperature</string>
     <string name="profile_save">Save changes</string>
     <string name="profile_linked_sites">Linked sites</string>
     <string name="profile_add_site">Add a site login</string>
@@ -89,8 +90,10 @@
     <string name="profile_test_login">Test login</string>
     <string name="profile_login_ok">Login successful</string>
     <string name="profile_login_failed">Login failed — check your credentials</string>
-    <string name="profile_units_metric">Metric (km)</string>
-    <string name="profile_units_imperial">Imperial (miles)</string>
+    <string name="profile_units_metric">km</string>
+    <string name="profile_units_imperial">miles</string>
+    <string name="profile_units_fahrenheit">°F</string>
+    <string name="profile_units_celsius">°C</string>
     <string name="profile_gender_m">Male</string>
     <string name="profile_gender_f">Female</string>
     <string name="profile_gender_nb">Non-binary</string>

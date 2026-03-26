@@ -41,9 +41,13 @@ public class RunnerProfileEntity {
     @ColumnInfo(name = "country")
     public String country;
 
-    /** "metric" or "imperial" */
+    /** "metric" (km) or "imperial" (miles) */
     @ColumnInfo(name = "preferred_units")
     public String preferredUnits;
+
+    /** "celsius" or "fahrenheit" */
+    @ColumnInfo(name = "preferred_temp_unit")
+    public String preferredTempUnit;
 
     /** JWT token for authenticating API calls — stored locally only */
     @ColumnInfo(name = "auth_token")

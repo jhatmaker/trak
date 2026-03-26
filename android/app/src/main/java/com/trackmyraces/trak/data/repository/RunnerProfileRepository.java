@@ -120,8 +120,9 @@ public class RunnerProfileRepository {
         r.city           = e.city;
         r.state          = e.state;
         r.country        = e.country;
-        r.preferredUnits = e.preferredUnits;
-        r.interests      = e.getInterestList();
+        r.preferredUnits    = e.preferredUnits;
+        r.preferredTempUnit = e.preferredTempUnit;
+        r.interests         = e.getInterestList();
         return r;
     }
 

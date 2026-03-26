@@ -93,11 +93,11 @@
 
         </com.google.android.material.chip.ChipGroup>
 
-        <!-- Units selector -->
+        <!-- Distance units -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/profile_units_hint"
+            android:text="@string/profile_distance_units_hint"
             android:textSize="12sp"
             android:textColor="@color/text_secondary"
             android:layout_marginBottom="6dp" />
@@ -106,18 +106,46 @@
             android:id="@+id/chip_group_units"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="20dp"
+            android:layout_marginBottom="16dp"
             app:singleSelection="true">
+
+            <com.google.android.material.chip.Chip android:id="@+id/chip_imperial"
+                style="@style/Widget.MaterialComponents.Chip.Choice"
+                android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="@string/profile_units_imperial" />
 
             <com.google.android.material.chip.Chip android:id="@+id/chip_metric"
                 style="@style/Widget.MaterialComponents.Chip.Choice"
                 android:layout_width="wrap_content" android:layout_height="wrap_content"
                 android:text="@string/profile_units_metric" />
 
-            <com.google.android.material.chip.Chip android:id="@+id/chip_imperial"
+        </com.google.android.material.chip.ChipGroup>
+
+        <!-- Temperature units -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/profile_temp_units_hint"
+            android:textSize="12sp"
+            android:textColor="@color/text_secondary"
+            android:layout_marginBottom="6dp" />
+
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/chip_group_temp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="20dp"
+            app:singleSelection="true">
+
+            <com.google.android.material.chip.Chip android:id="@+id/chip_fahrenheit"
                 style="@style/Widget.MaterialComponents.Chip.Choice"
                 android:layout_width="wrap_content" android:layout_height="wrap_content"
-                android:text="@string/profile_units_imperial" />
+                android:text="@string/profile_units_fahrenheit" />
+
+            <com.google.android.material.chip.Chip android:id="@+id/chip_celsius"
+                style="@style/Widget.MaterialComponents.Chip.Choice"
+                android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="@string/profile_units_celsius" />
 
         </com.google.android.material.chip.ChipGroup>
 
