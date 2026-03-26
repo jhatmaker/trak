@@ -20,6 +20,9 @@
         <item name="windowNoTitle">true</item>
     </style>
 
+    <!-- Base style — required so dot-notation children (Trak.Badge, etc.) have an implicit parent -->
+    <style name="Trak" />
+
     <!-- Card style -->
     <style name="Trak.Card" parent="Widget.MaterialComponents.CardView">
         <item name="cardBackgroundColor">@color/card_background</item>
