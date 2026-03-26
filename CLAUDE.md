@@ -393,6 +393,34 @@ cd backend && sam deploy --guided
 cd backend && npm test
 ```
 
+## CI/CD — GitHub Actions OIDC Setup (one-time per AWS account)
+
+GitHub Actions authenticates to AWS via OIDC — no access keys are stored in GitHub.
+Run once with personal admin credentials before the first push to a new environment:
+
+```bash
+aws cloudformation deploy \
+  --template-file scripts/oidc-roles.yaml \
+  --stack-name trak-github-oidc \
+  --capabilities CAPABILITY_NAMED_IAM \
+  --region us-east-1
+```
+
+**What it creates** (`scripts/oidc-roles.yaml`):
+
+| Role | Allowed branch | Scope |
+|---|---|---|
+| `trak-github-validate` | any | `cloudformation:ValidateTemplate` only |
+| `trak-github-deploy-dev` | `develop` | Lambda, DynamoDB, API Gateway, IAM — `trak-dev-*` resources |
+| `trak-github-deploy-prod` | `main` | Lambda, DynamoDB, API Gateway, IAM — `trak-prod-*` resources |
+
+**To update role permissions:** edit `scripts/oidc-roles.yaml` and re-run the same
+`aws cloudformation deploy` command. CloudFormation handles the diff.
+
+**Prerequisites for the deploy command:**
+- AWS CLI configured (`aws configure`) with an IAM identity that has
+  `iam:CreateRole`, `iam:PutRolePolicy`, and `iam:CreateOpenIDConnectProvider`
+
 ## Emulator Fix (macOS — run if emulator fails after system update)
 ```bash
 sudo xattr -dr com.apple.quarantine ~/Library/Android/sdk/emulator

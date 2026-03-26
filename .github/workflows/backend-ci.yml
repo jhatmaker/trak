@@ -18,6 +18,8 @@ defaults:
 jobs:
   # ── Test ────────────────────────────────────────────────────────────────────
   test:
+    permissions:
+      contents: read
     name: Test
     runs-on: ubuntu-latest
 
@@ -49,6 +51,9 @@ jobs:
     name: Validate SAM template
     runs-on: ubuntu-latest
     needs: test
+    permissions:
+      contents: read
+      id-token: write
 
     steps:
       - uses: actions/checkout@v4
@@ -61,9 +66,8 @@ jobs:
       - name: Configure AWS credentials (read-only for validation)
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region:            us-east-1
+          role-to-assume: arn:aws:iam::182710932967:role/trak-github-validate
+          aws-region:     us-east-1
 
       - name: SAM validate
         run: sam validate --lint
@@ -75,9 +79,18 @@ jobs:
     needs: [test, validate]
     if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
     environment: dev
+    permissions:
+      contents: read
+      id-token: write
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Debug OIDC token claims
+        run: |
+          TOKEN=$(curl -sSfL -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=sts.amazonaws.com" | jq -r '.value')
+          echo "$TOKEN" | cut -d. -f2 | base64 -d 2>/dev/null | jq '{sub,aud,iss}'
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -97,9 +110,8 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region:            us-east-1
+          role-to-assume: arn:aws:iam::182710932967:role/trak-github-deploy-dev
+          aws-region:     us-east-1
 
       - name: SAM build
         run: sam build --parallel
@@ -125,6 +137,9 @@ jobs:
     needs: [test, validate]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     environment: prod
+    permissions:
+      contents: read
+      id-token: write
 
     steps:
       - uses: actions/checkout@v4
@@ -147,9 +162,8 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID_PROD }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_PROD }}
-          aws-region:            us-east-1
+          role-to-assume: arn:aws:iam::182710932967:role/trak-github-deploy-prod
+          aws-region:     us-east-1
 
       - name: SAM build
         run: sam build --parallel

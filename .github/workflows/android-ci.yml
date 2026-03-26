@@ -41,8 +41,6 @@ jobs:
 
       - name: Run unit tests
         run: ./gradlew test --stacktrace
-        env:
-          GRADLE_OPTS: "-Xmx3072m -XX:MaxMetaspaceSize=512m"
 
       - name: Upload test results
         uses: actions/upload-artifact@v4
@@ -53,8 +51,6 @@ jobs:
 
       - name: Build debug APK
         run: ./gradlew assembleDebug --stacktrace
-        env:
-          GRADLE_OPTS: "-Xmx3072m -XX:MaxMetaspaceSize=512m"
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
@@ -95,7 +91,6 @@ jobs:
       - name: Build release AAB
         run: ./gradlew bundleRelease --stacktrace
         env:
-          GRADLE_OPTS: "-Xmx3072m -XX:MaxMetaspaceSize=512m"
           KEYSTORE_PATH:      "trak-release.keystore"
           KEYSTORE_PASSWORD:  ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS:          ${{ secrets.KEY_ALIAS }}

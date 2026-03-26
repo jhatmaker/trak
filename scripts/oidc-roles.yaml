@@ -1,0 +1,285 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  GitHub Actions OIDC provider and scoped IAM roles for the Trak CI/CD pipeline.
+  Deploy once with your personal admin credentials — GitHub Actions uses the
+  created roles from that point on (no stored secrets required).
+
+  Deploy:
+    aws cloudformation deploy \
+      --template-file scripts/oidc-roles.yaml \
+      --stack-name trak-github-oidc \
+      --capabilities CAPABILITY_NAMED_IAM \
+      --region us-east-1
+
+Parameters:
+  GitHubOrg:
+    Type: String
+    Default: jhatmaker
+    Description: GitHub username or org that owns the repo
+  GitHubRepo:
+    Type: String
+    Default: trak
+    Description: GitHub repository name (without the org prefix)
+
+Resources:
+
+  # ── OIDC Provider ────────────────────────────────────────────────────────────
+  # One provider per AWS account — CloudFormation will error on duplicate.
+  # If you already have one, import it or remove this resource and pass the ARN.
+
+  GitHubOIDCProvider:
+    Type: AWS::IAM::OIDCProvider
+    Properties:
+      Url: https://token.actions.githubusercontent.com
+      ClientIdList:
+        - sts.amazonaws.com
+      ThumbprintList:
+        - 6938fd4d98bab03faadb97b34396831e3780aea1
+
+  # ── Role 1: validate (any branch, CloudFormation validate only) ──────────────
+
+  ValidateRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: trak-github-validate
+      Description: GitHub Actions - SAM template validation (any branch, read-only)
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: !GetAtt GitHubOIDCProvider.Arn
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                token.actions.githubusercontent.com:aud: sts.amazonaws.com
+              StringLike:
+                token.actions.githubusercontent.com:sub: !Sub repo:${GitHubOrg}/${GitHubRepo}:*
+      Policies:
+        - PolicyName: trak-github-validate-policy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - cloudformation:ValidateTemplate
+                Resource: '*'
+
+  # ── Role 2: deploy-dev (develop branch only) ─────────────────────────────────
+
+  DeployDevRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: trak-github-deploy-dev
+      Description: GitHub Actions - SAM deploy to dev (develop branch only)
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: !GetAtt GitHubOIDCProvider.Arn
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                token.actions.githubusercontent.com:aud: sts.amazonaws.com
+                token.actions.githubusercontent.com:sub: !Sub repo:${GitHubOrg}/${GitHubRepo}:environment:dev
+      Policies:
+        - PolicyName: trak-github-deploy-dev-policy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Sid: CloudFormation
+                Effect: Allow
+                Action:
+                  - cloudformation:CreateChangeSet
+                  - cloudformation:DeleteChangeSet
+                  - cloudformation:DescribeChangeSet
+                  - cloudformation:DescribeStacks
+                  - cloudformation:DescribeStackEvents
+                  - cloudformation:ExecuteChangeSet
+                  - cloudformation:GetTemplateSummary
+                  - cloudformation:ValidateTemplate
+                Resource:
+                  - !Sub arn:aws:cloudformation:us-east-1:${AWS::AccountId}:stack/trak-dev/*
+                  - arn:aws:cloudformation:us-east-1:aws:transform/Serverless-2016-10-31
+              - Sid: S3SamArtifacts
+                Effect: Allow
+                Action:
+                  - s3:CreateBucket
+                  - s3:GetBucketLocation
+                  - s3:ListBucket
+                  - s3:PutObject
+                  - s3:GetObject
+                  - s3:PutBucketVersioning
+                Resource:
+                  - arn:aws:s3:::trak-sam-artifacts-dev
+                  - arn:aws:s3:::trak-sam-artifacts-dev/*
+              - Sid: Lambda
+                Effect: Allow
+                Action:
+                  - lambda:CreateFunction
+                  - lambda:DeleteFunction
+                  - lambda:GetFunction
+                  - lambda:UpdateFunctionCode
+                  - lambda:UpdateFunctionConfiguration
+                  - lambda:AddPermission
+                  - lambda:RemovePermission
+                  - lambda:TagResource
+                  - lambda:ListTags
+                Resource: !Sub arn:aws:lambda:us-east-1:${AWS::AccountId}:function:trak-*-dev
+              - Sid: LambdaLayers
+                Effect: Allow
+                Action:
+                  - lambda:PublishLayerVersion
+                  - lambda:DeleteLayerVersion
+                  - lambda:GetLayerVersion
+                Resource: !Sub arn:aws:lambda:us-east-1:${AWS::AccountId}:layer:trak-shared-dev*
+              - Sid: ApiGateway
+                Effect: Allow
+                Action:
+                  - apigateway:GET
+                  - apigateway:POST
+                  - apigateway:PUT
+                  - apigateway:PATCH
+                  - apigateway:DELETE
+                Resource: arn:aws:apigateway:us-east-1::*
+              - Sid: DynamoDB
+                Effect: Allow
+                Action:
+                  - dynamodb:CreateTable
+                  - dynamodb:DescribeTable
+                  - dynamodb:UpdateTable
+                  - dynamodb:TagResource
+                Resource: !Sub arn:aws:dynamodb:us-east-1:${AWS::AccountId}:table/trak-dev*
+              - Sid: IAMRoles
+                Effect: Allow
+                Action:
+                  - iam:CreateRole
+                  - iam:DeleteRole
+                  - iam:AttachRolePolicy
+                  - iam:DetachRolePolicy
+                  - iam:PutRolePolicy
+                  - iam:DeleteRolePolicy
+                  - iam:GetRole
+                  - iam:GetRolePolicy
+                  - iam:PassRole
+                  - iam:TagRole
+                  - iam:UntagRole
+                Resource:
+                  - !Sub arn:aws:iam::${AWS::AccountId}:role/trak-*-dev
+                  - !Sub arn:aws:iam::${AWS::AccountId}:role/trak-dev-*
+
+  # ── Role 3: deploy-prod (main branch only) ───────────────────────────────────
+
+  DeployProdRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: trak-github-deploy-prod
+      Description: GitHub Actions - SAM deploy to prod (main branch only)
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: !GetAtt GitHubOIDCProvider.Arn
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                token.actions.githubusercontent.com:aud: sts.amazonaws.com
+                token.actions.githubusercontent.com:sub: !Sub repo:${GitHubOrg}/${GitHubRepo}:environment:prod
+      Policies:
+        - PolicyName: trak-github-deploy-prod-policy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Sid: CloudFormation
+                Effect: Allow
+                Action:
+                  - cloudformation:CreateChangeSet
+                  - cloudformation:DeleteChangeSet
+                  - cloudformation:DescribeChangeSet
+                  - cloudformation:DescribeStacks
+                  - cloudformation:DescribeStackEvents
+                  - cloudformation:ExecuteChangeSet
+                  - cloudformation:GetTemplateSummary
+                  - cloudformation:ValidateTemplate
+                Resource:
+                  - !Sub arn:aws:cloudformation:us-east-1:${AWS::AccountId}:stack/trak-prod/*
+                  - arn:aws:cloudformation:us-east-1:aws:transform/Serverless-2016-10-31
+              - Sid: S3SamArtifacts
+                Effect: Allow
+                Action:
+                  - s3:CreateBucket
+                  - s3:GetBucketLocation
+                  - s3:ListBucket
+                  - s3:PutObject
+                  - s3:GetObject
+                  - s3:PutBucketVersioning
+                Resource:
+                  - arn:aws:s3:::trak-sam-artifacts-prod
+                  - arn:aws:s3:::trak-sam-artifacts-prod/*
+              - Sid: Lambda
+                Effect: Allow
+                Action:
+                  - lambda:CreateFunction
+                  - lambda:DeleteFunction
+                  - lambda:GetFunction
+                  - lambda:UpdateFunctionCode
+                  - lambda:UpdateFunctionConfiguration
+                  - lambda:AddPermission
+                  - lambda:RemovePermission
+                  - lambda:TagResource
+                  - lambda:ListTags
+                Resource: !Sub arn:aws:lambda:us-east-1:${AWS::AccountId}:function:trak-*-prod
+              - Sid: LambdaLayers
+                Effect: Allow
+                Action:
+                  - lambda:PublishLayerVersion
+                  - lambda:DeleteLayerVersion
+                  - lambda:GetLayerVersion
+                Resource: !Sub arn:aws:lambda:us-east-1:${AWS::AccountId}:layer:trak-shared-prod*
+              - Sid: ApiGateway
+                Effect: Allow
+                Action:
+                  - apigateway:GET
+                  - apigateway:POST
+                  - apigateway:PUT
+                  - apigateway:PATCH
+                  - apigateway:DELETE
+                Resource: arn:aws:apigateway:us-east-1::*
+              - Sid: DynamoDB
+                Effect: Allow
+                Action:
+                  - dynamodb:CreateTable
+                  - dynamodb:DescribeTable
+                  - dynamodb:UpdateTable
+                  - dynamodb:TagResource
+                Resource: !Sub arn:aws:dynamodb:us-east-1:${AWS::AccountId}:table/trak-prod*
+              - Sid: IAMRoles
+                Effect: Allow
+                Action:
+                  - iam:CreateRole
+                  - iam:DeleteRole
+                  - iam:AttachRolePolicy
+                  - iam:DetachRolePolicy
+                  - iam:PutRolePolicy
+                  - iam:DeleteRolePolicy
+                  - iam:GetRole
+                  - iam:GetRolePolicy
+                  - iam:PassRole
+                  - iam:TagRole
+                  - iam:UntagRole
+                Resource:
+                  - !Sub arn:aws:iam::${AWS::AccountId}:role/trak-*-prod
+                  - !Sub arn:aws:iam::${AWS::AccountId}:role/trak-prod-*
+
+Outputs:
+  ValidateRoleArn:
+    Description: Role ARN for SAM template validation
+    Value: !GetAtt ValidateRole.Arn
+  DeployDevRoleArn:
+    Description: Role ARN for dev deployments (develop branch)
+    Value: !GetAtt DeployDevRole.Arn
+  DeployProdRoleArn:
+    Description: Role ARN for prod deployments (main branch)
+    Value: !GetAtt DeployProdRole.Arn

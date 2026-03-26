@@ -60,7 +60,28 @@ sam local start-api --env-vars env.local.json
 }
 ```
 
-## Deploying
+## CI/CD — GitHub Actions OIDC (one-time setup)
+
+GitHub Actions authenticates to AWS via OIDC federation — no long-lived access keys
+are stored in GitHub. Run this once with personal admin credentials before the first push:
+
+```bash
+# From the repo root
+aws cloudformation deploy \
+  --template-file scripts/oidc-roles.yaml \
+  --stack-name trak-github-oidc \
+  --capabilities CAPABILITY_NAMED_IAM \
+  --region us-east-1
+```
+
+This creates three scoped IAM roles:
+- `trak-github-validate` — CloudFormation validate only (any branch)
+- `trak-github-deploy-dev` — full deploy access to dev resources (`develop` branch only)
+- `trak-github-deploy-prod` — full deploy access to prod resources (`main` branch only)
+
+After this, pushes to `develop` auto-deploy to dev; PRs merged to `main` auto-deploy to prod.
+
+## Deploying manually
 
 ```bash
 # First deploy (guided, sets up S3 bucket etc.)
