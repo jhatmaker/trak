@@ -322,7 +322,6 @@ Resources:
   # ── Base Path Mapping (root — no prefix) ─────────────────────────────────
   TrakApiBasePathMapping:
     Type: AWS::ApiGateway::BasePathMapping
-    DependsOn: TrakApi
     Properties:
       DomainName: !Ref TrakApiCustomDomain
       RestApiId: !Ref TrakApi
