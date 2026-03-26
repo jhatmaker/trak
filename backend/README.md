@@ -98,6 +98,7 @@ sam build && npm run deploy:prod
 
 | Method | Path                  | Description                    | Auth |
 |--------|-----------------------|--------------------------------|------|
+| POST   | /discover             | Search default sites for runner | None |
 | POST   | /extract              | AI extract result from URL     | JWT  |
 | POST   | /claims               | Confirm extraction as claim    | JWT  |
 | DELETE | /claims/{claimId}     | Remove a claim                 | JWT  |
@@ -116,18 +117,23 @@ sam build && npm run deploy:prod
 
 ```
 functions/
-  extract/      POST /extract — AI extraction via Anthropic
-  claims/       POST/DELETE /claims — claim management
-  results/      GET/PUT /results — result queries
-  profile/      CRUD /profile — runner profile
-  views/        CRUD /views — saved view presets
+  extract/      POST /extract — AI extraction via Anthropic (JWT)
+  discover/     POST /discover — search default sites for runner (public, no auth)
+  claims/       POST/DELETE /claims — claim management (JWT)
+  results/      GET/PUT /results — result queries (JWT)
+  profile/      CRUD /profile — runner profile (JWT)
+  views/        CRUD /views — saved view presets (JWT)
   auth/         JWT Lambda authoriser
 
 shared/
+  package.json          @anthropic-ai/sdk dependency (bundled into Lambda layer)
   db/client.js          DynamoDB single-table client
   utils/raceLogic.js    Distance normalise, age calc, PR logic, BQ check
   utils/response.js     Response helpers, error types, Lambda wrapper
-  utils/anthropic.js    Anthropic client, extraction prompt
+  utils/anthropic.js    Anthropic client, extraction + discovery prompts
+  config/defaultSites.js  Default running sites for /discover polling
+
+Makefile                  build-SharedLayer target — structures layer for /opt/nodejs/shared/...
 
 tests/
   unit/raceLogic.test.js    Pure function unit tests
@@ -135,8 +141,18 @@ tests/
 
 events/                     SAM local test event files
 template.yaml               SAM/CloudFormation infrastructure
-samconfig.toml              Deploy configuration
+samconfig.toml              Deploy configuration (no cached=true — always full rebuild)
 ```
+
+## SharedLayer build
+
+The layer uses `BuildMethod: makefile` (not `nodejs20.x`). This is intentional:
+- SAM's Node.js builder strips the source root, putting files at `nodejs/utils/...` instead of `nodejs/shared/utils/...`
+- The Makefile explicitly copies `shared/` into `ARTIFACTS_DIR/nodejs/shared/`, matching all function `require('/opt/nodejs/shared/...')` paths
+- `npm install` runs inside the layer artifact to bundle `@anthropic-ai/sdk` (not in Lambda runtime)
+- `@aws-sdk/*` is available from the Lambda Node.js 20 runtime — not bundled
+
+If you see `Cannot find module '/opt/nodejs/shared/...'` errors in CloudWatch, the layer wasn't built/deployed correctly. Run `sam build` (without `--cached`) then `sam deploy`.
 
 ## Key design decisions
 
@@ -146,6 +162,8 @@ samconfig.toml              Deploy configuration
 - **Soft deletes** — no hard deletes; `status: 'deleted'` everywhere
 - **PR recalculation** — triggered on every claim/delete for that canonical distance
 - **Race deduplication** — canonical name slug + year + distance match prevents duplicate RaceEvent records
+- **Bib number is per-race** — passed as a search hint to Claude during extraction; not stored on the runner profile
+- **Elevation at start** — fetched from Open-Meteo geocoding API (free, no key), same call used for weather data
 
 ## Cost estimate (personal use)
 

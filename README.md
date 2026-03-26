@@ -6,6 +6,7 @@ Trak is a personal race history platform for runners. It uses AI (Anthropic clau
 
 ## What it does
 
+- **Discovers your results** — polls Athlinks, RunSignup, and other sites automatically (daily/weekly background search, push notification on match)
 - **Finds your results** — paste any race results URL and AI locates your result automatically
 - **Claims your history** — review extracted data, make corrections, then claim it permanently
 - **Works offline** — full Android app with local Room DB cache; syncs when online
@@ -25,8 +26,9 @@ trak/                         ← monorepo root
 ├── backend/                  ← AWS Lambda backend (Node.js 20)
 │   ├── template.yaml         ← SAM / CloudFormation
 │   ├── samconfig.toml        ← Deploy config (dev + prod)
-│   ├── functions/            ← extract, claims, results, profile, views, auth
-│   ├── shared/               ← db client, raceLogic, response helpers, anthropic
+│   ├── Makefile              ← SAM layer build (build-SharedLayer)
+│   ├── functions/            ← extract, discover, claims, results, profile, views, auth
+│   ├── shared/               ← db client, raceLogic, response helpers, anthropic, defaultSites
 │   └── tests/                ← unit + integration tests
 ├── android/                  ← Android app (Java, min SDK 26)
 │   ├── app/

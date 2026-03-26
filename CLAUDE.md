@@ -37,14 +37,14 @@ trak/
 ├── CLAUDE.md                        ← this file
 ├── android/                         ← Android Studio project (Java)
 │   ├── app/
-│   │   ├── src/main/java/com/trak/
+│   │   ├── src/main/java/com/trackmyraces/trak/
 │   │   │   ├── ui/                  ← Activities, Fragments, ViewModels
 │   │   │   ├── data/
 │   │   │   │   ├── db/              ← Room entities, DAOs, TrakDatabase
 │   │   │   │   ├── model/           ← Plain Java model classes
 │   │   │   │   ├── repository/      ← Repository pattern classes
 │   │   │   │   └── network/         ← Retrofit interfaces, API client
-│   │   │   ├── sync/                ← SyncManager, WorkManager workers
+│   │   │   ├── sync/                ← SyncManager, PollScheduler, WorkManager workers
 │   │   │   ├── credential/          ← CredentialManager, KeystoreHelper
 │   │   │   └── util/                ← DistanceNormalizer, AgeGroupCalc, etc.
 │   │   └── res/
@@ -52,12 +52,18 @@ trak/
 ├── backend/                         ← AWS Lambda functions (Node.js)
 │   ├── functions/
 │   │   ├── extract/                 ← AI extraction Lambda
-│   │   ├── results/                 ← CRUD for claims/results
+│   │   ├── discover/                ← Search default sites for a runner (public, no auth)
+│   │   ├── claims/                  ← Claim management
+│   │   ├── results/                 ← Result CRUD
 │   │   ├── profile/                 ← User profile Lambda
+│   │   ├── views/                   ← Saved view presets
 │   │   └── auth/                    ← Token validation
-│   ├── shared/                      ← Shared utilities (distance, age group)
+│   ├── shared/                      ← Shared utilities (db, raceLogic, response, anthropic)
+│   │   └── package.json             ← @anthropic-ai/sdk dependency for the Lambda layer
+│   ├── Makefile                     ← SAM layer build target (build-SharedLayer)
 │   ├── template.yaml                ← SAM/CloudFormation template
-│   └── package.json
+│   ├── samconfig.toml               ← Deploy config (dev + prod)
+│   └── package.json                 ← Root deps, dev tools, test runner
 ├── docs/
 │   ├── architecture.docx            ← Full architecture document
 │   ├── api-contract.md              ← Lambda API request/response spec
@@ -114,15 +120,28 @@ implementation 'com.github.PhilJay:MPAndroidChart:v3.1.0'
 
 ### Room DB Entities
 
+Current schema version: **6**
+
 | Entity | Purpose |
 |---|---|
-| `RunnerProfileEntity` | Local copy of the runner's profile |
+| `RunnerProfileEntity` | Local copy of the runner's profile (name, dob, gender, units, tempUnit, interests, pollSchedule) |
 | `RaceEventEntity` | Deduplicated race events |
 | `ResultClaimEntity` | Claim records (pending/confirmed/rejected) |
-| `RaceResultEntity` | Full extracted result data |
+| `RaceResultEntity` | Full extracted result data (includes `elevationStartMeters`) |
 | `ResultSplitEntity` | Per-km/mile splits |
 | `CredentialEntryEntity` | Encrypted credential metadata (NOT the password) |
 | `SavedViewEntity` | User-saved filter/sort presets |
+
+Room migration history:
+- 1→2: initial schema
+- 2→3: added `preferred_units` to `runner_profile`
+- 3→4: added `interests` to `runner_profile`
+- 4→5: added `elevation_start_meters` to `race_result`
+- 5→6: added `preferred_temp_unit` to `runner_profile`
+
+Distance and temperature preferences are separate fields:
+- `preferredUnits` — `"imperial"` (miles) or `"metric"` (km). Default: `"imperial"`
+- `preferredTempUnit` — `"fahrenheit"` or `"celsius"`. Default: `"fahrenheit"`
 
 ### Offline-First Pattern
 
@@ -164,14 +183,24 @@ lambdaClient.extractWithCookie(url, cookie, runnerName);
 
 ### Lambda Functions
 
-| Function | Trigger | Purpose |
-|---|---|---|
-| `extractResult` | POST /extract | AI extraction via Anthropic |
-| `claimResult` | POST /claims | Create/confirm a claim |
-| `getResults` | GET /results | Fetch runner's result list |
-| `getProfile` | GET /profile | Fetch runner profile |
-| `updateProfile` | PUT /profile | Update profile |
-| `deleteResult` | DELETE /results/{id} | Remove a claimed result |
+| Function | Trigger | Auth | Purpose |
+|---|---|---|---|
+| `extractResult` | POST /extract | JWT | AI extraction via Anthropic |
+| `discoverResult` | POST /discover | None | Search default sites for a runner |
+| `claimResult` | POST /claims | JWT | Create/confirm a claim |
+| `getResults` | GET /results | JWT | Fetch runner's result list |
+| `getProfile` | GET /profile | JWT | Fetch runner profile |
+| `updateProfile` | PUT /profile | JWT | Update profile |
+| `deleteResult` | DELETE /results/{id} | JWT | Remove a claimed result |
+
+### SharedLayer
+
+The layer is built via `BuildMethod: makefile` using `backend/Makefile`. This ensures:
+- Files land at `/opt/nodejs/shared/...` matching all `require('/opt/nodejs/shared/...')` calls
+- `@anthropic-ai/sdk` is bundled (not in the Lambda Node.js 20 runtime)
+- `config/defaultSites.js` and all shared files are included reliably
+
+`backend/shared/package.json` declares `@anthropic-ai/sdk` as a dependency. The layer build runs `npm install` in the layer artifact directory. `@aws-sdk/*` is available from the Lambda runtime and does not need bundling.
 
 ### Anthropic API Usage
 
@@ -182,14 +211,7 @@ const MODEL = 'claude-sonnet-4-20250514';
 // Always include web_search for extraction
 const tools = [{ type: 'web_search_20250305', name: 'web_search' }];
 
-// Extraction prompt structure
-const prompt = `
-You are extracting a runner's race result from a web page.
-Runner: "${runnerName}"${bib ? ` (Bib: ${bib})` : ''}
-URL: ${url}
-${cookie ? `Use this session cookie: ${cookie}` : ''}
-
-Fetch and read the page, then return ONLY a JSON object:
+// Extraction prompt structure — returns this JSON schema:
 {
   "found": boolean,
   "race_name": string,
@@ -209,13 +231,15 @@ Fetch and read the page, then return ONLY a JSON object:
   "age_group_place": number|null,
   "age_group_total": number|null,
   "pace_per_km_seconds": number|null,
+  "elevation_start_meters": number|null,   // start line elevation from geocoding
   "splits": [{"label": string, "distance_meters": number, "elapsed_seconds": number}],
   "source_url": string,
   "notes": string|null
 }
-Return ONLY the JSON, no markdown, no explanation.
-`;
+// Return ONLY the JSON, no markdown, no explanation.
 ```
+
+`elevation_start_meters` is fetched from the Open-Meteo geocoding API (free, no key needed) using the race location — the same API call already made to get weather data returns `elevation` in the response at zero extra cost.
 
 ### DynamoDB Table Design
 
@@ -319,6 +343,19 @@ function canonicaliseName(rawName) {
 
 ## API Contract Summary
 
+### POST /discover (public — no auth)
+Request:
+```json
+{
+  "runnerName": "Jane Smith",
+  "dateOfBirth": "1985-04-12",
+  "interests": ["road", "marathon"]
+}
+```
+Response: `{ sites: [{ siteId, siteName, found, resultsUrl, resultCount, notes }] }`
+
+`interests` filters which sites are searched (road, trail, ultra, marathon, parkrun, triathlon, ocr, track, crosscountry). Sites tagged `always` (e.g. Athlinks) are searched regardless.
+
 ### POST /extract
 Request:
 ```json
@@ -331,6 +368,8 @@ Request:
 }
 ```
 Response: extracted result JSON (see Anthropic prompt above) + `extractionId`
+
+Bib number is per-race, not stored on the profile. It is passed as a hint to Claude for result lookup only.
 
 ### POST /claims
 Request: `{ extractionId, runnerId, edits: {} }` — `edits` contains any runner corrections
@@ -349,7 +388,6 @@ Sort params: `date`, `distance`, `finishTime`, `overallPlace`, `ageGroupPlace`
 - [ ] Boston Qualifier (BQ) tracking and gap calculation
 - [ ] Age-graded performance score (WMA tables)
 - [ ] Course certification flag (USATF/IAAF certified)
-- [ ] Push notifications for new results on watched URLs
 - [ ] Social share card generation (race result image for Instagram)
 - [ ] Coach access (read-only share link with expiry)
 - [ ] Club leaderboard (multi-user, opt-in)
@@ -357,6 +395,13 @@ Sort params: `date`, `distance`, `finishTime`, `overallPlace`, `ageGroupPlace`
 - [ ] OAuth — Strava, Garmin Connect
 - [ ] Playwright Lambda for JS-heavy login portals (Phase 3)
 - [ ] Web frontend (React — same API endpoints)
+
+## Implemented Features (reference)
+
+- [x] Background polling — `ResultPollWorker` (WorkManager) searches sites daily/weekly; push notification on match
+- [x] "Search now" — `PollScheduler.pollNow()` triggers an immediate `OneTimeWorkRequest`
+- [x] Elevation at race start — returned from Open-Meteo geocoding, stored as `elevationStartMeters`
+- [x] Separate distance/temperature unit preferences — `preferredUnits` (miles/km) and `preferredTempUnit` (°F/°C)
 
 ---
 
@@ -377,6 +422,24 @@ Sort params: `date`, `distance`, `finishTime`, `overallPlace`, `ageGroupPlace`
 
 ---
 
+## API Versioning Strategy
+
+API versioning is currently **not needed** and is intentionally absent. Here's why, and what to do when it eventually matters:
+
+**Why it's fine now:**
+- API Gateway exposes fixed paths (`/extract`, `/discover`, etc.) — deploying a new Lambda doesn't change those paths
+- All schema changes so far are additive (new fields). Old app versions ignore unknown fields; new app versions reading a missing field get `null`
+- We control both sides and can coordinate deploys with app releases
+
+**Safe change pattern (deploy order matters):**
+1. Deploy Lambda first (backward compatible — new field returned, old app ignores it)
+2. Ship Android app update (reads new field)
+
+**When you need versioning (breaking changes — rename/remove a field or endpoint):**
+- Keep old endpoint alive while new one exists, deprecate after all users have updated
+- Use an `X-App-Version` request header if Lambda needs to behave differently per client version
+- Use API Gateway stages (`/v1/`, `/v2/`) only for true breaking rewrites
+
 ## Development Workflow
 
 ```bash
@@ -384,10 +447,13 @@ Sort params: `date`, `distance`, `finishTime`, `overallPlace`, `ageGroupPlace`
 cd android && ./gradlew assembleDebug && adb install -r app/build/outputs/apk/debug/app-debug.apk
 
 # Backend — local test with SAM
-cd backend && sam local invoke extractResult --event events/extract-test.json
+cd backend && sam local invoke ExtractFunction --event events/extract-test.json
 
-# Backend — deploy
-cd backend && sam deploy --guided
+# Backend — build (always full rebuild — cached=true removed from samconfig)
+cd backend && sam build
+
+# Backend — deploy to dev
+cd backend && sam deploy --config-env dev --no-confirm-changeset
 
 # Run backend tests
 cd backend && npm test
