@@ -28,13 +28,16 @@
  */
 const DEFAULT_SITES = [
   {
-    id:          'athlinks',
-    name:        'Athlinks',
-    description: 'Largest race results aggregator — road, trail, triathlon, OCR, cycling',
-    searchQueryTemplate: '"{name}" athlinks athlete race results',
-    tags:        ['road', 'trail', 'ultra', 'marathon', 'triathlon', 'ocr', 'track'],
-    priority:    'always',
-    enabled:     true,
+    id:                  'athlinks',
+    name:                'Athlinks',
+    description:         'Largest race results aggregator — road, trail, triathlon, OCR, cycling',
+    // Direct API — no Claude needed. Returns unclaimed results from Athlinks database.
+    directApiUrlTemplate: 'https://alaska.athlinks.com/Result/api/Search?searchTerm={nameEncoded}',
+    resultsUrlTemplate:   'https://www.athlinks.com/search/unclaimed?category=unclaimed&term={nameEncoded}',
+    searchQueryTemplate:  null,
+    tags:                ['road', 'trail', 'ultra', 'marathon', 'triathlon', 'ocr', 'track'],
+    priority:            'always',
+    enabled:             true,
   },
   {
     id:          'ultrasignup',
@@ -86,28 +89,39 @@ const DEFAULT_SITES = [
  * @returns {Array<{id, name, description, searchUrl, tags}>}
  */
 function resolveSiteUrls(fullName, interests = []) {
-  const parts     = fullName.trim().split(/\s+/);
-  const firstName = parts[0] || '';
-  const lastName  = parts[parts.length - 1] || '';
+  const parts       = fullName.trim().split(/\s+/);
+  const firstName   = parts[0] || '';
+  const lastName    = parts[parts.length - 1] || '';
+  const nameEncoded = encodeURIComponent(fullName.trim());
 
   const hasInterests = interests.length > 0;
 
   return DEFAULT_SITES
     .filter(s => s.enabled)
     .filter(s => {
-      if (!hasInterests)            return true;  // no filter — search all
-      if (s.priority === 'always')  return true;  // always include broad aggregators
+      if (!hasInterests)            return true;
+      if (s.priority === 'always')  return true;
       return s.tags.some(tag => interests.includes(tag));
     })
     .map(s => ({
-      id:          s.id,
-      name:        s.name,
-      description: s.description,
-      tags:        s.tags,
-      searchQuery: s.searchQueryTemplate
-        .replace('{name}',      fullName.trim())
-        .replace('{firstName}', firstName)
-        .replace('{lastName}',  lastName),
+      id:           s.id,
+      name:         s.name,
+      description:  s.description,
+      tags:         s.tags,
+      // Direct API sites — call without Claude
+      directApiUrl: s.directApiUrlTemplate
+        ? s.directApiUrlTemplate.replace('{nameEncoded}', nameEncoded)
+        : null,
+      resultsUrl:   s.resultsUrlTemplate
+        ? s.resultsUrlTemplate.replace('{nameEncoded}', nameEncoded)
+        : null,
+      // Web-search sites — passed to Claude
+      searchQuery:  s.searchQueryTemplate
+        ? s.searchQueryTemplate
+            .replace('{name}',      fullName.trim())
+            .replace('{firstName}', firstName)
+            .replace('{lastName}',  lastName)
+        : null,
     }));
 }
 
