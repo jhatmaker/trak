@@ -11,6 +11,9 @@ on:
     paths:
       - 'backend/**'
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 defaults:
   run:
     working-directory: backend
@@ -172,6 +175,7 @@ jobs:
         run: |
           sam deploy \
             --config-env prod \
+            --no-confirm-changeset \
             --no-fail-on-empty-changeset
 
       - name: Print API URL
