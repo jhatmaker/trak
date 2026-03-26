@@ -46,6 +46,10 @@
             android:name="dateOfBirth"
             app:argType="string"
             android:defaultValue="" />
+        <argument
+            android:name="interests"
+            app:argType="string"
+            android:defaultValue="" />
 
         <action
             android:id="@+id/action_discover_to_dashboard"

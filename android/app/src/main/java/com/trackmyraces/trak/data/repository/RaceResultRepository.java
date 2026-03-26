@@ -104,10 +104,12 @@ public class RaceResultRepository {
      * Public endpoint — no auth token required.
      */
     public void discoverResults(String runnerName, String dateOfBirth,
+                                java.util.List<String> interests,
                                 RepositoryCallback<DiscoverResponse> callback) {
         DiscoverRequest request = new DiscoverRequest();
         request.runnerName  = runnerName;
         request.dateOfBirth = dateOfBirth;
+        request.interests   = interests;
 
         mApi.discoverResults(request).enqueue(new Callback<DiscoverResponse>() {
             @Override

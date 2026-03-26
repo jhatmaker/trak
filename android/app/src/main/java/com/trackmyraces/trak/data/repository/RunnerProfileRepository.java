@@ -121,6 +121,7 @@ public class RunnerProfileRepository {
         r.state          = e.state;
         r.country        = e.country;
         r.preferredUnits = e.preferredUnits;
+        r.interests      = e.getInterestList();
         return r;
     }
 

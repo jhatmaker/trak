@@ -9,8 +9,13 @@
  *
  * Public endpoint — no auth required (read-only, searches public data only).
  *
- * Request:  { runnerName: string, dateOfBirth?: "YYYY-MM-DD" }
+ * Request:  { runnerName: string, dateOfBirth?: "YYYY-MM-DD", interests?: string[] }
  * Response: { sites: [{ siteId, siteName, found, resultsUrl, resultCount, notes }] }
+ *
+ * interests filters which sites are searched:
+ *   - 'always' priority sites (e.g. Athlinks) are always included
+ *   - other sites only searched if their tags overlap with the runner's interests
+ *   - if interests is empty/absent, all enabled sites are searched
  */
 
 const { wrap, parseBody, ok, errors } = require('/opt/nodejs/shared/utils/response');
@@ -38,15 +43,21 @@ function calcAge(dateOfBirth) {
 exports.handler = wrap(async (event) => {
   const body = parseBody(event);
 
-  const { runnerName, dateOfBirth = null } = body;
+  const { runnerName, dateOfBirth = null, interests = [] } = body;
 
   if (!runnerName || typeof runnerName !== 'string' || runnerName.trim().length < 2) {
     return errors.badRequest('runnerName is required (minimum 2 characters)');
   }
 
-  const name            = runnerName.trim();
-  const approximateAge  = calcAge(dateOfBirth);
-  const sites           = resolveSiteUrls(name);
+  // Sanitise interests: must be an array of known tag strings
+  const validTags      = ['road','trail','ultra','marathon','parkrun','triathlon','ocr','track','crosscountry'];
+  const cleanInterests = Array.isArray(interests)
+    ? interests.filter(t => validTags.includes(t))
+    : [];
+
+  const name           = runnerName.trim();
+  const approximateAge = calcAge(dateOfBirth);
+  const sites          = resolveSiteUrls(name, cleanInterests);
 
   // Single Anthropic call — searches all sites simultaneously
   const rawResults = await discoverRunner({ runnerName: name, approximateAge, sites });

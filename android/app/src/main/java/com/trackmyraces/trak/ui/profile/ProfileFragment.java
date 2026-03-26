@@ -111,10 +111,11 @@ public class ProfileFragment extends Fragment {
             else if (mBinding.chipGenderF.isChecked()) gender = "F";
             else if (mBinding.chipGenderNb.isChecked()) gender = "NB";
 
-            String units = mBinding.chipMetric.isChecked() ? "metric" : "imperial";
+            String units     = mBinding.chipMetric.isChecked() ? "metric" : "imperial";
+            String interests = getSelectedInterests();
 
             boolean isFirstSave = mIsNewProfile;
-            mViewModel.saveProfile(name, dob, gender, units, (success, message) ->
+            mViewModel.saveProfile(name, dob, gender, units, interests, (success, message) ->
                 requireActivity().runOnUiThread(() -> {
                     if (!success) {
                         Toast.makeText(requireContext(),
@@ -126,6 +127,7 @@ public class ProfileFragment extends Fragment {
                         Bundle args = new Bundle();
                         args.putString("runnerName",  name);
                         args.putString("dateOfBirth", dob);
+                        args.putString("interests",   interests);
                         Navigation.findNavController(requireView())
                             .navigate(R.id.action_profile_to_discover, args);
                     } else {
@@ -155,7 +157,34 @@ public class ProfileFragment extends Fragment {
 
             if ("imperial".equals(profile.preferredUnits)) mBinding.chipImperial.setChecked(true);
             else mBinding.chipMetric.setChecked(true);
+
+            // Restore interest chips
+            java.util.List<String> saved = profile.getInterestList();
+            mBinding.chipInterestRoad.setChecked(saved.contains("road"));
+            mBinding.chipInterestTrail.setChecked(saved.contains("trail"));
+            mBinding.chipInterestUltra.setChecked(saved.contains("ultra"));
+            mBinding.chipInterestMarathon.setChecked(saved.contains("marathon"));
+            mBinding.chipInterestParkrun.setChecked(saved.contains("parkrun"));
+            mBinding.chipInterestTriathlon.setChecked(saved.contains("triathlon"));
+            mBinding.chipInterestOcr.setChecked(saved.contains("ocr"));
+            mBinding.chipInterestTrack.setChecked(saved.contains("track"));
+            mBinding.chipInterestCrosscountry.setChecked(saved.contains("crosscountry"));
         });
+    }
+
+    /** Returns a comma-separated string of selected interest tags, empty string if none. */
+    private String getSelectedInterests() {
+        java.util.List<String> selected = new java.util.ArrayList<>();
+        if (mBinding.chipInterestRoad.isChecked())         selected.add("road");
+        if (mBinding.chipInterestTrail.isChecked())        selected.add("trail");
+        if (mBinding.chipInterestUltra.isChecked())        selected.add("ultra");
+        if (mBinding.chipInterestMarathon.isChecked())     selected.add("marathon");
+        if (mBinding.chipInterestParkrun.isChecked())      selected.add("parkrun");
+        if (mBinding.chipInterestTriathlon.isChecked())    selected.add("triathlon");
+        if (mBinding.chipInterestOcr.isChecked())          selected.add("ocr");
+        if (mBinding.chipInterestTrack.isChecked())        selected.add("track");
+        if (mBinding.chipInterestCrosscountry.isChecked()) selected.add("crosscountry");
+        return android.text.TextUtils.join(",", selected);
     }
 
     private void showAddSiteDialog() {

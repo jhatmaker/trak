@@ -32,7 +32,7 @@ public class ProfileViewModel extends AndroidViewModel {
     }
 
     public void saveProfile(String name, String dob, String gender,
-                            String units, SaveCallback callback) {
+                            String units, String interests, SaveCallback callback) {
         // getProfileSync() is a blocking DB read — must run off the main thread
         mExecutor.execute(() -> {
             RunnerProfileEntity current = mRepo.getProfileSync();
@@ -43,6 +43,7 @@ public class ProfileViewModel extends AndroidViewModel {
             entity.dateOfBirth    = dob;
             entity.gender         = gender;
             entity.preferredUnits = units;
+            entity.interests      = interests;
             entity.status         = "active";
 
             RepositoryCallback<com.trackmyraces.trak.data.network.dto.ProfileResponse> cb =

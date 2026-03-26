@@ -121,6 +121,69 @@
 
         </com.google.android.material.chip.ChipGroup>
 
+        <!-- Running interests — optional, used to personalise discovery -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/profile_interests_hint"
+            android:textSize="12sp"
+            android:textColor="@color/text_secondary"
+            android:layout_marginBottom="6dp" />
+
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/chip_group_interests"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="20dp"
+            app:singleSelection="false">
+
+            <com.google.android.material.chip.Chip android:id="@+id/chip_interest_road"
+                style="@style/Widget.MaterialComponents.Chip.Choice"
+                android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="@string/interest_road" />
+
+            <com.google.android.material.chip.Chip android:id="@+id/chip_interest_trail"
+                style="@style/Widget.MaterialComponents.Chip.Choice"
+                android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="@string/interest_trail" />
+
+            <com.google.android.material.chip.Chip android:id="@+id/chip_interest_ultra"
+                style="@style/Widget.MaterialComponents.Chip.Choice"
+                android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="@string/interest_ultra" />
+
+            <com.google.android.material.chip.Chip android:id="@+id/chip_interest_marathon"
+                style="@style/Widget.MaterialComponents.Chip.Choice"
+                android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="@string/interest_marathon" />
+
+            <com.google.android.material.chip.Chip android:id="@+id/chip_interest_parkrun"
+                style="@style/Widget.MaterialComponents.Chip.Choice"
+                android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="@string/interest_parkrun" />
+
+            <com.google.android.material.chip.Chip android:id="@+id/chip_interest_triathlon"
+                style="@style/Widget.MaterialComponents.Chip.Choice"
+                android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="@string/interest_triathlon" />
+
+            <com.google.android.material.chip.Chip android:id="@+id/chip_interest_ocr"
+                style="@style/Widget.MaterialComponents.Chip.Choice"
+                android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="@string/interest_ocr" />
+
+            <com.google.android.material.chip.Chip android:id="@+id/chip_interest_track"
+                style="@style/Widget.MaterialComponents.Chip.Choice"
+                android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="@string/interest_track" />
+
+            <com.google.android.material.chip.Chip android:id="@+id/chip_interest_crosscountry"
+                style="@style/Widget.MaterialComponents.Chip.Choice"
+                android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="@string/interest_crosscountry" />
+
+        </com.google.android.material.chip.ChipGroup>
+
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_save_profile"
             android:layout_width="match_parent"

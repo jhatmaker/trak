@@ -30,6 +30,8 @@ import com.trackmyraces.trak.data.db.entity.SavedViewEntity;
  * Version history:
  *   1 — initial schema (RunnerProfileEntity, RaceResultEntity)
  *   2 — added ResultSplitEntity, ResultClaimEntity, CredentialEntryEntity, SavedViewEntity
+ *   3 — added elevation_gain_meters, temperature_celsius, weather_condition to race_result
+ *   4 — added interests to runner_profile
  */
 @Database(
     entities = {
@@ -40,7 +42,7 @@ import com.trackmyraces.trak.data.db.entity.SavedViewEntity;
         CredentialEntryEntity.class,
         SavedViewEntity.class,
     },
-    version = 3,
+    version = 4,
     exportSchema = true
 )
 public abstract class TrakDatabase extends RoomDatabase {
@@ -68,7 +70,7 @@ public abstract class TrakDatabase extends RoomDatabase {
                             TrakDatabase.class,
                             DB_NAME
                         )
-                        .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                        .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                         .build();
                 }
             }
@@ -153,6 +155,14 @@ public abstract class TrakDatabase extends RoomDatabase {
             db.execSQL("ALTER TABLE `race_result` ADD COLUMN `elevation_gain_meters` INTEGER");
             db.execSQL("ALTER TABLE `race_result` ADD COLUMN `temperature_celsius` REAL");
             db.execSQL("ALTER TABLE `race_result` ADD COLUMN `weather_condition` TEXT");
+        }
+    };
+
+    static final Migration MIGRATION_3_4 = new Migration(3, 4) {
+        @Override
+        public void migrate(@androidx.annotation.NonNull SupportSQLiteDatabase db) {
+            // Comma-separated interest tags e.g. "road,trail,marathon"
+            db.execSQL("ALTER TABLE `runner_profile` ADD COLUMN `interests` TEXT");
         }
     };
 }

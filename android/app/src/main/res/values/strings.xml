@@ -103,6 +103,18 @@
     <string name="onboard_create">Create your profile</string>
     <string name="onboard_dob_required">Date of birth is used to calculate your age group and BQ eligibility.</string>
 
+    <!-- Running interests (profile) -->
+    <string name="profile_interests_hint">What do you run? (optional — helps find the right sites)</string>
+    <string name="interest_road">Road racing</string>
+    <string name="interest_trail">Trail running</string>
+    <string name="interest_ultra">Ultra distance</string>
+    <string name="interest_marathon">Marathon</string>
+    <string name="interest_parkrun">parkrun</string>
+    <string name="interest_triathlon">Triathlon</string>
+    <string name="interest_ocr">Obstacle / OCR</string>
+    <string name="interest_track">Track &amp; field</string>
+    <string name="interest_crosscountry">Cross country</string>
+
     <!-- Discover results -->
     <string name="discover_title">Finding your results</string>
     <string name="discover_searching">Searching popular running sites for your results…\nThis may take up to 30 seconds.</string>

@@ -10,4 +10,5 @@ public class ProfileRequest {
     @SerializedName("state")          public String state;
     @SerializedName("country")        public String country;
     @SerializedName("preferredUnits") public String preferredUnits;
+    @SerializedName("interests")      public java.util.List<String> interests;
 }

@@ -48,19 +48,30 @@ public class DiscoverFragment extends Fragment {
             Navigation.findNavController(requireView())
                 .navigate(R.id.action_discover_to_dashboard));
 
-        // Read nav args
-        String runnerName  = DiscoverFragmentArgs.fromBundle(getArguments()).getRunnerName();
-        String dateOfBirth = DiscoverFragmentArgs.fromBundle(getArguments()).getDateOfBirth();
+        // Read nav args (raw bundle — Safe Args not configured)
+        Bundle args       = getArguments();
+        String runnerName  = args != null ? args.getString("runnerName", "")  : "";
+        String dateOfBirth = args != null ? args.getString("dateOfBirth", "") : "";
+        String interestsCsv = args != null ? args.getString("interests", "")  : "";
 
-        startDiscovery(runnerName, dateOfBirth);
+        // Split comma-separated interests into a list, drop empties
+        java.util.List<String> interests = new java.util.ArrayList<>();
+        if (!interestsCsv.isEmpty()) {
+            for (String tag : interestsCsv.split(",")) {
+                if (!tag.trim().isEmpty()) interests.add(tag.trim());
+            }
+        }
+
+        startDiscovery(runnerName, dateOfBirth, interests);
     }
 
-    private void startDiscovery(String runnerName, String dateOfBirth) {
+    private void startDiscovery(String runnerName, String dateOfBirth,
+                                java.util.List<String> interests) {
         mBinding.layoutSearching.setVisibility(View.VISIBLE);
         mBinding.layoutSites.setVisibility(View.GONE);
         mBinding.tvError.setVisibility(View.GONE);
 
-        mRepo.discoverResults(runnerName, dateOfBirth,
+        mRepo.discoverResults(runnerName, dateOfBirth, interests,
             new RaceResultRepository.RepositoryCallback<DiscoverResponse>() {
                 @Override
                 public void onSuccess(DiscoverResponse response) {

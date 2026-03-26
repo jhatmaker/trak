@@ -61,4 +61,18 @@ public class RunnerProfileEntity {
     /** Whether this profile has been synced to the backend */
     @ColumnInfo(name = "is_synced")
     public boolean isSynced;
+
+    /**
+     * Comma-separated running interest tags — used to filter discovery sites.
+     * Valid values: road, trail, ultra, marathon, parkrun, triathlon, ocr, track, crosscountry
+     * Example: "road,marathon,trail"
+     */
+    @ColumnInfo(name = "interests")
+    public String interests;
+
+    /** Returns interests as a list, never null. */
+    public java.util.List<String> getInterestList() {
+        if (interests == null || interests.isEmpty()) return new java.util.ArrayList<>();
+        return java.util.Arrays.asList(interests.split(","));
+    }
 }
