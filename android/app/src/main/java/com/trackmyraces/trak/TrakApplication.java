@@ -1,6 +1,8 @@
 package com.trackmyraces.trak;
 
 import android.app.Application;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.util.Log;
 
 import com.trackmyraces.trak.data.db.TrakDatabase;
@@ -34,6 +36,15 @@ public class TrakApplication extends Application {
 
         // Eagerly init database on startup so it's ready on first use
         getDatabase();
+
+        // Create notification channel for background result poll alerts
+        NotificationChannel channel = new NotificationChannel(
+            com.trackmyraces.trak.sync.ResultPollWorker.CHANNEL_ID,
+            "New race results",
+            NotificationManager.IMPORTANCE_DEFAULT);
+        channel.setDescription("Notifies when new race results are found on your linked sites");
+        ((NotificationManager) getSystemService(NOTIFICATION_SERVICE))
+            .createNotificationChannel(channel);
     }
 
     public static TrakApplication getInstance() {

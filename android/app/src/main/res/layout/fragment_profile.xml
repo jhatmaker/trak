@@ -242,5 +242,54 @@
             android:text="@string/profile_add_site"
             style="@style/Trak.Button.Outlined" />
 
+        <!-- Search / poll section -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/poll_section_header"
+            style="@style/Trak.SectionHeader"
+            android:layout_marginTop="32dp"
+            android:layout_marginBottom="8dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_poll_now"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/poll_now_button"
+            style="@style/Trak.Button.Outlined" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/poll_schedule_hint"
+            android:textSize="12sp"
+            android:textColor="@color/text_secondary"
+            android:layout_marginTop="16dp"
+            android:layout_marginBottom="6dp" />
+
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/chip_group_poll_schedule"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="24dp"
+            app:singleSelection="true">
+
+            <com.google.android.material.chip.Chip android:id="@+id/chip_poll_off"
+                style="@style/Widget.MaterialComponents.Chip.Choice"
+                android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="@string/poll_off" />
+
+            <com.google.android.material.chip.Chip android:id="@+id/chip_poll_daily"
+                style="@style/Widget.MaterialComponents.Chip.Choice"
+                android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="@string/poll_daily" />
+
+            <com.google.android.material.chip.Chip android:id="@+id/chip_poll_weekly"
+                style="@style/Widget.MaterialComponents.Chip.Choice"
+                android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="@string/poll_weekly" />
+
+        </com.google.android.material.chip.ChipGroup>
+
     </LinearLayout>
 </ScrollView>

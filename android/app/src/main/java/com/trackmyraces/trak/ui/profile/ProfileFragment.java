@@ -1,10 +1,14 @@
 package com.trackmyraces.trak.ui.profile;
 
+import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Toast;
+
+import androidx.core.content.ContextCompat;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -18,6 +22,7 @@ import com.google.android.material.datepicker.MaterialDatePicker;
 import com.trackmyraces.trak.R;
 import com.trackmyraces.trak.data.db.entity.RunnerProfileEntity;
 import com.trackmyraces.trak.databinding.FragmentProfileBinding;
+import com.trackmyraces.trak.sync.PollScheduler;
 
 import java.util.Calendar;
 import java.util.Locale;
@@ -46,6 +51,7 @@ public class ProfileFragment extends Fragment {
 
         setupDatePicker();
         setupSaveButton();
+        setupPollSection();
         observeViewModel();
     }
 
@@ -191,6 +197,56 @@ public class ProfileFragment extends Fragment {
         if (mBinding.chipInterestTrack.isChecked())        selected.add("track");
         if (mBinding.chipInterestCrosscountry.isChecked()) selected.add("crosscountry");
         return android.text.TextUtils.join(",", selected);
+    }
+
+    private void setupPollSection() {
+        // Restore saved schedule chip
+        String saved = PollScheduler.getSchedule(requireContext());
+        if (PollScheduler.SCHEDULE_DAILY.equals(saved))        mBinding.chipPollDaily.setChecked(true);
+        else if (PollScheduler.SCHEDULE_WEEKLY.equals(saved))  mBinding.chipPollWeekly.setChecked(true);
+        else                                                    mBinding.chipPollOff.setChecked(true);
+
+        // Schedule chip changes
+        mBinding.chipGroupPollSchedule.setOnCheckedStateChangeListener((group, checkedIds) -> {
+            if (checkedIds.isEmpty()) return;
+            int id = checkedIds.get(0);
+            String schedule;
+            if (id == R.id.chip_poll_daily)       schedule = PollScheduler.SCHEDULE_DAILY;
+            else if (id == R.id.chip_poll_weekly)  schedule = PollScheduler.SCHEDULE_WEEKLY;
+            else                                   schedule = PollScheduler.SCHEDULE_OFF;
+
+            if (!PollScheduler.SCHEDULE_OFF.equals(schedule)) {
+                requestNotificationPermissionIfNeeded();
+            }
+            PollScheduler.setSchedule(requireContext(), schedule);
+        });
+
+        // Poll now — navigate to DiscoverFragment with current profile
+        mBinding.btnPollNow.setOnClickListener(v -> {
+            RunnerProfileEntity profile = mViewModel.profile.getValue();
+            if (profile == null || profile.name == null || profile.name.isEmpty()) {
+                Toast.makeText(requireContext(),
+                    "Save your profile first", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            Bundle args = new Bundle();
+            args.putString("runnerName",  profile.name);
+            args.putString("dateOfBirth", profile.dateOfBirth != null ? profile.dateOfBirth : "");
+            args.putString("interests",   profile.interests   != null ? profile.interests   : "");
+            Navigation.findNavController(requireView())
+                .navigate(R.id.action_profile_to_discover, args);
+        });
+    }
+
+    private void requestNotificationPermissionIfNeeded() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(requireContext(),
+                    android.Manifest.permission.POST_NOTIFICATIONS)
+                    != PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(
+                    new String[]{android.Manifest.permission.POST_NOTIFICATIONS}, 0);
+            }
+        }
     }
 
     private void showAddSiteDialog() {

@@ -99,6 +99,15 @@
     <string name="profile_gender_nb">Non-binary</string>
     <string name="profile_gender_na">Prefer not to say</string>
 
+    <!-- Poll / background search -->
+    <string name="poll_section_header">Search for results</string>
+    <string name="poll_now_button">Search all sources now</string>
+    <string name="poll_schedule_hint">Automatically search in background</string>
+    <string name="poll_off">Off</string>
+    <string name="poll_daily">Daily</string>
+    <string name="poll_weekly">Weekly</string>
+    <string name="poll_searching">Searching sources…</string>
+
     <!-- Onboarding -->
     <string name="profile_setup_prompt">Welcome to Trak! Please enter your name and date of birth to get started. Your name is used to find your results, and your date of birth is needed for age group calculation.</string>
     <string name="onboard_title">Welcome to Trak</string>
