@@ -183,6 +183,7 @@ Resources:
                 Action:
                   - route53:ChangeResourceRecordSets
                   - route53:ListResourceRecordSets
+                  - route53:GetHostedZone
                   - route53:GetChange
                   - route53:ListHostedZones
                 Resource:
@@ -307,6 +308,7 @@ Resources:
                 Action:
                   - route53:ChangeResourceRecordSets
                   - route53:ListResourceRecordSets
+                  - route53:GetHostedZone
                   - route53:GetChange
                   - route53:ListHostedZones
                 Resource:
