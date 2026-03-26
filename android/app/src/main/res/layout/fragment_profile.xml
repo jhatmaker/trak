@@ -119,6 +119,11 @@
                 android:layout_width="wrap_content" android:layout_height="wrap_content"
                 android:text="@string/profile_units_metric" />
 
+            <com.google.android.material.chip.Chip android:id="@+id/chip_both_units"
+                style="@style/Widget.MaterialComponents.Chip.Choice"
+                android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="@string/profile_units_both" />
+
         </com.google.android.material.chip.ChipGroup>
 
         <!-- Temperature units -->
@@ -146,6 +151,11 @@
                 style="@style/Widget.MaterialComponents.Chip.Choice"
                 android:layout_width="wrap_content" android:layout_height="wrap_content"
                 android:text="@string/profile_units_celsius" />
+
+            <com.google.android.material.chip.Chip android:id="@+id/chip_both_temp"
+                style="@style/Widget.MaterialComponents.Chip.Choice"
+                android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="@string/profile_temp_both" />
 
         </com.google.android.material.chip.ChipGroup>
 

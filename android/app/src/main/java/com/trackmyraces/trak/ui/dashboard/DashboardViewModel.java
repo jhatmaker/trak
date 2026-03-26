@@ -9,6 +9,7 @@ import androidx.lifecycle.MediatorLiveData;
 import androidx.lifecycle.MutableLiveData;
 
 import com.trackmyraces.trak.data.db.entity.RaceResultEntity;
+import com.trackmyraces.trak.data.db.entity.RunnerProfileEntity;
 import com.trackmyraces.trak.data.repository.RaceResultRepository;
 import com.trackmyraces.trak.data.repository.RunnerProfileRepository;
 
@@ -32,6 +33,7 @@ public class DashboardViewModel extends AndroidViewModel {
 
     // ── Exposed LiveData ──────────────────────────────────────────────────
 
+    public final LiveData<RunnerProfileEntity>     profile;
     public final LiveData<Integer>                 totalRaceCount;
     public final LiveData<Double>                  totalDistanceMeters;
     public final LiveData<Integer>                 uniqueRaceCount;
@@ -47,6 +49,7 @@ public class DashboardViewModel extends AndroidViewModel {
         mResultRepo  = new RaceResultRepository(application);
         mProfileRepo = new RunnerProfileRepository(application);
 
+        profile             = mProfileRepo.getProfile();
         totalRaceCount      = mResultRepo.getTotalCount();
         totalDistanceMeters = mResultRepo.getTotalDistanceMeters();
         uniqueRaceCount     = mResultRepo.getUniqueRaceCount();

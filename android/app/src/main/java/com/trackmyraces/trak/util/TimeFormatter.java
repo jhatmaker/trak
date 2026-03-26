@@ -72,17 +72,29 @@ public final class TimeFormatter {
 
     /**
      * Format distance in metres to a human string.
-     * e.g. 42195 → "42.2 km" or "26.2 mi" depending on units preference.
+     * unitPref: "imperial" → "26.2 mi", "metric" → "42.2 km",
+     *           "both"     → "26.2 mi / 42.2 km"
+     * Null/unknown unitPref defaults to imperial.
+     */
+    public static String formatDistance(double meters, String unitPref) {
+        if (meters < 0) return "—";
+        double miles = meters / 1609.344;
+        double km    = meters / 1000.0;
+        if ("metric".equals(unitPref)) {
+            return String.format(Locale.US, "%.1f km", km);
+        } else if ("both".equals(unitPref)) {
+            return String.format(Locale.US, "%.1f mi / %.1f km", miles, km);
+        } else {
+            return String.format(Locale.US, "%.1f mi", miles);
+        }
+    }
+
+    /**
+     * Format distance in metres to a human string (legacy boolean overload).
+     * @deprecated Use {@link #formatDistance(double, String)} with a unitPref string.
      */
     public static String formatDistance(double meters, boolean imperial) {
-        if (meters <= 0) return "—";
-        if (imperial) {
-            double miles = meters / 1609.344;
-            return String.format(Locale.US, "%.1f mi", miles);
-        } else {
-            double km = meters / 1000.0;
-            return String.format(Locale.US, "%.1f km", km);
-        }
+        return formatDistance(meters, imperial ? "imperial" : "metric");
     }
 
     /**

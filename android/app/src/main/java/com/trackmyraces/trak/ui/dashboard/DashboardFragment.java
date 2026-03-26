@@ -13,6 +13,7 @@ import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
 import com.trackmyraces.trak.R;
+import com.trackmyraces.trak.data.db.entity.RunnerProfileEntity;
 import com.trackmyraces.trak.databinding.FragmentDashboardBinding;
 import com.trackmyraces.trak.ui.results.RaceResultAdapter;
 import com.trackmyraces.trak.util.TimeFormatter;
@@ -70,13 +71,12 @@ public class DashboardFragment extends Fragment {
             mBinding.tvRaceCount.setText(count != null ? String.valueOf(count) : "0");
         });
 
-        mViewModel.totalDistanceMeters.observe(getViewLifecycleOwner(), meters -> {
-            if (meters == null || meters == 0) {
-                mBinding.tvTotalDistance.setText("0 km");
-            } else {
-                mBinding.tvTotalDistance.setText(TimeFormatter.formatDistance(meters, false));
-            }
-        });
+        // Observe both distance and profile so re-formatting happens if pref changes mid-session
+        mViewModel.totalDistanceMeters.observe(getViewLifecycleOwner(), meters ->
+            updateDistanceDisplay(meters, mViewModel.profile.getValue()));
+
+        mViewModel.profile.observe(getViewLifecycleOwner(), profile ->
+            updateDistanceDisplay(mViewModel.totalDistanceMeters.getValue(), profile));
 
         mViewModel.uniqueRaceCount.observe(getViewLifecycleOwner(), count -> {
             mBinding.tvUniqueRaces.setText(count != null ? String.valueOf(count) : "0");
@@ -100,6 +100,16 @@ public class DashboardFragment extends Fragment {
         mViewModel.syncState.observe(getViewLifecycleOwner(), state -> {
             mBinding.swipeRefresh.setRefreshing(state == DashboardViewModel.SyncState.SYNCING);
         });
+    }
+
+    private void updateDistanceDisplay(Double meters, RunnerProfileEntity profile) {
+        String unitPref = (profile != null && profile.preferredUnits != null)
+            ? profile.preferredUnits : "imperial";
+        if (meters == null || meters == 0) {
+            mBinding.tvTotalDistance.setText(TimeFormatter.formatDistance(0.0, unitPref));
+        } else {
+            mBinding.tvTotalDistance.setText(TimeFormatter.formatDistance(meters, unitPref));
+        }
     }
 
     private void navigateToDetail(String resultId) {

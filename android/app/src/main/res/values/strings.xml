@@ -92,8 +92,10 @@
     <string name="profile_login_failed">Login failed — check your credentials</string>
     <string name="profile_units_metric">km</string>
     <string name="profile_units_imperial">miles</string>
+    <string name="profile_units_both">Both</string>
     <string name="profile_units_fahrenheit">°F</string>
     <string name="profile_units_celsius">°C</string>
+    <string name="profile_temp_both">Both</string>
     <string name="profile_gender_m">Male</string>
     <string name="profile_gender_f">Female</string>
     <string name="profile_gender_nb">Non-binary</string>

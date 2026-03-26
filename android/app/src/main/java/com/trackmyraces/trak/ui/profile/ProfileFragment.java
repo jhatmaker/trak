@@ -117,8 +117,12 @@ public class ProfileFragment extends Fragment {
             else if (mBinding.chipGenderF.isChecked()) gender = "F";
             else if (mBinding.chipGenderNb.isChecked()) gender = "NB";
 
-            String units    = mBinding.chipMetric.isChecked() ? "metric" : "imperial";
-            String tempUnit = mBinding.chipCelsius.isChecked() ? "celsius" : "fahrenheit";
+            String units    = mBinding.chipMetric.isChecked()    ? "metric"
+                            : mBinding.chipBothUnits.isChecked() ? "both"
+                            : "imperial";
+            String tempUnit = mBinding.chipCelsius.isChecked()  ? "celsius"
+                            : mBinding.chipBothTemp.isChecked() ? "both"
+                            : "fahrenheit";
             String interests = getSelectedInterests();
 
             boolean isFirstSave = mIsNewProfile;
@@ -163,12 +167,14 @@ public class ProfileFragment extends Fragment {
             else if ("NB".equals(profile.gender))mBinding.chipGenderNb.setChecked(true);
 
             // Distance — default to imperial (miles)
-            if ("metric".equals(profile.preferredUnits)) mBinding.chipMetric.setChecked(true);
-            else mBinding.chipImperial.setChecked(true);
+            if ("metric".equals(profile.preferredUnits))       mBinding.chipMetric.setChecked(true);
+            else if ("both".equals(profile.preferredUnits))    mBinding.chipBothUnits.setChecked(true);
+            else                                               mBinding.chipImperial.setChecked(true);
 
             // Temperature — default to fahrenheit
-            if ("celsius".equals(profile.preferredTempUnit)) mBinding.chipCelsius.setChecked(true);
-            else mBinding.chipFahrenheit.setChecked(true);
+            if ("celsius".equals(profile.preferredTempUnit))   mBinding.chipCelsius.setChecked(true);
+            else if ("both".equals(profile.preferredTempUnit)) mBinding.chipBothTemp.setChecked(true);
+            else                                               mBinding.chipFahrenheit.setChecked(true);
 
             // Restore interest chips
             java.util.List<String> saved = profile.getInterestList();
