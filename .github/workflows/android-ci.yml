@@ -43,7 +43,9 @@ jobs:
             > local.properties
 
       - name: Run unit tests
-        run: ./gradlew test --stacktrace
+        run: ./gradlew test --stacktrace --no-daemon
+        env:
+          JAVA_TOOL_OPTIONS: "-Dfile.encoding=UTF-8"
 
       - name: Upload test results
         uses: actions/upload-artifact@v4
@@ -53,7 +55,9 @@ jobs:
           path: android/app/build/reports/tests/
 
       - name: Build debug APK
-        run: ./gradlew assembleDebug --stacktrace
+        run: ./gradlew assembleDebug --stacktrace --no-daemon
+        env:
+          JAVA_TOOL_OPTIONS: "-Dfile.encoding=UTF-8"
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
@@ -92,8 +96,9 @@ jobs:
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > app/trak-release.keystore
 
       - name: Build release AAB
-        run: ./gradlew bundleRelease --stacktrace
+        run: ./gradlew bundleRelease --stacktrace --no-daemon
         env:
+          JAVA_TOOL_OPTIONS: "-Dfile.encoding=UTF-8"
           KEYSTORE_PATH:      "trak-release.keystore"
           KEYSTORE_PASSWORD:  ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS:          ${{ secrets.KEY_ALIAS }}
