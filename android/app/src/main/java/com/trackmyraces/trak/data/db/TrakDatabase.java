@@ -32,6 +32,7 @@ import com.trackmyraces.trak.data.db.entity.SavedViewEntity;
  *   2 — added ResultSplitEntity, ResultClaimEntity, CredentialEntryEntity, SavedViewEntity
  *   3 — added elevation_gain_meters, temperature_celsius, weather_condition to race_result
  *   4 — added interests to runner_profile
+ *   5 — added elevation_start_meters to race_result
  */
 @Database(
     entities = {
@@ -42,7 +43,7 @@ import com.trackmyraces.trak.data.db.entity.SavedViewEntity;
         CredentialEntryEntity.class,
         SavedViewEntity.class,
     },
-    version = 4,
+    version = 5,
     exportSchema = true
 )
 public abstract class TrakDatabase extends RoomDatabase {
@@ -70,7 +71,7 @@ public abstract class TrakDatabase extends RoomDatabase {
                             TrakDatabase.class,
                             DB_NAME
                         )
-                        .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                        .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                         .build();
                 }
             }
@@ -163,6 +164,14 @@ public abstract class TrakDatabase extends RoomDatabase {
         public void migrate(@androidx.annotation.NonNull SupportSQLiteDatabase db) {
             // Comma-separated interest tags e.g. "road,trail,marathon"
             db.execSQL("ALTER TABLE `runner_profile` ADD COLUMN `interests` TEXT");
+        }
+    };
+
+    static final Migration MIGRATION_4_5 = new Migration(4, 5) {
+        @Override
+        public void migrate(@androidx.annotation.NonNull SupportSQLiteDatabase db) {
+            // Elevation at race start in meters — from Open-Meteo geocoding
+            db.execSQL("ALTER TABLE `race_result` ADD COLUMN `elevation_start_meters` INTEGER");
         }
     };
 }

@@ -162,6 +162,10 @@ public class RaceResultEntity {
     @ColumnInfo(name = "elevation_gain_meters")
     public Integer elevationGainMeters;
 
+    /** Elevation at the race start line in meters — from Open-Meteo geocoding */
+    @ColumnInfo(name = "elevation_start_meters")
+    public Integer elevationStartMeters;
+
     /** Race-day temperature in Celsius — fetched from Open-Meteo historical API */
     @ColumnInfo(name = "temperature_celsius")
     public Double temperatureCelsius;

@@ -82,6 +82,7 @@ Return ONLY a valid JSON object — no markdown, no explanation, no preamble:
     }
   ],
   "elevation_gain_meters": integer or null,
+  "elevation_start_meters": integer or null,
   "temperature_celsius": number or null,
   "weather_condition": "Clear" | "Partly cloudy" | "Overcast" | "Drizzle" | "Rain" | "Snow" | "Fog" | "Thunderstorm" | null,
   "is_certified": true | false | null,

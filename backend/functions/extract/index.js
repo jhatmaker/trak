@@ -42,7 +42,7 @@ async function fetchRaceWeather(raceCity, raceState, raceCountry, raceDate) {
     const geoJson = await geoRes.json();
     if (!geoJson.results?.length) return null;
 
-    const { latitude, longitude } = geoJson.results[0];
+    const { latitude, longitude, elevation } = geoJson.results[0];
 
     // Step 2: fetch historical weather for the race date
     const weatherRes = await fetch(
@@ -60,8 +60,9 @@ async function fetchRaceWeather(raceCity, raceState, raceCountry, raceDate) {
     const wCode = weatherJson.daily.weathercode[0];
 
     return {
-      temperatureCelsius: Math.round(((tMax + tMin) / 2) * 10) / 10,
-      weatherCondition:   WMO_CODES[wCode] ?? 'Partly cloudy',
+      temperatureCelsius:   Math.round(((tMax + tMin) / 2) * 10) / 10,
+      weatherCondition:     WMO_CODES[wCode] ?? 'Partly cloudy',
+      elevationStartMeters: elevation != null ? Math.round(elevation) : null,
     };
   } catch (err) {
     // Weather is non-critical — log and continue
@@ -208,9 +209,10 @@ exports.handler = wrap(async (event) => {
     bqGapSeconds,
     bqStandardSeconds: bqStandard,
     // Race conditions
-    elevationGainMeters: raw.elevation_gain_meters || null,
-    temperatureCelsius:  weather?.temperatureCelsius  ?? null,
-    weatherCondition:    weather?.weatherCondition    ?? raw.weather_condition ?? null,
+    elevationGainMeters:  raw.elevation_gain_meters || null,
+    elevationStartMeters: weather?.elevationStartMeters ?? null,
+    temperatureCelsius:   weather?.temperatureCelsius   ?? null,
+    weatherCondition:     weather?.weatherCondition     ?? raw.weather_condition ?? null,
     // Splits
     splits: (raw.splits || []).map(s => ({
       label:           s.label,
