@@ -8,10 +8,18 @@ import androidx.room.RoomDatabase;
 import androidx.room.migration.Migration;
 import androidx.sqlite.db.SupportSQLiteDatabase;
 
+import com.trackmyraces.trak.data.db.dao.CredentialEntryDao;
 import com.trackmyraces.trak.data.db.dao.RaceResultDao;
+import com.trackmyraces.trak.data.db.dao.ResultClaimDao;
+import com.trackmyraces.trak.data.db.dao.ResultSplitDao;
 import com.trackmyraces.trak.data.db.dao.RunnerProfileDao;
+import com.trackmyraces.trak.data.db.dao.SavedViewDao;
+import com.trackmyraces.trak.data.db.entity.CredentialEntryEntity;
 import com.trackmyraces.trak.data.db.entity.RaceResultEntity;
+import com.trackmyraces.trak.data.db.entity.ResultClaimEntity;
+import com.trackmyraces.trak.data.db.entity.ResultSplitEntity;
 import com.trackmyraces.trak.data.db.entity.RunnerProfileEntity;
+import com.trackmyraces.trak.data.db.entity.SavedViewEntity;
 
 /**
  * TrakDatabase — Room database for the Trak app.
@@ -20,16 +28,19 @@ import com.trackmyraces.trak.data.db.entity.RunnerProfileEntity;
  * All writes happen on background threads; Room enforces this.
  *
  * Version history:
- *   1 — initial schema
+ *   1 — initial schema (RunnerProfileEntity, RaceResultEntity)
+ *   2 — added ResultSplitEntity, ResultClaimEntity, CredentialEntryEntity, SavedViewEntity
  */
 @Database(
     entities = {
         RunnerProfileEntity.class,
         RaceResultEntity.class,
-        // ResultSplitEntity, ResultClaimEntity, CredentialEntryEntity, SavedViewEntity
-        // are defined in TrakEntities.java — add them here as separate classes when split out
+        ResultSplitEntity.class,
+        ResultClaimEntity.class,
+        CredentialEntryEntity.class,
+        SavedViewEntity.class,
     },
-    version = 1,
+    version = 2,
     exportSchema = true
 )
 public abstract class TrakDatabase extends RoomDatabase {
@@ -39,8 +50,12 @@ public abstract class TrakDatabase extends RoomDatabase {
 
     // ── DAOs ──────────────────────────────────────────────────────────────
 
-    public abstract RunnerProfileDao runnerProfileDao();
-    public abstract RaceResultDao    raceResultDao();
+    public abstract RunnerProfileDao  runnerProfileDao();
+    public abstract RaceResultDao     raceResultDao();
+    public abstract ResultSplitDao    resultSplitDao();
+    public abstract ResultClaimDao    resultClaimDao();
+    public abstract CredentialEntryDao credentialEntryDao();
+    public abstract SavedViewDao      savedViewDao();
 
     // ── Singleton ─────────────────────────────────────────────────────────
 
@@ -53,7 +68,7 @@ public abstract class TrakDatabase extends RoomDatabase {
                             TrakDatabase.class,
                             DB_NAME
                         )
-                        .fallbackToDestructiveMigration() // dev only — replace with migrations before release
+                        .addMigrations(MIGRATION_1_2)
                         .build();
                 }
             }
@@ -61,16 +76,74 @@ public abstract class TrakDatabase extends RoomDatabase {
         return sInstance;
     }
 
-    // ── Migrations (add as schema evolves) ────────────────────────────────
+    // ── Migrations ────────────────────────────────────────────────────────
 
-    /**
-     * Example migration template — copy and increment version numbers as needed.
-     *
-     * static final Migration MIGRATION_1_2 = new Migration(1, 2) {
-     *     @Override
-     *     public void migrate(@NonNull SupportSQLiteDatabase db) {
-     *         db.execSQL("ALTER TABLE race_result ADD COLUMN age_grade_percent REAL");
-     *     }
-     * };
-     */
+    static final Migration MIGRATION_1_2 = new Migration(1, 2) {
+        @Override
+        public void migrate(@androidx.annotation.NonNull SupportSQLiteDatabase db) {
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS `result_split` (" +
+                "`id` TEXT NOT NULL, " +
+                "`result_id` TEXT, " +
+                "`label` TEXT, " +
+                "`distance_meters` REAL NOT NULL, " +
+                "`elapsed_seconds` INTEGER NOT NULL, " +
+                "`split_seconds` INTEGER, " +
+                "`split_place` INTEGER, " +
+                "PRIMARY KEY(`id`), " +
+                "FOREIGN KEY(`result_id`) REFERENCES `race_result`(`id`) ON DELETE CASCADE)"
+            );
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_result_split_result_id` ON `result_split` (`result_id`)");
+
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS `result_claim` (" +
+                "`id` TEXT NOT NULL, " +
+                "`race_event_id` TEXT, " +
+                "`result_id` TEXT, " +
+                "`status` TEXT, " +
+                "`source_url` TEXT, " +
+                "`is_manual` INTEGER NOT NULL, " +
+                "`claimed_at` TEXT, " +
+                "`updated_at` TEXT, " +
+                "`is_synced` INTEGER NOT NULL, " +
+                "PRIMARY KEY(`id`))"
+            );
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_result_claim_race_event_id` ON `result_claim` (`race_event_id`)");
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_result_claim_result_id` ON `result_claim` (`result_id`)");
+
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS `credential_entry` (" +
+                "`id` TEXT NOT NULL, " +
+                "`site_url` TEXT, " +
+                "`site_label` TEXT, " +
+                "`username` TEXT, " +
+                "`keystore_alias` TEXT, " +
+                "`login_status` TEXT, " +
+                "`last_login_at` TEXT, " +
+                "`cookie_expiry` TEXT, " +
+                "`created_at` TEXT, " +
+                "`updated_at` TEXT, " +
+                "PRIMARY KEY(`id`))"
+            );
+            db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_credential_entry_site_url` ON `credential_entry` (`site_url`)");
+
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS `saved_view` (" +
+                "`id` TEXT NOT NULL, " +
+                "`name` TEXT, " +
+                "`view_type` TEXT, " +
+                "`distance` TEXT, " +
+                "`surface` TEXT, " +
+                "`year_from` INTEGER, " +
+                "`year_to` INTEGER, " +
+                "`race_name_slug` TEXT, " +
+                "`sort` TEXT, " +
+                "`order_dir` TEXT, " +
+                "`created_at` TEXT, " +
+                "`updated_at` TEXT, " +
+                "`is_synced` INTEGER NOT NULL, " +
+                "PRIMARY KEY(`id`))"
+            );
+        }
+    };
 }
