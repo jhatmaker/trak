@@ -154,4 +154,107 @@ async function extractRaceResult(params) {
   return parsed;
 }
 
-module.exports = { extractRaceResult };
+// ─── Discovery prompt ─────────────────────────────────────────────────────────
+
+function buildDiscoveryPrompt({ runnerName, approximateAge, sites }) {
+  const ageNote = approximateAge
+    ? ` (approximate age: ${approximateAge})`
+    : '';
+
+  const siteList = sites.map((s, i) =>
+    `${i + 1}. ${s.name} — ${s.searchUrl}`
+  ).join('\n');
+
+  return `You are helping a runner discover whether they have results on popular running websites.
+
+Runner to search for: "${runnerName}"${ageNote}
+
+Search each of these websites and determine if a runner named "${runnerName}" has results there.
+For each site, use the provided search URL, then look for a profile or results page specifically for this runner.
+If you find multiple people with the same name, use the approximate age to pick the most likely match.
+
+Sites to search:
+${siteList}
+
+For each site, return:
+- Whether the runner was found
+- The direct URL to their results or profile page (not the search page)
+- An approximate count of results if visible
+- Brief notes to confirm it's the right person (age, location, etc.)
+
+Return ONLY a valid JSON array — no markdown, no explanation:
+
+[
+  {
+    "siteId": "athlinks",
+    "found": true,
+    "resultsUrl": "https://www.athlinks.com/athletes/123456789/results",
+    "resultCount": 47,
+    "notes": "Jane Smith, age 38, Boston MA — 47 race results"
+  },
+  {
+    "siteId": "ultrasignup",
+    "found": false,
+    "resultsUrl": null,
+    "resultCount": 0,
+    "notes": null
+  }
+]
+
+Rules:
+- Return one object per site in the same order they were listed above.
+- If the runner is NOT found on a site, set found: false, resultsUrl: null, resultCount: 0.
+- resultsUrl must point to the runner's results/profile page, NOT the search results page.
+- resultCount is approximate — 0 if unknown.
+- Return ONLY the JSON array. No markdown fences. No explanation.`;
+}
+
+/**
+ * Search multiple running result sites for a runner.
+ * @param {Object} params
+ * @param {string} params.runnerName
+ * @param {number} [params.approximateAge]
+ * @param {Array}  params.sites  — from resolveSiteUrls()
+ * @returns {Array} Parsed discovery result array
+ */
+async function discoverRunner(params) {
+  const client = await getClient();
+  const prompt = buildDiscoveryPrompt(params);
+
+  const message = await client.messages.create({
+    model:      'claude-sonnet-4-20250514',
+    max_tokens: 2000,
+    tools: [{
+      type: 'web_search_20250305',
+      name: 'web_search',
+    }],
+    messages: [{ role: 'user', content: prompt }],
+  });
+
+  const textBlocks = message.content.filter(b => b.type === 'text');
+  if (!textBlocks.length) throw new Error('Anthropic returned no text content');
+
+  const rawText  = textBlocks[textBlocks.length - 1].text.trim();
+  const jsonText = rawText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+
+  let parsed;
+  try {
+    parsed = JSON.parse(jsonText);
+  } catch {
+    throw new Error(`Discovery response was not valid JSON: ${jsonText.slice(0, 200)}`);
+  }
+
+  console.log(JSON.stringify({
+    type:         'ANTHROPIC_USAGE',
+    operation:    'discover',
+    inputTokens:  message.usage?.input_tokens,
+    outputTokens: message.usage?.output_tokens,
+    runnerName:   params.runnerName,
+    sitesSearched: params.sites.length,
+    sitesFound:   Array.isArray(parsed) ? parsed.filter(s => s.found).length : 0,
+  }));
+
+  return parsed;
+}
+
+module.exports = { extractRaceResult, discoverRunner };

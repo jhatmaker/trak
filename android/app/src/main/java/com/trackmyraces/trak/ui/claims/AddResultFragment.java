@@ -63,6 +63,14 @@ public class AddResultFragment extends Fragment {
                 updateExtractButtonState(isOnline);
             });
 
+        // Pre-fill URL if navigated from DiscoverFragment
+        if (getArguments() != null) {
+            String prefillUrl = getArguments().getString("prefillUrl");
+            if (prefillUrl != null && !prefillUrl.isEmpty()) {
+                mBinding.etUrl.setText(prefillUrl);
+            }
+        }
+
         setupClickListeners();
         observeViewModel();
     }

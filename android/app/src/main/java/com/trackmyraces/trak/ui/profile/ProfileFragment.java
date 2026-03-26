@@ -10,6 +10,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.navigation.Navigation;
 
 import com.google.android.material.datepicker.CalendarConstraints;
 import com.google.android.material.datepicker.DateValidatorPointBackward;
@@ -29,6 +30,7 @@ public class ProfileFragment extends Fragment {
 
     private FragmentProfileBinding mBinding;
     private ProfileViewModel       mViewModel;
+    private boolean                mIsNewProfile = false; // true when no profile existed before save
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
@@ -111,11 +113,24 @@ public class ProfileFragment extends Fragment {
 
             String units = mBinding.chipMetric.isChecked() ? "metric" : "imperial";
 
+            boolean isFirstSave = mIsNewProfile;
             mViewModel.saveProfile(name, dob, gender, units, (success, message) ->
                 requireActivity().runOnUiThread(() -> {
-                    Toast.makeText(requireContext(),
-                        success ? "Profile saved" : "Save failed: " + message,
-                        Toast.LENGTH_SHORT).show();
+                    if (!success) {
+                        Toast.makeText(requireContext(),
+                            "Save failed: " + message, Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    if (isFirstSave) {
+                        // New profile — go search for their existing results
+                        Bundle args = new Bundle();
+                        args.putString("runnerName",  name);
+                        args.putString("dateOfBirth", dob);
+                        Navigation.findNavController(requireView())
+                            .navigate(R.id.action_profile_to_discover, args);
+                    } else {
+                        Toast.makeText(requireContext(), "Profile saved", Toast.LENGTH_SHORT).show();
+                    }
                 })
             );
         });
@@ -127,6 +142,7 @@ public class ProfileFragment extends Fragment {
     private void observeViewModel() {
         mViewModel.profile.observe(getViewLifecycleOwner(), profile -> {
             boolean isNewProfile = (profile == null || profile.name == null || profile.name.isEmpty());
+            mIsNewProfile = isNewProfile;
             mBinding.tvSetupPrompt.setVisibility(isNewProfile ? View.VISIBLE : View.GONE);
 
             if (profile == null) return;

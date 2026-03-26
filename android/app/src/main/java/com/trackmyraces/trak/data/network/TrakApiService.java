@@ -1,6 +1,8 @@
 package com.trackmyraces.trak.data.network;
 
 import com.trackmyraces.trak.data.network.dto.ClaimRequest;
+import com.trackmyraces.trak.data.network.dto.DiscoverRequest;
+import com.trackmyraces.trak.data.network.dto.DiscoverResponse;
 import com.trackmyraces.trak.data.network.dto.ClaimResponse;
 import com.trackmyraces.trak.data.network.dto.ExtractionRequest;
 import com.trackmyraces.trak.data.network.dto.ExtractionResponse;
@@ -30,6 +32,16 @@ import retrofit2.http.QueryMap;
  * Auth: Authorization header added by AuthInterceptor for all requests.
  */
 public interface TrakApiService {
+
+    // ── Discovery ─────────────────────────────────────────────────────────
+
+    /**
+     * POST /discover
+     * Search default running sites for a runner. Public — no auth required.
+     * Long timeout — one Anthropic call covers all sites (~20-30s).
+     */
+    @POST("discover")
+    Call<DiscoverResponse> discoverResults(@Body DiscoverRequest request);
 
     // ── Extraction ────────────────────────────────────────────────────────
 

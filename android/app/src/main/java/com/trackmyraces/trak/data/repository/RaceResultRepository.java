@@ -10,10 +10,12 @@ import com.trackmyraces.trak.data.db.dao.RaceResultDao;
 import com.trackmyraces.trak.data.db.entity.RaceResultEntity;
 import com.trackmyraces.trak.data.network.ApiClient;
 import com.trackmyraces.trak.data.network.TrakApiService;
-import com.trackmyraces.trak.data.network.dto.ExtractionRequest;
-import com.trackmyraces.trak.data.network.dto.ExtractionResponse;
 import com.trackmyraces.trak.data.network.dto.ClaimRequest;
 import com.trackmyraces.trak.data.network.dto.ClaimResponse;
+import com.trackmyraces.trak.data.network.dto.DiscoverRequest;
+import com.trackmyraces.trak.data.network.dto.DiscoverResponse;
+import com.trackmyraces.trak.data.network.dto.ExtractionRequest;
+import com.trackmyraces.trak.data.network.dto.ExtractionResponse;
 
 import java.util.HashMap;
 import java.util.List;
@@ -93,6 +95,34 @@ public class RaceResultRepository {
 
     public LiveData<Double> getTotalDistanceMeters() {
         return mDao.getTotalDistanceMeters();
+    }
+
+    // ── Discovery (online only) ───────────────────────────────────────────
+
+    /**
+     * Search default running sites for a runner.
+     * Public endpoint — no auth token required.
+     */
+    public void discoverResults(String runnerName, String dateOfBirth,
+                                RepositoryCallback<DiscoverResponse> callback) {
+        DiscoverRequest request = new DiscoverRequest();
+        request.runnerName  = runnerName;
+        request.dateOfBirth = dateOfBirth;
+
+        mApi.discoverResults(request).enqueue(new Callback<DiscoverResponse>() {
+            @Override
+            public void onResponse(Call<DiscoverResponse> call, Response<DiscoverResponse> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    callback.onSuccess(response.body());
+                } else {
+                    callback.onError("Discovery failed: HTTP " + response.code());
+                }
+            }
+            @Override
+            public void onFailure(Call<DiscoverResponse> call, Throwable t) {
+                callback.onError(t.getMessage());
+            }
+        });
     }
 
     // ── Extraction (online only) ──────────────────────────────────────────

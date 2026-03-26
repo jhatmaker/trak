@@ -32,6 +32,35 @@
 
     </fragment>
 
+    <!-- Discover (post-profile-setup: search popular sites for runner) -->
+    <fragment
+        android:id="@+id/discoverFragment"
+        android:name="com.trackmyraces.trak.ui.discover.DiscoverFragment"
+        android:label="@string/discover_title"
+        tools:layout="@layout/fragment_discover">
+
+        <argument
+            android:name="runnerName"
+            app:argType="string" />
+        <argument
+            android:name="dateOfBirth"
+            app:argType="string"
+            android:defaultValue="" />
+
+        <action
+            android:id="@+id/action_discover_to_dashboard"
+            app:destination="@id/dashboardFragment"
+            app:popUpTo="@id/dashboardFragment"
+            app:popUpToInclusive="true" />
+
+        <action
+            android:id="@+id/action_discover_to_add"
+            app:destination="@id/addResultFragment"
+            app:popUpTo="@id/discoverFragment"
+            app:popUpToInclusive="true" />
+
+    </fragment>
+
     <!-- Add Result -->
     <fragment
         android:id="@+id/addResultFragment"
@@ -71,7 +100,13 @@
         android:id="@+id/profileFragment"
         android:name="com.trackmyraces.trak.ui.profile.ProfileFragment"
         android:label="@string/nav_profile"
-        tools:layout="@layout/fragment_profile" />
+        tools:layout="@layout/fragment_profile">
+
+        <action
+            android:id="@+id/action_profile_to_discover"
+            app:destination="@id/discoverFragment" />
+
+    </fragment>
 
     <!-- Result detail (navigated to from Dashboard, History, or Add) -->
     <fragment

@@ -103,6 +103,15 @@
     <string name="onboard_create">Create your profile</string>
     <string name="onboard_dob_required">Date of birth is used to calculate your age group and BQ eligibility.</string>
 
+    <!-- Discover results -->
+    <string name="discover_title">Finding your results</string>
+    <string name="discover_searching">Searching popular running sites for your results…\nThis may take up to 30 seconds.</string>
+    <string name="discover_found_badge">Found</string>
+    <string name="discover_not_found_badge">Not found</string>
+    <string name="discover_view_results">View results on this site →</string>
+    <string name="discover_skip">Skip for now</string>
+    <string name="discover_no_results">No results found on any of the default sites. You can still add results manually or by entering a URL.</string>
+
     <!-- Manual entry -->
     <string name="manual_entry_title">Enter result manually</string>
     <string name="manual_race_name_hint">Race name</string>

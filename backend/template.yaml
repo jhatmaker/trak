@@ -265,6 +265,27 @@ Resources:
             Path: /profile
             Method: DELETE
 
+  # ── Lambda: Discover ─────────────────────────────────────────────────────
+  DiscoverFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub trak-discover-${Stage}
+      CodeUri: functions/discover/
+      Handler: index.handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Timeout: 90
+      MemorySize: 512
+      Description: Search default running sites for a runner — no auth required
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            RestApiId: !Ref TrakApi
+            Path: /discover
+            Method: POST
+            Auth:
+              Authorizer: NONE
+
   # ── Lambda: Views ────────────────────────────────────────────────────────
   ViewsFunction:
     Type: AWS::Serverless::Function
