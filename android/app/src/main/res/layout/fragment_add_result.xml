@@ -21,15 +21,6 @@
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/add_title"
-                android:textSize="22sp"
-                android:textStyle="bold"
-                android:textColor="@color/text_primary"
-                android:layout_marginBottom="20dp" />
-
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/til_url"
                 android:layout_width="match_parent"

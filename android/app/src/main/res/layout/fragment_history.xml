@@ -13,8 +13,7 @@
         <com.google.android.material.appbar.MaterialToolbar
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
-            android:layout_height="?attr/actionBarSize"
-            app:title="@string/history_title"
+            android:layout_height="wrap_content"
             app:menu="@menu/history_menu" />
 
         <!-- Filter chips row -->

@@ -39,6 +39,8 @@ public class MainActivity extends AppCompatActivity {
         mBinding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(mBinding.getRoot());
 
+        setSupportActionBar(mBinding.toolbar);
+
         // Set up Navigation Component
         // Must use NavHostFragment.findNavController() when container is FragmentContainerView —
         // Navigation.findNavController(activity, viewId) fails in that case.
