@@ -5,11 +5,14 @@ on:
     branches: [main, develop]
     paths:
       - 'backend/**'
+      - 'scripts/oidc-roles.yaml'
       - '.github/workflows/backend-ci.yml'
   pull_request:
     branches: [main, develop]
     paths:
       - 'backend/**'
+      - 'scripts/oidc-roles.yaml'
+  workflow_dispatch:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
