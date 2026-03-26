@@ -1,6 +1,5 @@
 package com.trackmyraces.trak.ui.profile;
 
-import android.app.DatePickerDialog;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -12,12 +11,16 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
+import com.google.android.material.datepicker.CalendarConstraints;
+import com.google.android.material.datepicker.DateValidatorPointBackward;
+import com.google.android.material.datepicker.MaterialDatePicker;
 import com.trackmyraces.trak.R;
 import com.trackmyraces.trak.data.db.entity.RunnerProfileEntity;
 import com.trackmyraces.trak.databinding.FragmentProfileBinding;
 
 import java.util.Calendar;
 import java.util.Locale;
+import java.util.TimeZone;
 
 /**
  * ProfileFragment — edit runner profile and manage linked credential sites.
@@ -45,30 +48,46 @@ public class ProfileFragment extends Fragment {
     }
 
     private void setupDatePicker() {
-        mBinding.etDob.setOnClickListener(v -> {
-            Calendar cal = Calendar.getInstance();
-            // Parse existing DOB if set
-            String existing = mBinding.etDob.getText() != null
-                ? mBinding.etDob.getText().toString() : "";
+        View.OnClickListener openPicker = v -> {
+            // Resolve initial selection: parse existing DOB or default to 30 years ago
+            Calendar utc = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+            String existing = getText(mBinding.etDob);
             if (existing.matches("\\d{4}-\\d{2}-\\d{2}")) {
-                String[] parts = existing.split("-");
-                cal.set(Integer.parseInt(parts[0]),
-                        Integer.parseInt(parts[1]) - 1,
-                        Integer.parseInt(parts[2]));
+                String[] p = existing.split("-");
+                utc.set(Integer.parseInt(p[0]), Integer.parseInt(p[1]) - 1,
+                        Integer.parseInt(p[2]), 0, 0, 0);
+                utc.set(Calendar.MILLISECOND, 0);
             } else {
-                cal.add(Calendar.YEAR, -30); // default to 30 years ago
+                utc.add(Calendar.YEAR, -30);
             }
 
-            new DatePickerDialog(requireContext(),
-                (picker, year, month, day) -> {
-                    String dob = String.format(Locale.US, "%04d-%02d-%02d", year, month + 1, day);
-                    mBinding.etDob.setText(dob);
-                },
-                cal.get(Calendar.YEAR),
-                cal.get(Calendar.MONTH),
-                cal.get(Calendar.DAY_OF_MONTH)
-            ).show();
-        });
+            // Constrain to past dates only
+            CalendarConstraints constraints = new CalendarConstraints.Builder()
+                .setValidator(DateValidatorPointBackward.now())
+                .build();
+
+            MaterialDatePicker<Long> picker = MaterialDatePicker.Builder.datePicker()
+                .setTitleText("Date of birth")
+                .setSelection(utc.getTimeInMillis())
+                .setCalendarConstraints(constraints)
+                .build();
+
+            picker.addOnPositiveButtonClickListener(selectionMs -> {
+                Calendar result = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+                result.setTimeInMillis(selectionMs);
+                String dob = String.format(Locale.US, "%04d-%02d-%02d",
+                    result.get(Calendar.YEAR),
+                    result.get(Calendar.MONTH) + 1,
+                    result.get(Calendar.DAY_OF_MONTH));
+                mBinding.etDob.setText(dob);
+                mBinding.tilDob.setError(null);
+            });
+
+            picker.show(getParentFragmentManager(), "dob_picker");
+        };
+
+        mBinding.etDob.setOnClickListener(openPicker);
+        mBinding.tilDob.setEndIconOnClickListener(openPicker);
     }
 
     private void setupSaveButton() {

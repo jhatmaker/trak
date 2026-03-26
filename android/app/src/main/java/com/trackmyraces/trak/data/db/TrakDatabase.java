@@ -40,7 +40,7 @@ import com.trackmyraces.trak.data.db.entity.SavedViewEntity;
         CredentialEntryEntity.class,
         SavedViewEntity.class,
     },
-    version = 2,
+    version = 3,
     exportSchema = true
 )
 public abstract class TrakDatabase extends RoomDatabase {
@@ -68,7 +68,7 @@ public abstract class TrakDatabase extends RoomDatabase {
                             TrakDatabase.class,
                             DB_NAME
                         )
-                        .addMigrations(MIGRATION_1_2)
+                        .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                         .build();
                 }
             }
@@ -144,6 +144,15 @@ public abstract class TrakDatabase extends RoomDatabase {
                 "`is_synced` INTEGER NOT NULL, " +
                 "PRIMARY KEY(`id`))"
             );
+        }
+    };
+
+    static final Migration MIGRATION_2_3 = new Migration(2, 3) {
+        @Override
+        public void migrate(@androidx.annotation.NonNull SupportSQLiteDatabase db) {
+            db.execSQL("ALTER TABLE `race_result` ADD COLUMN `elevation_gain_meters` INTEGER");
+            db.execSQL("ALTER TABLE `race_result` ADD COLUMN `temperature_celsius` REAL");
+            db.execSQL("ALTER TABLE `race_result` ADD COLUMN `weather_condition` TEXT");
         }
     };
 }

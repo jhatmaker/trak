@@ -13,9 +13,12 @@ import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.Navigation;
 
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.trackmyraces.trak.R;
+import com.trackmyraces.trak.data.db.entity.RunnerProfileEntity;
 import com.trackmyraces.trak.data.network.dto.ExtractionResponse;
 import com.trackmyraces.trak.databinding.FragmentAddResultBinding;
+import com.trackmyraces.trak.ui.profile.ProfileViewModel;
 
 /**
  * AddResultFragment
@@ -33,6 +36,7 @@ public class AddResultFragment extends Fragment {
 
     private FragmentAddResultBinding mBinding;
     private ClaimViewModel           mViewModel;
+    private RunnerProfileEntity      mProfile;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
@@ -46,6 +50,10 @@ public class AddResultFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
         mViewModel = new ViewModelProvider(this).get(ClaimViewModel.class);
 
+        // Observe profile via activity scope so it's loaded regardless of which tab was visited first
+        new ViewModelProvider(requireActivity()).get(ProfileViewModel.class)
+            .profile.observe(getViewLifecycleOwner(), profile -> mProfile = profile);
+
         setupClickListeners();
         observeViewModel();
     }
@@ -53,9 +61,27 @@ public class AddResultFragment extends Fragment {
     private void setupClickListeners() {
         // Step 1: Extract
         mBinding.btnExtract.setOnClickListener(v -> {
+            // Require a complete profile before extraction — name is used to match results
+            if (mProfile == null || mProfile.name == null || mProfile.name.isEmpty()
+                    || mProfile.dateOfBirth == null || mProfile.dateOfBirth.isEmpty()) {
+                new MaterialAlertDialogBuilder(requireContext())
+                    .setTitle("Profile required")
+                    .setMessage("Please complete your profile (name and date of birth) before finding results. "
+                        + "Your name is used to search the results page, and your date of birth is needed "
+                        + "for age group calculation.")
+                    .setPositiveButton("Set up profile", (d, w) ->
+                        Navigation.findNavController(requireView())
+                            .navigate(R.id.profileFragment))
+                    .setNegativeButton("Cancel", null)
+                    .show();
+                return;
+            }
+
             hideKeyboard();
             String url     = getText(mBinding.etUrl);
+            // Pre-fill name from profile if the field is empty
             String name    = getText(mBinding.etName);
+            if (name.isEmpty()) name = mProfile.name;
             String bib     = getText(mBinding.etBib);
             String context = getText(mBinding.etContext);
             mViewModel.extract(url, name, bib.isEmpty() ? null : bib,

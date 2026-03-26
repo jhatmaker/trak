@@ -18,6 +18,58 @@ const { normaliseDistance, calcAgeAtRace, calcAgeGroup,
 const db                       = require('/opt/nodejs/shared/db/client');
 const { runner: runnerDb }     = db;
 
+// ─── Weather fetch (Open-Meteo — free, no API key required) ──────────────────
+
+const WMO_CODES = {
+  0: 'Clear', 1: 'Clear', 2: 'Partly cloudy', 3: 'Overcast',
+  45: 'Fog', 48: 'Fog',
+  51: 'Drizzle', 53: 'Drizzle', 55: 'Drizzle',
+  61: 'Rain', 63: 'Rain', 65: 'Rain',
+  71: 'Snow', 73: 'Snow', 75: 'Snow',
+  80: 'Rain', 81: 'Rain', 82: 'Rain',
+  95: 'Thunderstorm', 96: 'Thunderstorm', 99: 'Thunderstorm',
+};
+
+async function fetchRaceWeather(raceCity, raceState, raceCountry, raceDate) {
+  try {
+    // Step 1: geocode the race location
+    const place = [raceCity, raceState, raceCountry].filter(Boolean).join(', ');
+    if (!place) return null;
+
+    const geoRes = await fetch(
+      `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(place)}&count=1&language=en&format=json`
+    );
+    const geoJson = await geoRes.json();
+    if (!geoJson.results?.length) return null;
+
+    const { latitude, longitude } = geoJson.results[0];
+
+    // Step 2: fetch historical weather for the race date
+    const weatherRes = await fetch(
+      `https://archive-api.open-meteo.com/v1/archive` +
+      `?latitude=${latitude}&longitude=${longitude}` +
+      `&start_date=${raceDate}&end_date=${raceDate}` +
+      `&daily=temperature_2m_max,temperature_2m_min,weathercode` +
+      `&timezone=auto`
+    );
+    const weatherJson = await weatherRes.json();
+    if (!weatherJson.daily?.temperature_2m_max?.length) return null;
+
+    const tMax  = weatherJson.daily.temperature_2m_max[0];
+    const tMin  = weatherJson.daily.temperature_2m_min[0];
+    const wCode = weatherJson.daily.weathercode[0];
+
+    return {
+      temperatureCelsius: Math.round(((tMax + tMin) / 2) * 10) / 10,
+      weatherCondition:   WMO_CODES[wCode] ?? 'Partly cloudy',
+    };
+  } catch (err) {
+    // Weather is non-critical — log and continue
+    console.warn(JSON.stringify({ type: 'WEATHER_FETCH_FAILED', error: err.message }));
+    return null;
+  }
+}
+
 // ─── Validation ───────────────────────────────────────────────────────────────
 
 function validateRequest(body) {
@@ -90,6 +142,11 @@ exports.handler = wrap(async (event) => {
   // Canonical race name
   const raceNameCanonical = canonicaliseRaceName(raw.race_name);
 
+  // Race-day weather (non-blocking — failure returns null)
+  const weather = (raw.race_date && (raw.race_city || raw.race_state || raw.race_country))
+    ? await fetchRaceWeather(raw.race_city, raw.race_state, raw.race_country, raw.race_date)
+    : null;
+
   // Age-related fields (requires runner DOB from profile)
   let ageAtRace = null, ageGroup = null, isBQ = false, bqGapSeconds = null, bqStandard = null;
   if (runnerId && raw.race_date) {
@@ -150,6 +207,10 @@ exports.handler = wrap(async (event) => {
     isBQ,
     bqGapSeconds,
     bqStandardSeconds: bqStandard,
+    // Race conditions
+    elevationGainMeters: raw.elevation_gain_meters || null,
+    temperatureCelsius:  weather?.temperatureCelsius  ?? null,
+    weatherCondition:    weather?.weatherCondition    ?? raw.weather_condition ?? null,
     // Splits
     splits: (raw.splits || []).map(s => ({
       label:           s.label,

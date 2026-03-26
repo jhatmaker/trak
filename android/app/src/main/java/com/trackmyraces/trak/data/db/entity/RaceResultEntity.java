@@ -156,6 +156,20 @@ public class RaceResultEntity {
     @ColumnInfo(name = "age_grade_percent")
     public Double ageGradePercent;
 
+    // ── Race conditions ───────────────────────────────────────────────────
+
+    /** Course elevation gain in meters — extracted by AI or from mapping data */
+    @ColumnInfo(name = "elevation_gain_meters")
+    public Integer elevationGainMeters;
+
+    /** Race-day temperature in Celsius — fetched from Open-Meteo historical API */
+    @ColumnInfo(name = "temperature_celsius")
+    public Double temperatureCelsius;
+
+    /** Human-readable weather description e.g. "Clear", "Rain", "Partly cloudy" */
+    @ColumnInfo(name = "weather_condition")
+    public String weatherCondition;
+
     // ── Meta ──────────────────────────────────────────────────────────────
 
     @ColumnInfo(name = "source_url")

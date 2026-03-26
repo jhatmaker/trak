@@ -81,6 +81,9 @@ Return ONLY a valid JSON object — no markdown, no explanation, no preamble:
       "split_place": integer or null
     }
   ],
+  "elevation_gain_meters": integer or null,
+  "temperature_celsius": number or null,
+  "weather_condition": "Clear" | "Partly cloudy" | "Overcast" | "Drizzle" | "Rain" | "Snow" | "Fog" | "Thunderstorm" | null,
   "is_certified": true | false | null,
   "source_url": "${url}",
   "extraction_notes": "Any caveats, ambiguities, or quality notes, or null"
