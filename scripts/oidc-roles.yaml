@@ -149,6 +149,7 @@ Resources:
                   - dynamodb:CreateTable
                   - dynamodb:DescribeTable
                   - dynamodb:UpdateTable
+                  - dynamodb:UpdateContinuousBackups
                   - dynamodb:TagResource
                 Resource: !Sub arn:aws:dynamodb:us-east-1:${AWS::AccountId}:table/trak-dev*
               - Sid: IAMRoles
@@ -253,6 +254,7 @@ Resources:
                   - dynamodb:CreateTable
                   - dynamodb:DescribeTable
                   - dynamodb:UpdateTable
+                  - dynamodb:UpdateContinuousBackups
                   - dynamodb:TagResource
                 Resource: !Sub arn:aws:dynamodb:us-east-1:${AWS::AccountId}:table/trak-prod*
               - Sid: IAMRoles
