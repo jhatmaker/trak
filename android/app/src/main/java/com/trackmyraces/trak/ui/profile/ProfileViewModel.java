@@ -11,11 +11,14 @@ import com.trackmyraces.trak.data.repository.RaceResultRepository;
 import com.trackmyraces.trak.data.repository.RunnerProfileRepository;
 
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import com.trackmyraces.trak.data.repository.RaceResultRepository.RepositoryCallback;
 
 public class ProfileViewModel extends AndroidViewModel {
 
     private final RunnerProfileRepository mRepo;
+    private final ExecutorService         mExecutor = Executors.newSingleThreadExecutor();
     public  final LiveData<RunnerProfileEntity> profile;
 
     public ProfileViewModel(@NonNull Application application) {
@@ -30,26 +33,29 @@ public class ProfileViewModel extends AndroidViewModel {
 
     public void saveProfile(String name, String dob, String gender,
                             String units, SaveCallback callback) {
-        RunnerProfileEntity current = mRepo.getProfileSync();
+        // getProfileSync() is a blocking DB read — must run off the main thread
+        mExecutor.execute(() -> {
+            RunnerProfileEntity current = mRepo.getProfileSync();
 
-        RunnerProfileEntity entity = current != null ? current : new RunnerProfileEntity();
-        if (entity.id == null) entity.id = UUID.randomUUID().toString();
-        entity.name           = name;
-        entity.dateOfBirth    = dob;
-        entity.gender         = gender;
-        entity.preferredUnits = units;
-        entity.status         = "active";
+            RunnerProfileEntity entity = current != null ? current : new RunnerProfileEntity();
+            if (entity.id == null) entity.id = UUID.randomUUID().toString();
+            entity.name           = name;
+            entity.dateOfBirth    = dob;
+            entity.gender         = gender;
+            entity.preferredUnits = units;
+            entity.status         = "active";
 
-        if (current == null) {
-            mRepo.createProfile(entity, new RaceResultRepository.RepositoryCallback<com.trackmyraces.trak.data.network.dto.ProfileResponse>() {
-                @Override public void onSuccess(com.trackmyraces.trak.data.network.dto.ProfileResponse r) { callback.onResult(true, null); }
-                @Override public void onError(String m)   { callback.onResult(false, m);  }
-            });
-        } else {
-            mRepo.updateProfile(entity, new RaceResultRepository.RepositoryCallback<com.trackmyraces.trak.data.network.dto.ProfileResponse>() {
-                @Override public void onSuccess(com.trackmyraces.trak.data.network.dto.ProfileResponse r) { callback.onResult(true, null); }
-                @Override public void onError(String m)   { callback.onResult(false, m);  }
-            });
-        }
+            RepositoryCallback<com.trackmyraces.trak.data.network.dto.ProfileResponse> cb =
+                new RepositoryCallback<com.trackmyraces.trak.data.network.dto.ProfileResponse>() {
+                    @Override public void onSuccess(com.trackmyraces.trak.data.network.dto.ProfileResponse r) { callback.onResult(true, null); }
+                    @Override public void onError(String m) { callback.onResult(false, m); }
+                };
+
+            if (current == null) {
+                mRepo.createProfile(entity, cb);
+            } else {
+                mRepo.updateProfile(entity, cb);
+            }
+        });
     }
 }
