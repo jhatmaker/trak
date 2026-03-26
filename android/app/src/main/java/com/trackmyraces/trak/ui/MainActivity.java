@@ -75,14 +75,15 @@ public class MainActivity extends AppCompatActivity {
         // savedInstanceState != null means this is a config change (rotation) — skip.
         if (savedInstanceState == null) {
             ProfileViewModel profileVm = new ViewModelProvider(this).get(ProfileViewModel.class);
-            Observer<RunnerProfileEntity>[] holder = new Observer[1];
-            holder[0] = profile -> {
-                profileVm.profile.removeObserver(holder[0]);
-                if (profile == null || profile.name == null || profile.name.isEmpty()) {
-                    mNavController.navigate(R.id.profileFragment);
+            profileVm.profile.observe(this, new Observer<RunnerProfileEntity>() {
+                @Override
+                public void onChanged(RunnerProfileEntity profile) {
+                    profileVm.profile.removeObserver(this);
+                    if (profile == null || profile.name == null || profile.name.isEmpty()) {
+                        mNavController.navigate(R.id.profileFragment);
+                    }
                 }
-            };
-            profileVm.profile.observe(this, holder[0]);
+            });
         }
 
         // Kick off background sync on launch

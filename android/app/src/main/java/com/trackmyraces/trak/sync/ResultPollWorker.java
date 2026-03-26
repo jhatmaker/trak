@@ -37,7 +37,7 @@ import java.util.concurrent.TimeUnit;
 public class ResultPollWorker extends Worker {
 
     private static final String TAG          = "ResultPollWorker";
-    static final         String CHANNEL_ID   = "trak_new_results";
+    public static final  String CHANNEL_ID   = "trak_new_results";
     private static final int    NOTIF_ID     = 1001;
 
     public ResultPollWorker(@NonNull Context context, @NonNull WorkerParameters params) {
@@ -51,8 +51,10 @@ public class ResultPollWorker extends Worker {
 
         try {
             // ── 1. Load runner profile ─────────────────────────────────────
-            RunnerProfileRepository profileRepo =
-                new RunnerProfileRepository(getApplicationContext());
+            android.app.Application app =
+                (android.app.Application) getApplicationContext();
+
+            RunnerProfileRepository profileRepo = new RunnerProfileRepository(app);
             RunnerProfileEntity profile = profileRepo.getProfileSync();
 
             if (profile == null || profile.name == null || profile.name.isEmpty()) {
@@ -63,8 +65,7 @@ public class ResultPollWorker extends Worker {
             List<String> interests = profile.getInterestList();
 
             // ── 2. Call /discover ──────────────────────────────────────────
-            RaceResultRepository repo =
-                new RaceResultRepository((android.app.Application) getApplicationContext());
+            RaceResultRepository repo = new RaceResultRepository(app);
 
             CountDownLatch latch = new CountDownLatch(1);
             final DiscoverResponse[] result = {null};
