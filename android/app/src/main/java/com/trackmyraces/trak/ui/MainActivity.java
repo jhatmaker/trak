@@ -6,7 +6,7 @@ import android.view.MenuItem;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.navigation.NavController;
-import androidx.navigation.Navigation;
+import androidx.navigation.fragment.NavHostFragment;
 import androidx.navigation.ui.AppBarConfiguration;
 import androidx.navigation.ui.NavigationUI;
 
@@ -40,7 +40,11 @@ public class MainActivity extends AppCompatActivity {
         setContentView(mBinding.getRoot());
 
         // Set up Navigation Component
-        mNavController = Navigation.findNavController(this, R.id.nav_host_fragment);
+        // Must use NavHostFragment.findNavController() when container is FragmentContainerView —
+        // Navigation.findNavController(activity, viewId) fails in that case.
+        NavHostFragment navHostFragment = (NavHostFragment) getSupportFragmentManager()
+                .findFragmentById(R.id.nav_host_fragment);
+        mNavController = navHostFragment.getNavController();
 
         // Top-level destinations — back button won't show on these
         AppBarConfiguration appBarConfig = new AppBarConfiguration.Builder(

@@ -42,7 +42,7 @@ jobs:
 
       - name: Create local.properties with placeholder API URL
         run: |
-          echo "trak.api.url.dev=https://placeholder.execute-api.us-east-1.amazonaws.com/dev" \
+          echo "trak.api.url.dev=https://dev.api.trackmyraces.com" \
             > local.properties
 
       - name: Run unit tests

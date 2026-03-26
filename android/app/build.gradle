@@ -20,7 +20,7 @@ android {
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
         // API base URL injected at build time — override in local.properties or CI
-        buildConfigField "String", "API_BASE_URL", "\"${project.findProperty('trak.api.url') ?: 'https://api.trackmyraces.com/prod'}\""
+        buildConfigField "String", "API_BASE_URL", "\"${project.findProperty('trak.api.url') ?: 'https://api.trackmyraces.com'}\""
         buildConfigField "String", "APP_VERSION",  "\"${versionName}\""
     }
 
@@ -28,7 +28,7 @@ android {
         debug {
             applicationIdSuffix ".debug"
             versionNameSuffix "-debug"
-            buildConfigField "String", "API_BASE_URL", "\"${project.findProperty('trak.api.url.dev') ?: 'https://api.trackmyraces.com/dev'}\""
+            buildConfigField "String", "API_BASE_URL", "\"${project.findProperty('trak.api.url.dev') ?: 'https://dev.api.trackmyraces.com'}\""
             debuggable true
         }
         release {

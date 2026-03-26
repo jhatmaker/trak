@@ -169,6 +169,25 @@ Resources:
                 Resource:
                   - !Sub arn:aws:iam::${AWS::AccountId}:role/trak-*-dev
                   - !Sub arn:aws:iam::${AWS::AccountId}:role/trak-dev-*
+              - Sid: ACM
+                Effect: Allow
+                Action:
+                  - acm:RequestCertificate
+                  - acm:DescribeCertificate
+                  - acm:DeleteCertificate
+                  - acm:AddTagsToCertificate
+                  - acm:ListTagsForCertificate
+                Resource: !Sub arn:aws:acm:us-east-1:${AWS::AccountId}:certificate/*
+              - Sid: Route53
+                Effect: Allow
+                Action:
+                  - route53:ChangeResourceRecordSets
+                  - route53:ListResourceRecordSets
+                  - route53:GetChange
+                  - route53:ListHostedZones
+                Resource:
+                  - arn:aws:route53:::hostedzone/Z07221791SG93GBUMA7Y7
+                  - arn:aws:route53:::change/*
 
   # ── Role 3: deploy-prod (main branch only) ───────────────────────────────────
 
@@ -274,6 +293,25 @@ Resources:
                 Resource:
                   - !Sub arn:aws:iam::${AWS::AccountId}:role/trak-*-prod
                   - !Sub arn:aws:iam::${AWS::AccountId}:role/trak-prod-*
+              - Sid: ACM
+                Effect: Allow
+                Action:
+                  - acm:RequestCertificate
+                  - acm:DescribeCertificate
+                  - acm:DeleteCertificate
+                  - acm:AddTagsToCertificate
+                  - acm:ListTagsForCertificate
+                Resource: !Sub arn:aws:acm:us-east-1:${AWS::AccountId}:certificate/*
+              - Sid: Route53
+                Effect: Allow
+                Action:
+                  - route53:ChangeResourceRecordSets
+                  - route53:ListResourceRecordSets
+                  - route53:GetChange
+                  - route53:ListHostedZones
+                Resource:
+                  - arn:aws:route53:::hostedzone/Z07221791SG93GBUMA7Y7
+                  - arn:aws:route53:::change/*
 
 Outputs:
   ValidateRoleArn:

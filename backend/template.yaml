@@ -14,6 +14,14 @@ Parameters:
   JwtSecretName:
     Type: String
     Default: trak/jwt-secret
+  HostedZoneId:
+    Type: String
+    Default: Z07221791SG93GBUMA7Y7
+    Description: Route 53 hosted zone ID for trackmyraces.com
+
+# ─── Conditions ───────────────────────────────────────────────────────────────
+Conditions:
+  IsProd: !Equals [!Ref Stage, prod]
 
 # ─── Globals ──────────────────────────────────────────────────────────────────
 Globals:
@@ -286,13 +294,65 @@ Resources:
             Path: /views/{viewId}
             Method: DELETE
 
+  # ── ACM Certificate (DNS-validated via Route 53) ─────────────────────────
+  TrakApiCertificate:
+    Type: AWS::CertificateManager::Certificate
+    Properties:
+      DomainName: !If [IsProd, "api.trackmyraces.com", "dev.api.trackmyraces.com"]
+      ValidationMethod: DNS
+      DomainValidationOptions:
+        - DomainName: !If [IsProd, "api.trackmyraces.com", "dev.api.trackmyraces.com"]
+          HostedZoneId: !Ref HostedZoneId
+      Tags:
+        - { Key: Project, Value: Trak }
+        - { Key: Stage,   Value: !Ref Stage }
+
+  # ── API Gateway Custom Domain ─────────────────────────────────────────────
+  TrakApiCustomDomain:
+    Type: AWS::ApiGateway::DomainName
+    Properties:
+      DomainName: !If [IsProd, "api.trackmyraces.com", "dev.api.trackmyraces.com"]
+      RegionalCertificateArn: !Ref TrakApiCertificate
+      EndpointConfiguration:
+        Types: [REGIONAL]
+      Tags:
+        - { Key: Project, Value: Trak }
+        - { Key: Stage,   Value: !Ref Stage }
+
+  # ── Base Path Mapping (root — no prefix) ─────────────────────────────────
+  TrakApiBasePathMapping:
+    Type: AWS::ApiGateway::BasePathMapping
+    DependsOn: TrakApi
+    Properties:
+      DomainName: !Ref TrakApiCustomDomain
+      RestApiId: !Ref TrakApi
+      Stage: !Ref Stage
+
+  # ── Route 53 A record (alias to regional API Gateway endpoint) ───────────
+  TrakApiDnsRecord:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !If [IsProd, "api.trackmyraces.com.", "dev.api.trackmyraces.com."]
+      Type: A
+      AliasTarget:
+        DNSName: !GetAtt TrakApiCustomDomain.RegionalDomainName
+        HostedZoneId: !GetAtt TrakApiCustomDomain.RegionalHostedZoneId
+        EvaluateTargetHealth: false
+
 # ─── Outputs ──────────────────────────────────────────────────────────────────
 Outputs:
   ApiUrl:
-    Description: API Gateway endpoint
+    Description: API Gateway endpoint (raw)
     Value: !Sub "https://${TrakApi}.execute-api.${AWS::Region}.amazonaws.com/${Stage}"
     Export:
       Name: !Sub TrakApiUrl-${Stage}
+
+  CustomDomainUrl:
+    Description: Custom domain API endpoint
+    Value: !If [IsProd, "https://api.trackmyraces.com", "https://dev.api.trackmyraces.com"]
+    Export:
+      Name: !Sub TrakCustomDomainUrl-${Stage}
 
   TableName:
     Description: DynamoDB table name
