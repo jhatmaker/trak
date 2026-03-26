@@ -97,6 +97,7 @@
     <string name="profile_gender_na">Prefer not to say</string>
 
     <!-- Onboarding -->
+    <string name="profile_setup_prompt">Welcome to Trak! Please enter your name and date of birth to get started. Your name is used to find your results, and your date of birth is needed for age group calculation.</string>
     <string name="onboard_title">Welcome to Trak</string>
     <string name="onboard_subtitle">Your complete race history, in one place.</string>
     <string name="onboard_create">Create your profile</string>

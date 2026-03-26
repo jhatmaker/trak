@@ -6,6 +6,8 @@ import android.view.View;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.lifecycle.Observer;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavController;
 import androidx.navigation.fragment.NavHostFragment;
 import androidx.navigation.ui.AppBarConfiguration;
@@ -14,7 +16,9 @@ import androidx.navigation.ui.NavigationUI;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.trackmyraces.trak.R;
 import com.trackmyraces.trak.TrakApplication;
+import com.trackmyraces.trak.data.db.entity.RunnerProfileEntity;
 import com.trackmyraces.trak.databinding.ActivityMainBinding;
+import com.trackmyraces.trak.ui.profile.ProfileViewModel;
 
 /**
  * MainActivity — single Activity host for the entire app.
@@ -65,6 +69,21 @@ public class MainActivity extends AppCompatActivity {
         TrakApplication.getInstance().getNetworkMonitor().observe(this, isOnline ->
             mBinding.offlineBanner.setVisibility(isOnline ? View.GONE : View.VISIBLE)
         );
+
+        // Profile gate: on fresh launch, navigate to Profile if no profile is set.
+        // Uses a one-shot observer so it doesn't fire again after the user saves.
+        // savedInstanceState != null means this is a config change (rotation) — skip.
+        if (savedInstanceState == null) {
+            ProfileViewModel profileVm = new ViewModelProvider(this).get(ProfileViewModel.class);
+            Observer<RunnerProfileEntity>[] holder = new Observer[1];
+            holder[0] = profile -> {
+                profileVm.profile.removeObserver(holder[0]);
+                if (profile == null || profile.name == null || profile.name.isEmpty()) {
+                    mNavController.navigate(R.id.profileFragment);
+                }
+            };
+            profileVm.profile.observe(this, holder[0]);
+        }
 
         // Kick off background sync on launch
         TrakApplication.getInstance().getSyncManager().syncIfOnline((success, message) ->

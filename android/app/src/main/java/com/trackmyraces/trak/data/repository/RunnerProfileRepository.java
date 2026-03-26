@@ -49,77 +49,79 @@ public class RunnerProfileRepository {
     }
 
     /**
-     * Create a new profile — writes locally first, then syncs to backend.
+     * Create a new profile — writes locally, reports success immediately, then syncs to backend.
+     *
+     * The local write is the source of truth. Backend sync is fire-and-forget; a 401 or
+     * network failure does not fail the operation (auth may not be set up yet).
      */
     public void createProfile(RunnerProfileEntity profile,
                               RaceResultRepository.RepositoryCallback<ProfileResponse> callback) {
-        // Write locally first so the UI is instantly responsive
         mExecutor.execute(() -> {
             profile.isSynced = false;
             mDao.insertOrReplace(profile);
+            // Report success to the UI as soon as local write is done
+            callback.onSuccess(null);
         });
 
-        // Build request for backend
-        ProfileRequest request = new ProfileRequest();
-        request.name           = profile.name;
-        request.dateOfBirth    = profile.dateOfBirth;
-        request.gender         = profile.gender;
-        request.city           = profile.city;
-        request.state          = profile.state;
-        request.country        = profile.country;
-        request.preferredUnits = profile.preferredUnits;
-
+        // Attempt backend sync in background — result is not surfaced to the caller
+        ProfileRequest request = buildRequest(profile);
         mApi.createProfile(request).enqueue(new Callback<ProfileResponse>() {
             @Override
             public void onResponse(Call<ProfileResponse> call, Response<ProfileResponse> response) {
-                if (response.isSuccessful() && response.body() != null) {
+                if (response.isSuccessful()) {
                     mExecutor.execute(() -> {
                         profile.isSynced = true;
                         mDao.insertOrReplace(profile);
                     });
-                    callback.onSuccess(response.body());
-                } else {
-                    callback.onError("Profile sync failed: HTTP " + response.code());
                 }
+                // 401/4xx ignored — will retry when auth is available
             }
             @Override
             public void onFailure(Call<ProfileResponse> call, Throwable t) {
-                // Local copy already saved — profile works offline
-                callback.onError("Saved locally — will sync when online");
+                // Network failure ignored — local copy is already saved
             }
         });
     }
 
     /**
-     * Update profile fields.
+     * Update profile fields — same offline-first pattern as createProfile.
      */
     public void updateProfile(RunnerProfileEntity updated,
                               RaceResultRepository.RepositoryCallback<ProfileResponse> callback) {
-        mExecutor.execute(() -> mDao.update(updated));
+        mExecutor.execute(() -> {
+            updated.isSynced = false;
+            mDao.update(updated);
+            callback.onSuccess(null);
+        });
 
-        ProfileRequest request = new ProfileRequest();
-        request.name           = updated.name;
-        request.dateOfBirth    = updated.dateOfBirth;
-        request.gender         = updated.gender;
-        request.city           = updated.city;
-        request.state          = updated.state;
-        request.country        = updated.country;
-        request.preferredUnits = updated.preferredUnits;
-
+        ProfileRequest request = buildRequest(updated);
         mApi.updateProfile(request).enqueue(new Callback<ProfileResponse>() {
             @Override
             public void onResponse(Call<ProfileResponse> call, Response<ProfileResponse> response) {
-                if (response.isSuccessful() && response.body() != null) {
-                    callback.onSuccess(response.body());
-                } else {
-                    callback.onError("Update failed: HTTP " + response.code());
+                if (response.isSuccessful()) {
+                    mExecutor.execute(() -> {
+                        updated.isSynced = true;
+                        mDao.update(updated);
+                    });
                 }
             }
             @Override
             public void onFailure(Call<ProfileResponse> call, Throwable t) {
-                callback.onError(t.getMessage());
+                // Ignored — local copy already updated
             }
         });
+    }
+
+    private ProfileRequest buildRequest(RunnerProfileEntity e) {
+        ProfileRequest r = new ProfileRequest();
+        r.name           = e.name;
+        r.dateOfBirth    = e.dateOfBirth;
+        r.gender         = e.gender;
+        r.city           = e.city;
+        r.state          = e.state;
+        r.country        = e.country;
+        r.preferredUnits = e.preferredUnits;
+        return r;
     }
 
 

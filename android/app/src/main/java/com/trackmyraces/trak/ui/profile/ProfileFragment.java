@@ -126,6 +126,9 @@ public class ProfileFragment extends Fragment {
 
     private void observeViewModel() {
         mViewModel.profile.observe(getViewLifecycleOwner(), profile -> {
+            boolean isNewProfile = (profile == null || profile.name == null || profile.name.isEmpty());
+            mBinding.tvSetupPrompt.setVisibility(isNewProfile ? View.VISIBLE : View.GONE);
+
             if (profile == null) return;
             mBinding.etName.setText(profile.name != null ? profile.name : "");
             mBinding.etDob.setText(profile.dateOfBirth != null ? profile.dateOfBirth : "");
