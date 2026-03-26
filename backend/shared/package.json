@@ -1,0 +1,9 @@
+{
+  "name": "trak-shared",
+  "version": "1.0.0",
+  "description": "Shared utilities for Trak Lambda functions",
+  "type": "commonjs",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0"
+  }
+}

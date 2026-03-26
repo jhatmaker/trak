@@ -49,11 +49,11 @@ Resources:
     Properties:
       LayerName: !Sub trak-shared-${Stage}
       Description: Shared utilities, DB client, constants
-      ContentUri: shared/
+      ContentUri: ./
       CompatibleRuntimes: [nodejs20.x]
       RetentionPolicy: Delete
     Metadata:
-      BuildMethod: nodejs20.x
+      BuildMethod: makefile
 
   # ── DynamoDB single-table ────────────────────────────────────────────────
   TrakTable:
