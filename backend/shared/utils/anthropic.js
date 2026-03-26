@@ -163,16 +163,17 @@ function buildDiscoveryPrompt({ runnerName, approximateAge, sites }) {
     : '';
 
   const siteList = sites.map((s, i) =>
-    `${i + 1}. ${s.name} — ${s.searchUrl}`
+    `${i + 1}. ${s.name} — search query: ${s.searchQuery}`
   ).join('\n');
 
   return `You are helping a runner discover whether they have results on popular running websites.
 
 Runner to search for: "${runnerName}"${ageNote}
 
-Search each of these websites and determine if a runner named "${runnerName}" has results there.
-For each site, use the provided search URL, then look for a profile or results page specifically for this runner.
-If you find multiple people with the same name, use the approximate age to pick the most likely match.
+For each site below, use the web_search tool with the provided search query to find whether this runner has results there.
+The search queries use "site:" to restrict results to that specific website.
+If multiple people share the name, use the approximate age to pick the most likely match.
+Once you find a matching athlete page, note the direct URL to their results or profile (not the search results page).
 
 Sites to search:
 ${siteList}

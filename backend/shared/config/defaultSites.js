@@ -17,26 +17,30 @@
  * tags: race types this site is relevant for.
  *   road, trail, ultra, marathon, parkrun, triathlon, ocr, track, crosscountry
  *
- * searchUrlTemplate placeholders:
- *   {name}       — full name URL-encoded ("Jane+Smith")
- *   {firstName}  — first word of name, URL-encoded
- *   {lastName}   — last word of name, URL-encoded
+ * searchQueryTemplate placeholders (used as a web search query — Google-style):
+ *   {name}       — full name quoted ("Jane Smith")
+ *   {firstName}  — first word of name
+ *   {lastName}   — last word of name
+ *
+ * These are passed to Claude's web_search tool as search queries, not fetched as URLs.
+ * Most running result sites are JavaScript-rendered and can't be fetched directly —
+ * but their athlete pages are indexed by Google and reliably found via site: searches.
  */
 const DEFAULT_SITES = [
   {
     id:          'athlinks',
     name:        'Athlinks',
     description: 'Largest race results aggregator — road, trail, triathlon, OCR, cycling',
-    searchUrlTemplate: 'https://www.athlinks.com/athletes/search?q={name}',
+    searchQueryTemplate: 'site:athlinks.com "{name}"',
     tags:        ['road', 'trail', 'ultra', 'marathon', 'triathlon', 'ocr', 'track'],
-    priority:    'always',   // covers essentially everything — always worth searching
+    priority:    'always',
     enabled:     true,
   },
   {
     id:          'ultrasignup',
     name:        'Ultrasignup',
     description: 'Ultra marathon and trail race results',
-    searchUrlTemplate: 'https://ultrasignup.com/results.aspx?fname={firstName}&lname={lastName}',
+    searchQueryTemplate: 'site:ultrasignup.com "{name}"',
     tags:        ['trail', 'ultra'],
     priority:    'normal',
     enabled:     true,
@@ -45,7 +49,7 @@ const DEFAULT_SITES = [
     id:          'runsignup',
     name:        'RunSignup',
     description: 'Road race results from RunSignup-hosted events across the US',
-    searchUrlTemplate: 'https://runsignup.com/Race/Results/Search?search_term={name}',
+    searchQueryTemplate: 'site:runsignup.com "{name}" race results',
     tags:        ['road', 'trail', 'marathon'],
     priority:    'normal',
     enabled:     true,
@@ -54,7 +58,7 @@ const DEFAULT_SITES = [
     id:          'nyrr',
     name:        'New York Road Runners',
     description: 'NYRR races including NYC Marathon, Queens 10K, and more',
-    searchUrlTemplate: 'https://results.nyrr.org/search/{name}',
+    searchQueryTemplate: 'site:results.nyrr.org "{name}"',
     tags:        ['road', 'marathon'],
     priority:    'normal',
     enabled:     true,
@@ -63,7 +67,7 @@ const DEFAULT_SITES = [
     id:          'baa',
     name:        'Boston Athletic Association',
     description: 'Boston Marathon and BAA road race results',
-    searchUrlTemplate: 'https://results.baa.org/2024/?pid=search&search%5Bname%5D={lastName}&search%5Bfirstname%5D={firstName}',
+    searchQueryTemplate: 'site:results.baa.org "{name}"',
     tags:        ['road', 'marathon'],
     priority:    'normal',
     enabled:     true,
@@ -83,9 +87,8 @@ const DEFAULT_SITES = [
  */
 function resolveSiteUrls(fullName, interests = []) {
   const parts     = fullName.trim().split(/\s+/);
-  const firstName = encodeURIComponent(parts[0] || '');
-  const lastName  = encodeURIComponent(parts[parts.length - 1] || '');
-  const fullEnc   = encodeURIComponent(fullName.trim()).replace(/%20/g, '+');
+  const firstName = parts[0] || '';
+  const lastName  = parts[parts.length - 1] || '';
 
   const hasInterests = interests.length > 0;
 
@@ -101,8 +104,8 @@ function resolveSiteUrls(fullName, interests = []) {
       name:        s.name,
       description: s.description,
       tags:        s.tags,
-      searchUrl:   s.searchUrlTemplate
-        .replace('{name}',      fullEnc)
+      searchQuery: s.searchQueryTemplate
+        .replace('{name}',      fullName.trim())
         .replace('{firstName}', firstName)
         .replace('{lastName}',  lastName),
     }));
