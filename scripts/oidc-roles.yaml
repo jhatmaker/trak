@@ -235,6 +235,7 @@ Resources:
                   - rds:DeregisterDBProxyTargets
                   - rds:DescribeDBProxyTargetGroups
                   - rds:ModifyDBProxyTargetGroup
+                  - rds:DescribeDBProxyTargets
                   - rds:AddTagsToResource
                   - rds:ListTagsForResource
                   - rds:DescribeDBClusterParameters
@@ -432,6 +433,7 @@ Resources:
                   - rds:DeregisterDBProxyTargets
                   - rds:DescribeDBProxyTargetGroups
                   - rds:ModifyDBProxyTargetGroup
+                  - rds:DescribeDBProxyTargets
                   - rds:AddTagsToResource
                   - rds:ListTagsForResource
                   - rds:DescribeDBClusterParameters
