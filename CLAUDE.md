@@ -282,6 +282,83 @@ RACE#{raceEventId}          CLAIM#{claimId}             runnerId, status
 
 GSI: `byRaceEvent` — PK: `raceEventId`, SK: `claimId` (for multi-runner club views)
 
+### Aurora PostgreSQL (Phase 2 — Sources Catalog)
+
+A shared relational database for the source catalog and user subscriptions.
+See SOURCES_REDESIGN.md for full schema and migration plan.
+
+Tables:
+- `race_source` — shared catalog of all known results sites, each with a
+  stable UUID. Includes distance_tags, region_tags, scrape_strategy,
+  is_hidden_default. Never use site name or URL as identifier — UUID only.
+- `runner_source_subscription` — join table: runner_id → source UUID,
+  with is_enabled, is_hidden, auto_poll, runner_name_on_site, poll_frequency.
+- Source limits: Free=5 active, Pro=25 active, Club=unlimited.
+  Enforced in subscriptionsFunction on POST, not in the poll scheduler.
+
+Not yet deployed. Planned Lambda functions:
+- sourcesFunction     GET/POST/PUT /sources
+- subscriptionsFunction  GET/POST/PUT/DELETE /subscriptions
+- pollSchedulerFunction  internal, EventBridge cron trigger
+
+---
+
+## Network State Management
+
+**All Fragments extend `NetworkAwareFragment`** — never `Fragment` directly.
+Never scatter `if (isOnline)` checks. Override `onNetworkStateChanged()` once
+per Fragment to handle all connectivity-driven UI changes.
+```java
+// CORRECT
+public class MyFragment extends NetworkAwareFragment {
+    @Override
+    protected void onNetworkStateChanged(NetworkState state) {
+        boolean online = state.isOnline();
+        setViewOnlineOnly(binding.btnExtract, online);  // alpha 0.38 when disabled
+    }
+}
+```
+
+`NetworkStateManager` is an app-scoped singleton using
+`ConnectivityManager.NetworkCallback` — state is pushed in real time.
+`NetworkState` enum: `OFFLINE`, `CONNECTED_UNMETERED`, `CONNECTED_METERED`, `UNKNOWN`.
+
+**`@OfflineCapability` annotation** — every repository method and ViewModel
+action touching the network must be annotated:
+```java
+@OfflineCapability(available = false, reason = "Requires Anthropic API")
+public void extractResult(...) { ... }
+
+@OfflineCapability(available = true)
+public LiveData<List<RaceResultEntity>> getAllResults() { ... }
+
+@OfflineCapability(available = false, queued = true, reason = "Syncs on reconnect")
+public void updateResultNotes(...) { ... }
+```
+
+| Feature | Offline | Notes |
+|---------|---------|-------|
+| View history / PRs / splits | ✓ | Room DB |
+| Filter and sort | ✓ | In-memory |
+| Export CSV | ✓ | Local data |
+| Edit result notes | ✓ queued | Syncs on reconnect |
+| Add result from URL | ✗ | Anthropic API |
+| Claim a result | ✗ | Backend required |
+| Auto-poll sources | ✗ | Backend + Anthropic |
+| Credential site login | ✗ | Network required |
+| Pull-to-refresh | ✗ | Backend required |
+```
+
+---
+
+**4. Update the Lambda Functions table** — add `discoverResult` (already in your table) and note the three planned ones:
+
+Your table already has `discoverResult`. Just add a note row:
+```
+| `sourcesFunction`    | POST /sources | None | Planned Phase 2 — source catalog |
+| `subscriptionsFunction` | POST /subscriptions | JWT | Planned Phase 2 |
+| `pollSchedulerFunction` | EventBridge | Internal | Planned Phase 2 |
+
 ---
 
 ## Core Business Logic
@@ -450,6 +527,7 @@ Sort params: `date`, `distance`, `finishTime`, `overallPlace`, `ageGroupPlace`
 ### Discovery
 - [ ] Custom sources actually searched during discovery — currently added to count but not passed to `/discover`
 - [ ] Parkrun integration (public API — no auth needed)
+- [ ] Sources redesign — shared PostgreSQL catalog replaces per-user DynamoDB source storage. See SOURCES_REDESIGN.md.
 
 ### Race data
 - [ ] Boston Qualifier (BQ) tracking and gap calculation

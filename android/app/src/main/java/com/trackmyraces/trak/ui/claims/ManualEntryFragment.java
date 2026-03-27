@@ -8,7 +8,7 @@ import android.widget.ArrayAdapter;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.fragment.app.Fragment;
+import com.trackmyraces.trak.ui.NetworkAwareFragment;
 import androidx.navigation.Navigation;
 
 import com.google.android.material.datepicker.CalendarConstraints;
@@ -37,7 +37,7 @@ import java.util.UUID;
  * Required fields: race name, race date, distance, finish time.
  * Optional: bib number, notes.
  */
-public class ManualEntryFragment extends Fragment {
+public class ManualEntryFragment extends NetworkAwareFragment {
 
     // Canonical distance entries — label shown to user : canonical key : meters
     private static final String[] DISTANCE_LABELS = {

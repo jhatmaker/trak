@@ -16,6 +16,7 @@ import com.trackmyraces.trak.data.network.TrakApiService;
 import com.trackmyraces.trak.data.network.dto.ClaimRequest;
 import com.trackmyraces.trak.data.network.dto.ClaimResponse;
 import com.trackmyraces.trak.data.network.dto.DiscoverRequest;
+import com.trackmyraces.trak.util.OfflineCapability;
 import com.trackmyraces.trak.data.network.dto.DiscoverResponse;
 import com.trackmyraces.trak.data.network.dto.DiscoverSiteResult;
 import com.trackmyraces.trak.data.network.dto.ExtractionRequest;
@@ -64,43 +65,53 @@ public class RaceResultRepository {
 
     // ── Read — all return LiveData observed by ViewModels ─────────────────
 
+    @OfflineCapability(available = true)
     public LiveData<List<RaceResultEntity>> getAllResults() {
         return mDao.getAllActive();
     }
 
+    @OfflineCapability(available = true)
     public LiveData<List<RaceResultEntity>> getResultsByDistance(String distanceCanonical) {
         return mDao.getByDistance(distanceCanonical);
     }
 
+    @OfflineCapability(available = true)
     public LiveData<List<RaceResultEntity>> getPRs() {
         return mDao.getPRs();
     }
 
+    @OfflineCapability(available = true)
     public LiveData<List<RaceResultEntity>> getResultsByRaceName(String slug) {
         return mDao.getByRaceName(slug);
     }
 
+    @OfflineCapability(available = true)
     public LiveData<List<RaceResultEntity>> getResultsByYearRange(int from, int to) {
         return mDao.getByYearRange(from, to);
     }
 
 
+    @OfflineCapability(available = true)
     public LiveData<List<RaceResultEntity>> getRecentResults(int limit) {
         return mDao.getRecentResults(limit);
     }
 
+    @OfflineCapability(available = true)
     public LiveData<Integer> getUniqueRaceCount() {
         return mDao.getUniqueRaceCount();
     }
 
+    @OfflineCapability(available = true)
     public LiveData<RaceResultEntity> getResultById(String id) {
         return mDao.getById(id);
     }
 
+    @OfflineCapability(available = true)
     public LiveData<Integer> getTotalCount() {
         return mDao.getTotalCount();
     }
 
+    @OfflineCapability(available = true)
     public LiveData<Double> getTotalDistanceMeters() {
         return mDao.getTotalDistanceMeters();
     }
@@ -111,6 +122,7 @@ public class RaceResultRepository {
      * Search default running sites for a runner.
      * Public endpoint — no auth token required.
      */
+    @OfflineCapability(available = false, reason = "Requires network — calls /discover endpoint")
     public void discoverResults(String userId,
                                 List<String> sourceIds,
                                 String runnerName, String dateOfBirth,
@@ -236,35 +248,43 @@ public class RaceResultRepository {
         return s.toLowerCase(java.util.Locale.US).trim().replaceAll("[^a-z0-9]+", "_");
     }
 
+    @OfflineCapability(available = true)
     public LiveData<List<PendingMatchEntity>> getPendingMatches() {
         return mPendingMatchDao.getPending();
     }
 
+    @OfflineCapability(available = true)
     public LiveData<Integer> getPendingMatchCount() {
         return mPendingMatchDao.getPendingCount();
     }
 
+    @OfflineCapability(available = true)
     public void dismissPendingMatch(String matchId) {
         mExecutor.execute(() -> mPendingMatchDao.markDismissed(matchId, now()));
     }
 
+    @OfflineCapability(available = true)
     public LiveData<List<PendingMatchEntity>> getDismissedMatches() {
         return mPendingMatchDao.getDismissed();
     }
 
+    @OfflineCapability(available = true)
     public LiveData<List<PendingMatchEntity>> getDismissedMatchesForSite(String siteId) {
         return mPendingMatchDao.getDismissedForSite(siteId);
     }
 
+    @OfflineCapability(available = true)
     public LiveData<Integer> getDismissedCountForSite(String siteId) {
         return mPendingMatchDao.getDismissedCountForSite(siteId);
     }
 
     /** Move a dismissed match back to pending so the runner can claim or dismiss it again. */
+    @OfflineCapability(available = true)
     public void restorePendingMatch(String matchId) {
         mExecutor.execute(() -> mPendingMatchDao.restoreToPending(matchId, now()));
     }
 
+    @OfflineCapability(available = true)
     public void claimPendingMatch(String matchId) {
         mExecutor.execute(() -> mPendingMatchDao.markClaimed(matchId, now()));
     }
@@ -275,6 +295,7 @@ public class RaceResultRepository {
      * by the discovery pipeline). The result is saved with isSynced=false so it
      * will be uploaded to the backend when auth is implemented.
      */
+    @OfflineCapability(available = true)
     public void claimAndSave(PendingMatchEntity match) {
         mExecutor.execute(() -> {
             String timestamp = now();
@@ -367,6 +388,7 @@ public class RaceResultRepository {
      * @param extraContext  Optional disambiguation hint
      * @param callback      Called on main thread with result or error
      */
+    @OfflineCapability(available = false, reason = "Requires Anthropic API via /extract")
     public void extractResult(
             String url,
             String runnerName,
@@ -407,6 +429,7 @@ public class RaceResultRepository {
      * Confirm a pending extraction as a claimed result.
      * On success, writes the result to Room DB and recalculates PRs.
      */
+    @OfflineCapability(available = false, reason = "Requires backend — calls /claims")
     public void claimResult(
             String extractionId,
             Map<String, Object> edits,
@@ -445,6 +468,7 @@ public class RaceResultRepository {
      * @param entity   Fully-populated entity (id must be set by caller)
      * @param callback Called on the executor thread with the saved resultId or error
      */
+    @OfflineCapability(available = true)
     public void saveManualResult(RaceResultEntity entity, RepositoryCallback<String> callback) {
         mExecutor.execute(() -> {
             try {
@@ -462,6 +486,7 @@ public class RaceResultRepository {
 
     // ── Delete ────────────────────────────────────────────────────────────
 
+    @OfflineCapability(available = false, reason = "Requires backend — calls DELETE /results/{id}")
     public void deleteResult(String resultId, String claimId, RepositoryCallback<Void> callback) {
         // Optimistically soft-delete locally first
         mExecutor.execute(() -> {
@@ -542,6 +567,7 @@ public class RaceResultRepository {
      * Bulk sync: fetch all results from backend and upsert into Room.
      * Called by SyncManager during background sync.
      */
+    @OfflineCapability(available = false, reason = "Requires backend — calls GET /results")
     public void syncAllFromBackend(RepositoryCallback<Integer> callback) {
         Map<String, String> filters = new HashMap<>();
         filters.put("limit", "200");

@@ -8,7 +8,7 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.fragment.app.Fragment;
+import com.trackmyraces.trak.ui.NetworkAwareFragment;
 import androidx.navigation.Navigation;
 
 import com.trackmyraces.trak.R;
@@ -32,7 +32,7 @@ import java.util.List;
  *
  * Results are persisted as PendingMatchEntity rows in Room before navigating away.
  */
-public class DiscoverFragment extends Fragment {
+public class DiscoverFragment extends NetworkAwareFragment {
 
     private FragmentDiscoverBinding mBinding;
     private RaceResultRepository    mRepo;

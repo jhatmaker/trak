@@ -21,7 +21,7 @@ s3_prefix           = "trak-dev"
 region              = "us-east-1"
 confirm_changeset   = true
 capabilities        = "CAPABILITY_IAM CAPABILITY_NAMED_IAM"
-parameter_overrides = "Stage=\"dev\" AnthropicSecretName=\"trak/anthropic-api-key\" JwtSecretName=\"trak/jwt-secret\""
+parameter_overrides = "Stage=\"dev\" AnthropicSecretName=\"trak/anthropic-api-key\" JwtSecretName=\"trak/jwt-secret\" VpcId=\"vpc-REPLACE_DEV\" DbSubnetIds=\"subnet-REPLACE_DEV_1,subnet-REPLACE_DEV_2\" DbName=\"trak\" DbMasterUsername=\"trakadmin\""
 
 # ── Production environment ────────────────────────────────────────────────────
 [prod.deploy.parameters]
@@ -31,4 +31,4 @@ s3_prefix           = "trak"
 region              = "us-east-1"
 confirm_changeset   = true
 capabilities        = "CAPABILITY_IAM CAPABILITY_NAMED_IAM"
-parameter_overrides = "Stage=\"prod\" AnthropicSecretName=\"trak/anthropic-api-key\" JwtSecretName=\"trak/jwt-secret\""
+parameter_overrides = "Stage=\"prod\" AnthropicSecretName=\"trak/anthropic-api-key\" JwtSecretName=\"trak/jwt-secret\" VpcId=\"vpc-REPLACE_PROD\" DbSubnetIds=\"subnet-REPLACE_PROD_1,subnet-REPLACE_PROD_2\" DbName=\"trak\" DbMasterUsername=\"trakadmin\""

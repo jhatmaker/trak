@@ -12,7 +12,7 @@ import androidx.core.content.ContextCompat;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.fragment.app.Fragment;
+import com.trackmyraces.trak.ui.NetworkAwareFragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.Navigation;
 
@@ -32,7 +32,7 @@ import java.util.TimeZone;
 /**
  * ProfileFragment — edit runner profile and manage linked credential sites.
  */
-public class ProfileFragment extends Fragment {
+public class ProfileFragment extends NetworkAwareFragment {
 
     private FragmentProfileBinding mBinding;
     private ProfileViewModel       mViewModel;

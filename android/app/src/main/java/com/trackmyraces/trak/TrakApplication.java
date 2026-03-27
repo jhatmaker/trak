@@ -9,6 +9,7 @@ import com.trackmyraces.trak.data.db.TrakDatabase;
 import com.trackmyraces.trak.data.network.ApiClient;
 import com.trackmyraces.trak.sync.SyncManager;
 import com.trackmyraces.trak.util.NetworkMonitor;
+import com.trackmyraces.trak.util.NetworkStateManager;
 
 /**
  * TrakApplication
@@ -26,7 +27,8 @@ public class TrakApplication extends Application {
     private TrakDatabase   mDatabase;
     private ApiClient      mApiClient;
     private SyncManager    mSyncManager;
-    private NetworkMonitor mNetworkMonitor;
+    private NetworkMonitor      mNetworkMonitor;
+    private NetworkStateManager mNetworkStateManager;
 
     @Override
     public void onCreate() {
@@ -81,5 +83,13 @@ public class TrakApplication extends Application {
             mNetworkMonitor = new NetworkMonitor(this);
         }
         return mNetworkMonitor;
+    }
+
+    /** Returns the singleton NetworkStateManager, creating it on first call. */
+    public synchronized NetworkStateManager getNetworkStateManager() {
+        if (mNetworkStateManager == null) {
+            mNetworkStateManager = new NetworkStateManager(this);
+        }
+        return mNetworkStateManager;
     }
 }

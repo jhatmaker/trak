@@ -19,6 +19,22 @@ Parameters:
     Default: Z07221791SG93GBUMA7Y7
     Description: Route 53 hosted zone ID for trackmyraces.com
 
+  # ── Aurora PostgreSQL / VPC ────────────────────────────────────────────────
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: VPC where Aurora and RDS Proxy are deployed (Lambda functions that need Aurora are placed here too)
+  DbSubnetIds:
+    Type: CommaDelimitedList
+    Description: Two private subnet IDs in different AZs (e.g. "subnet-aaa,subnet-bbb")
+  DbName:
+    Type: String
+    Default: trak
+    Description: PostgreSQL database name
+  DbMasterUsername:
+    Type: String
+    Default: trakadmin
+    Description: Aurora master username (also used for IAM auth token generation)
+
 # ─── Conditions ───────────────────────────────────────────────────────────────
 Conditions:
   IsProd: !Equals [!Ref Stage, prod]
@@ -126,6 +142,7 @@ Resources:
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
         - arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
       Policies:
         - PolicyName: TrakPolicy
           PolicyDocument:
@@ -148,6 +165,10 @@ Resources:
                 Resource:
                   - !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${AnthropicSecretName}*"
                   - !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${JwtSecretName}*"
+              - Effect: Allow
+                Action: rds-db:connect
+                Resource:
+                  - !Sub "arn:aws:rds-db:${AWS::Region}:${AWS::AccountId}:dbuser:*/${DbMasterUsername}"
 
   # ── Lambda: Auth (JWT authoriser) ────────────────────────────────────────
   AuthFunction:
@@ -315,6 +336,247 @@ Resources:
             Path: /views/{viewId}
             Method: DELETE
 
+  # ── Security groups (VPC — Lambda / RDS Proxy / Aurora / VPC endpoints) ──
+  LambdaSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Lambda functions that connect to RDS Proxy
+      VpcId: !Ref VpcId
+      Tags:
+        - { Key: Project, Value: Trak }
+        - { Key: Stage,   Value: !Ref Stage }
+
+  RdsProxySecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: RDS Proxy — accepts PostgreSQL from Lambda SG
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          SourceSecurityGroupId: !Ref LambdaSecurityGroup
+      Tags:
+        - { Key: Project, Value: Trak }
+        - { Key: Stage,   Value: !Ref Stage }
+
+  AuroraSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Aurora cluster — accepts PostgreSQL from RDS Proxy SG only
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          SourceSecurityGroupId: !Ref RdsProxySecurityGroup
+      Tags:
+        - { Key: Project, Value: Trak }
+        - { Key: Stage,   Value: !Ref Stage }
+
+  # ── Aurora PostgreSQL Serverless v2 ───────────────────────────────────────
+  AuroraSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: Private subnets for Aurora Serverless v2
+      SubnetIds: !Ref DbSubnetIds
+      Tags:
+        - { Key: Project, Value: Trak }
+        - { Key: Stage,   Value: !Ref Stage }
+
+  AuroraSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub trak/${Stage}/aurora-master
+      Description: Aurora master password — managed by Secrets Manager rotation
+      GenerateSecretString:
+        SecretStringTemplate: !Sub '{"username":"${DbMasterUsername}"}'
+        GenerateStringKey: password
+        ExcludePunctuation: true
+        PasswordLength: 32
+      Tags:
+        - { Key: Project, Value: Trak }
+        - { Key: Stage,   Value: !Ref Stage }
+
+  AuroraCluster:
+    Type: AWS::RDS::DBCluster
+    DeletionPolicy: Snapshot
+    UpdateReplacePolicy: Snapshot
+    Properties:
+      DBClusterIdentifier: !Sub trak-aurora-${Stage}
+      Engine: aurora-postgresql
+      EngineVersion: '16.6'
+      DatabaseName: !Ref DbName
+      MasterUsername: !Sub '{{resolve:secretsmanager:${AuroraSecret}:SecretString:username}}'
+      MasterUserPassword: !Sub '{{resolve:secretsmanager:${AuroraSecret}:SecretString:password}}'
+      DBSubnetGroupName: !Ref AuroraSubnetGroup
+      VpcSecurityGroupIds:
+        - !Ref AuroraSecurityGroup
+      EnableIAMDatabaseAuthentication: true
+      ServerlessV2ScalingConfiguration:
+        MinCapacity: 0.5
+        MaxCapacity: 4
+      BackupRetentionPeriod: 7
+      StorageEncrypted: true
+      Tags:
+        - { Key: Project, Value: Trak }
+        - { Key: Stage,   Value: !Ref Stage }
+
+  AuroraInstance:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBInstanceClass: db.serverless
+      Engine: aurora-postgresql
+      DBClusterIdentifier: !Ref AuroraCluster
+      PubliclyAccessible: false
+      Tags:
+        - { Key: Project, Value: Trak }
+        - { Key: Stage,   Value: !Ref Stage }
+
+  # ── RDS Proxy (connection pooling for serverless Lambda) ──────────────────
+  RdsProxyRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub trak-rds-proxy-role-${Stage}
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: { Service: rds.amazonaws.com }
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: ReadAuroraSecret
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                  - kms:Decrypt
+                Resource: !Ref AuroraSecret
+
+  RdsProxy:
+    Type: AWS::RDS::DBProxy
+    Properties:
+      DBProxyName: !Sub trak-proxy-${Stage}
+      EngineFamily: POSTGRESQL
+      RoleArn: !GetAtt RdsProxyRole.Arn
+      Auth:
+        - AuthScheme: SECRETS
+          SecretArn: !Ref AuroraSecret
+          IAMAuth: REQUIRED
+      VpcSubnetIds: !Ref DbSubnetIds
+      VpcSecurityGroupIds:
+        - !Ref RdsProxySecurityGroup
+      RequireTLS: true
+      IdleClientTimeout: 1800
+      Tags:
+        - { Key: Project, Value: Trak }
+        - { Key: Stage,   Value: !Ref Stage }
+
+  RdsProxyTargetGroup:
+    Type: AWS::RDS::DBProxyTargetGroup
+    Properties:
+      DBProxyName: !Ref RdsProxy
+      TargetGroupName: default
+      DBClusterIdentifiers:
+        - !Ref AuroraCluster
+      ConnectionPoolConfigurationInfo:
+        MaxConnectionsPercent: 90
+        MaxIdleConnectionsPercent: 50
+
+  # ── Lambda: Sources (shared catalog — GET public, POST/PUT admin) ─────────
+  SourcesFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub trak-sources-${Stage}
+      CodeUri: functions/sources/
+      Handler: index.handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Description: Race source catalog — list, add, update
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref LambdaSecurityGroup
+        SubnetIds: !Ref DbSubnetIds
+      Environment:
+        Variables:
+          AURORA_PROXY_ENDPOINT: !GetAtt RdsProxy.Endpoint
+          DB_NAME: !Ref DbName
+          DB_USERNAME: !Ref DbMasterUsername
+      Events:
+        List:
+          Type: Api
+          Properties:
+            RestApiId: !Ref TrakApi
+            Path: /sources
+            Method: GET
+            Auth:
+              Authorizer: NONE
+        GetOne:
+          Type: Api
+          Properties:
+            RestApiId: !Ref TrakApi
+            Path: /sources/{id}
+            Method: GET
+            Auth:
+              Authorizer: NONE
+        Create:
+          Type: Api
+          Properties:
+            RestApiId: !Ref TrakApi
+            Path: /sources
+            Method: POST
+        Update:
+          Type: Api
+          Properties:
+            RestApiId: !Ref TrakApi
+            Path: /sources/{id}
+            Method: PUT
+
+  # ── Lambda: Subscriptions (runner ↔ source) ───────────────────────────────
+  SubscriptionsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub trak-subscriptions-${Stage}
+      CodeUri: functions/subscriptions/
+      Handler: index.handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Description: Runner source subscriptions — list, add, update, remove
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref LambdaSecurityGroup
+        SubnetIds: !Ref DbSubnetIds
+      Environment:
+        Variables:
+          AURORA_PROXY_ENDPOINT: !GetAtt RdsProxy.Endpoint
+          DB_NAME: !Ref DbName
+          DB_USERNAME: !Ref DbMasterUsername
+      Events:
+        List:
+          Type: Api
+          Properties:
+            RestApiId: !Ref TrakApi
+            Path: /subscriptions
+            Method: GET
+        Create:
+          Type: Api
+          Properties:
+            RestApiId: !Ref TrakApi
+            Path: /subscriptions
+            Method: POST
+        Update:
+          Type: Api
+          Properties:
+            RestApiId: !Ref TrakApi
+            Path: /subscriptions/{id}
+            Method: PUT
+        Delete:
+          Type: Api
+          Properties:
+            RestApiId: !Ref TrakApi
+            Path: /subscriptions/{id}
+            Method: DELETE
+
   # ── ACM Certificate (DNS-validated via Route 53) ─────────────────────────
   TrakApiCertificate:
     Type: AWS::CertificateManager::Certificate
@@ -379,3 +641,15 @@ Outputs:
     Value: !Ref TrakTable
     Export:
       Name: !Sub TrakTable-${Stage}
+
+  AuroraEndpoint:
+    Description: Aurora cluster writer endpoint
+    Value: !GetAtt AuroraCluster.Endpoint.Address
+    Export:
+      Name: !Sub TrakAuroraEndpoint-${Stage}
+
+  RdsProxyEndpoint:
+    Description: RDS Proxy endpoint (use this from Lambda)
+    Value: !GetAtt RdsProxy.Endpoint
+    Export:
+      Name: !Sub TrakRdsProxyEndpoint-${Stage}

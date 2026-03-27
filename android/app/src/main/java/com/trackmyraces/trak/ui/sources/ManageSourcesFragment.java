@@ -11,7 +11,7 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.fragment.app.Fragment;
+import com.trackmyraces.trak.ui.NetworkAwareFragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.Navigation;
 
@@ -40,7 +40,7 @@ import java.util.Map;
  *
  * Navigated to from ProfileFragment ("Manage sources" button).
  */
-public class ManageSourcesFragment extends Fragment {
+public class ManageSourcesFragment extends NetworkAwareFragment {
 
     // Canonical source list — defined once in SourcesRepository, synced with defaultSites.js.
 

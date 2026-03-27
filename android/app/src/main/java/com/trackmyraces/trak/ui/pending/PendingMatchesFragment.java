@@ -7,7 +7,7 @@ import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.fragment.app.Fragment;
+import com.trackmyraces.trak.ui.NetworkAwareFragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
@@ -30,7 +30,7 @@ import java.util.List;
  *                      let AI extract the full result details
  *   "Not me"         — dismiss (hidden from list, never shown again)
  */
-public class PendingMatchesFragment extends Fragment {
+public class PendingMatchesFragment extends NetworkAwareFragment {
 
     private FragmentPendingMatchesBinding mBinding;
     private PendingMatchesViewModel       mViewModel;

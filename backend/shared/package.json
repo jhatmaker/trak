@@ -4,6 +4,8 @@
   "description": "Shared utilities for Trak Lambda functions",
   "type": "commonjs",
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.39.0"
+    "@anthropic-ai/sdk": "^0.39.0",
+    "@aws-sdk/rds-signer": "^3.600.0",
+    "pg": "^8.11.0"
   }
 }

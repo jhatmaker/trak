@@ -8,7 +8,7 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.fragment.app.Fragment;
+import com.trackmyraces.trak.ui.NetworkAwareFragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
@@ -32,7 +32,7 @@ import java.util.List;
  *   siteId   — optional; if set, only shows dismissed matches for that site
  *   siteName — optional; used in the empty-state message
  */
-public class DismissedMatchesFragment extends Fragment {
+public class DismissedMatchesFragment extends NetworkAwareFragment {
 
     private FragmentDismissedMatchesBinding mBinding;
     private DismissedMatchesViewModel       mViewModel;

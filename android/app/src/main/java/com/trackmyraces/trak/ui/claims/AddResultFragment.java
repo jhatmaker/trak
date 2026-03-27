@@ -9,17 +9,17 @@ import android.content.Context;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.Navigation;
 
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.trackmyraces.trak.R;
-import com.trackmyraces.trak.TrakApplication;
 import com.trackmyraces.trak.data.db.entity.RunnerProfileEntity;
 import com.trackmyraces.trak.data.network.dto.ExtractionResponse;
 import com.trackmyraces.trak.databinding.FragmentAddResultBinding;
+import com.trackmyraces.trak.ui.NetworkAwareFragment;
 import com.trackmyraces.trak.ui.profile.ProfileViewModel;
+import com.trackmyraces.trak.util.NetworkState;
 
 /**
  * AddResultFragment
@@ -33,12 +33,11 @@ import com.trackmyraces.trak.ui.profile.ProfileViewModel;
  *   SUCCESS    → navigate to result detail
  *   ERROR      → show error message, return to IDLE
  */
-public class AddResultFragment extends Fragment {
+public class AddResultFragment extends NetworkAwareFragment {
 
     private FragmentAddResultBinding mBinding;
     private ClaimViewModel           mViewModel;
     private RunnerProfileEntity      mProfile;
-    private boolean                  mIsOnline = true;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
@@ -55,13 +54,6 @@ public class AddResultFragment extends Fragment {
         // Observe profile via activity scope so it's loaded regardless of which tab was visited first
         new ViewModelProvider(requireActivity()).get(ProfileViewModel.class)
             .profile.observe(getViewLifecycleOwner(), profile -> mProfile = profile);
-
-        // Observe network state — disable AI extraction when offline
-        TrakApplication.getInstance().getNetworkMonitor()
-            .observe(getViewLifecycleOwner(), isOnline -> {
-                mIsOnline = isOnline;
-                updateExtractButtonState(isOnline);
-            });
 
         // Pre-fill URL if navigated from DiscoverFragment
         if (getArguments() != null) {
@@ -117,11 +109,11 @@ public class AddResultFragment extends Fragment {
         mBinding.btnBackToInput.setOnClickListener(v -> mViewModel.reset());
     }
 
-    private void updateExtractButtonState(boolean isOnline) {
-        mBinding.btnExtract.setEnabled(isOnline);
-        mBinding.btnExtract.setAlpha(isOnline ? 1.0f : 0.5f);
-        // Show a hint below the button when offline
-        mBinding.tvOfflineHint.setVisibility(isOnline ? View.GONE : View.VISIBLE);
+    @Override
+    protected void onNetworkStateChanged(@NonNull NetworkState state) {
+        boolean online = state.isOnline();
+        setViewOnlineOnly(mBinding.btnExtract, online);
+        mBinding.tvOfflineHint.setVisibility(online ? View.GONE : View.VISIBLE);
     }
 
     private void observeViewModel() {

@@ -10,7 +10,7 @@ import android.widget.ArrayAdapter;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
-import androidx.fragment.app.Fragment;
+import com.trackmyraces.trak.ui.NetworkAwareFragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -26,7 +26,7 @@ import java.util.List;
  * Observes ResultsViewModel.filteredResults — any filter change automatically
  * recomputes and updates the list without a network call.
  */
-public class HistoryFragment extends Fragment {
+public class HistoryFragment extends NetworkAwareFragment {
 
     private FragmentHistoryBinding mBinding;
     private ResultsViewModel       mViewModel;

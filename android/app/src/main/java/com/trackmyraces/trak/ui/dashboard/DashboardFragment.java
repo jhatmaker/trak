@@ -7,7 +7,7 @@ import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.fragment.app.Fragment;
+import com.trackmyraces.trak.ui.NetworkAwareFragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -24,7 +24,7 @@ import com.trackmyraces.trak.util.TimeFormatter;
  * Shows summary stats, PR board, and recent results.
  * Pull-to-refresh triggers a backend sync via DashboardViewModel.
  */
-public class DashboardFragment extends Fragment {
+public class DashboardFragment extends NetworkAwareFragment {
 
     private FragmentDashboardBinding mBinding;
     private DashboardViewModel       mViewModel;
