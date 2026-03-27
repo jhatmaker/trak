@@ -349,7 +349,7 @@ Resources:
   RdsProxySecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: RDS Proxy — accepts PostgreSQL from Lambda SG
+      GroupDescription: RDS Proxy - accepts PostgreSQL from Lambda SG
       VpcId: !Ref VpcId
       SecurityGroupIngress:
         - IpProtocol: tcp
@@ -363,7 +363,7 @@ Resources:
   AuroraSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: Aurora cluster — accepts PostgreSQL from RDS Proxy SG only
+      GroupDescription: Aurora cluster - accepts PostgreSQL from RDS Proxy SG only
       VpcId: !Ref VpcId
       SecurityGroupIngress:
         - IpProtocol: tcp
