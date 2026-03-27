@@ -57,8 +57,10 @@ public class PollScheduler {
     public static final String DATA_EXTRACT_RESULTS = "extractResults";
     public static final String DATA_SINCE_DATE      = "sinceDate";
 
-    /** 48 hours in milliseconds — minimum gap between full extractions. */
-    public static final long EXTRACT_GAP_MS = 48L * 60 * 60 * 1000;
+    /** Minimum gap between full extractions. Debug builds use 60 seconds for testing. */
+    public static final long EXTRACT_GAP_MS = com.trackmyraces.trak.BuildConfig.DEBUG
+        ? 60_000L
+        : 48L * 60 * 60 * 1000;
 
     private static final Constraints NETWORK_REQUIRED = new Constraints.Builder()
         .setRequiredNetworkType(NetworkType.CONNECTED)
