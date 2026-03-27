@@ -98,8 +98,7 @@ public class ResultPollWorker extends Worker {
                 }
             }
 
-            List<String> interests  = profile.getInterestList();
-            List<String> excludeIds = new SourcesRepository(app).getHiddenSiteIdsSync();
+            List<String> sourceIds = new SourcesRepository(app).getEnabledSourceGuidsSync();
             java.util.Map<String, Integer> lastKnownCounts =
                 PollScheduler.getLastKnownCounts(getApplicationContext());
 
@@ -111,7 +110,8 @@ public class ResultPollWorker extends Worker {
             final String[]           error  = {null};
 
             repo.discoverResults(
-                profile.name, profile.dateOfBirth, interests, excludeIds,
+                profile.userId, sourceIds,
+                profile.name, profile.dateOfBirth,
                 extractResults, sinceDate, lastKnownCounts,
                 new RaceResultRepository.RepositoryCallback<DiscoverResponse>() {
                     @Override public void onSuccess(DiscoverResponse r) {

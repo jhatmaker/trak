@@ -18,6 +18,7 @@ import androidx.navigation.Navigation;
 import com.google.android.material.switchmaterial.SwitchMaterial;
 import com.trackmyraces.trak.R;
 import com.trackmyraces.trak.data.db.entity.UserSitePrefEntity;
+import com.trackmyraces.trak.data.repository.SourcesRepository;
 import com.trackmyraces.trak.databinding.FragmentManageSourcesBinding;
 
 import java.util.ArrayList;
@@ -41,25 +42,7 @@ import java.util.Map;
  */
 public class ManageSourcesFragment extends Fragment {
 
-    // Mirrors the backend DEFAULT_SITES list. Keep in sync with defaultSites.js.
-    private static final List<DefaultSite> DEFAULT_SITES = new ArrayList<>();
-    static {
-        DEFAULT_SITES.add(new DefaultSite("athlinks",
-            "Athlinks",
-            "Largest race results aggregator — road, trail, triathlon, OCR, cycling"));
-        DEFAULT_SITES.add(new DefaultSite("ultrasignup",
-            "Ultrasignup",
-            "Ultra marathon and trail race results"));
-        DEFAULT_SITES.add(new DefaultSite("runsignup",
-            "RunSignup",
-            "Road race results from RunSignup-hosted events across the US"));
-        DEFAULT_SITES.add(new DefaultSite("nyrr",
-            "New York Road Runners",
-            "NYRR races including NYC Marathon, Queens 10K, and more"));
-        DEFAULT_SITES.add(new DefaultSite("baa",
-            "Boston Athletic Association",
-            "Boston Marathon and BAA road race results"));
-    }
+    // Canonical source list — defined once in SourcesRepository, synced with defaultSites.js.
 
     private FragmentManageSourcesBinding mBinding;
     private ManageSourcesViewModel       mViewModel;
@@ -115,8 +98,8 @@ public class ManageSourcesFragment extends Fragment {
 
         LayoutInflater inflater = LayoutInflater.from(requireContext());
 
-        for (DefaultSite site : DEFAULT_SITES) {
-            UserSitePrefEntity pref = prefMap.get(site.id);
+        for (SourcesRepository.DefaultSiteInfo site : SourcesRepository.DEFAULT_SITES) {
+            UserSitePrefEntity pref = prefMap.get(site.siteId);
             boolean isHidden = pref != null && pref.hidden;
 
             // Skip hidden sites unless "Show hidden" toggle is on
@@ -138,17 +121,17 @@ public class ManageSourcesFragment extends Fragment {
             // Switch shows "visible" state — true = include in polls, false = hidden
             switch_.setChecked(!isHidden);
             switch_.setOnCheckedChangeListener((btn, checked) -> {
-                mViewModel.setHidden(site.id, !checked);
+                mViewModel.setHidden(site.siteId, !checked);
             });
 
             btnPoll.setOnClickListener(v -> pollOnce(site));
-            btnDismissed.setOnClickListener(v -> viewDismissed(site.id, site.name));
+            btnDismissed.setOnClickListener(v -> viewDismissed(site.siteId, site.name));
 
-            mSwitchMap.put(site.id, switch_);
+            mSwitchMap.put(site.siteId, switch_);
             container.addView(row);
 
             // Divider between rows (except last)
-            if (DEFAULT_SITES.indexOf(site) < DEFAULT_SITES.size() - 1) {
+            if (SourcesRepository.DEFAULT_SITES.indexOf(site) < SourcesRepository.DEFAULT_SITES.size() - 1) {
                 View divider = new View(requireContext());
                 divider.setLayoutParams(new LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT, 1));
@@ -214,9 +197,8 @@ public class ManageSourcesFragment extends Fragment {
         }
     }
 
-    private void pollOnce(DefaultSite site) {
-        // Navigate to DiscoverFragment excluding every default site EXCEPT this one.
-        // This gives the user a focused result for just the site they tapped.
+    private void pollOnce(SourcesRepository.DefaultSiteInfo site) {
+        // Navigate to DiscoverFragment with only this one source's GUID.
         com.trackmyraces.trak.data.db.entity.RunnerProfileEntity profile =
             mViewModel.profile.getValue();
         if (profile == null || profile.name == null) {
@@ -224,16 +206,11 @@ public class ManageSourcesFragment extends Fragment {
                 getString(R.string.sources_no_profile), android.widget.Toast.LENGTH_SHORT).show();
             return;
         }
-        // Build exclude list: all default site IDs except the one being polled
-        java.util.List<String> excludeIds = new java.util.ArrayList<>();
-        for (DefaultSite s : DEFAULT_SITES) {
-            if (!s.id.equals(site.id)) excludeIds.add(s.id);
-        }
         Bundle args = new Bundle();
-        args.putString("runnerName",     profile.name);
-        args.putString("dateOfBirth",    profile.dateOfBirth != null ? profile.dateOfBirth : "");
-        args.putString("interests",      profile.interests   != null ? profile.interests   : "");
-        args.putString("excludeSiteIds", android.text.TextUtils.join(",", excludeIds));
+        args.putString("userId",       profile.userId != null ? profile.userId : "");
+        args.putString("runnerName",   profile.name);
+        args.putString("dateOfBirth",  profile.dateOfBirth != null ? profile.dateOfBirth : "");
+        args.putString("sourceIds",    site.guid); // single GUID
         Navigation.findNavController(requireView())
             .navigate(R.id.action_manage_sources_to_discover, args);
     }
@@ -315,8 +292,8 @@ public class ManageSourcesFragment extends Fragment {
     }
 
     private String getDefaultSiteName(String siteId) {
-        for (DefaultSite s : DEFAULT_SITES) {
-            if (s.id.equals(siteId)) return s.name;
+        for (SourcesRepository.DefaultSiteInfo s : SourcesRepository.DEFAULT_SITES) {
+            if (s.siteId.equals(siteId)) return s.name;
         }
         return siteId;
     }
@@ -327,16 +304,4 @@ public class ManageSourcesFragment extends Fragment {
         mBinding = null;
     }
 
-    // ── Simple data class for the static default-sites list ───────────────────
-
-    static class DefaultSite {
-        final String id;
-        final String name;
-        final String description;
-        DefaultSite(String id, String name, String description) {
-            this.id          = id;
-            this.name        = name;
-            this.description = description;
-        }
-    }
 }

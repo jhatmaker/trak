@@ -37,6 +37,7 @@ public class DiscoverFragment extends Fragment {
     private FragmentDiscoverBinding mBinding;
     private RaceResultRepository    mRepo;
     private String                  mRunnerName;
+    private String                  mUserId;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
@@ -53,40 +54,34 @@ public class DiscoverFragment extends Fragment {
         mBinding.btnSkip.setOnClickListener(v ->
             Navigation.findNavController(requireView()).popBackStack());
 
-        Bundle args         = getArguments();
-        String runnerName   = args != null ? args.getString("runnerName",    "") : "";
-        String dateOfBirth  = args != null ? args.getString("dateOfBirth",   "") : "";
-        String interestsCsv = args != null ? args.getString("interests",     "") : "";
-        String excludeCsv   = args != null ? args.getString("excludeSiteIds","") : "";
-        String sinceDate    = args != null ? args.getString("sinceDate",     "") : "";
+        Bundle args          = getArguments();
+        String userId        = args != null ? args.getString("userId",     "") : "";
+        String runnerName    = args != null ? args.getString("runnerName", "") : "";
+        String dateOfBirth   = args != null ? args.getString("dateOfBirth","") : "";
+        String sourceIdsCsv  = args != null ? args.getString("sourceIds",  "") : "";
+        String sinceDate     = args != null ? args.getString("sinceDate",  "") : "";
 
-        List<String> interests = new ArrayList<>();
-        if (!interestsCsv.isEmpty()) {
-            for (String tag : interestsCsv.split(",")) {
-                if (!tag.trim().isEmpty()) interests.add(tag.trim());
-            }
-        }
+        mUserId = (userId != null && !userId.isEmpty()) ? userId : null;
 
-        List<String> excludeIds = new ArrayList<>();
-        if (!excludeCsv.isEmpty()) {
-            for (String id : excludeCsv.split(",")) {
-                if (!id.trim().isEmpty()) excludeIds.add(id.trim());
+        List<String> sourceIds = new ArrayList<>();
+        if (sourceIdsCsv != null && !sourceIdsCsv.isEmpty()) {
+            for (String id : sourceIdsCsv.split(",")) {
+                if (!id.trim().isEmpty()) sourceIds.add(id.trim());
             }
         }
 
         mRunnerName = runnerName;
         String sinceDateArg = (sinceDate != null && !sinceDate.isEmpty()) ? sinceDate : null;
-        startDiscovery(runnerName, dateOfBirth, interests, excludeIds, sinceDateArg);
+        startDiscovery(runnerName, dateOfBirth, sourceIds, sinceDateArg);
     }
 
     private void startDiscovery(String runnerName, String dateOfBirth,
-                                List<String> interests, List<String> excludeIds,
-                                String sinceDate) {
+                                List<String> sourceIds, String sinceDate) {
         mBinding.layoutSearching.setVisibility(View.VISIBLE);
         mBinding.tvNoResults.setVisibility(View.GONE);
         mBinding.tvError.setVisibility(View.GONE);
 
-        mRepo.discoverResults(runnerName, dateOfBirth, interests, excludeIds, true, sinceDate,
+        mRepo.discoverResults(mUserId, sourceIds, runnerName, dateOfBirth, true, sinceDate,
             java.util.Collections.emptyMap(),
             new RaceResultRepository.RepositoryCallback<DiscoverResponse>() {
                 @Override

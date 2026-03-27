@@ -82,6 +82,14 @@ public class RunnerProfileEntity {
     @ColumnInfo(name = "pending_count", defaultValue = "0")
     public int pendingCount;
 
+    /**
+     * Device-local UUID generated on first profile save.
+     * Used as the runner identifier for backend API calls without requiring auth.
+     * Will be replaced by a server-issued userId once auth is implemented.
+     */
+    @ColumnInfo(name = "user_id")
+    public String userId;
+
     /** Returns interests as a list, never null. */
     public java.util.List<String> getInterestList() {
         if (interests == null || interests.isEmpty()) return new java.util.ArrayList<>();

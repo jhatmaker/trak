@@ -111,18 +111,18 @@ public class RaceResultRepository {
      * Search default running sites for a runner.
      * Public endpoint — no auth token required.
      */
-    public void discoverResults(String runnerName, String dateOfBirth,
-                                List<String> interests,
-                                List<String> excludeSiteIds,
+    public void discoverResults(String userId,
+                                List<String> sourceIds,
+                                String runnerName, String dateOfBirth,
                                 boolean extractResults,
                                 String sinceDate,
                                 java.util.Map<String, Integer> lastKnownCounts,
                                 RepositoryCallback<DiscoverResponse> callback) {
         DiscoverRequest request = new DiscoverRequest();
+        request.userId          = userId;
+        request.sourceIds       = sourceIds;
         request.runnerName      = runnerName;
         request.dateOfBirth     = dateOfBirth;
-        request.interests       = interests;
-        request.excludeSiteIds  = excludeSiteIds;
         request.extractResults  = extractResults;
         request.sinceDate       = sinceDate;
         request.lastKnownCounts = lastKnownCounts;

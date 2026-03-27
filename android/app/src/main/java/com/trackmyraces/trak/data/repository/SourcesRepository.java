@@ -9,9 +9,15 @@ import com.trackmyraces.trak.data.db.dao.UserSitePrefDao;
 import com.trackmyraces.trak.data.db.entity.UserSitePrefEntity;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -34,8 +40,51 @@ public class SourcesRepository {
         mExecutor = Executors.newSingleThreadExecutor();
     }
 
-    // Total number of default sites (mirrors ManageSourcesFragment.DEFAULT_SITES.size())
-    public static final int TOTAL_DEFAULT_SITES = 5;
+    // ── Default site registry ─────────────────────────────────────────────────
+    //
+    // Stable GUIDs (00000000-0000-0000-0000-00000000000N) identify each default
+    // site to the backend. These MUST stay in sync with defaultSites.js.
+    // The siteId field (e.g. "athlinks") is the local DB key used in UserSitePrefEntity.
+
+    public static class DefaultSiteInfo {
+        public final String guid;
+        public final String siteId;      // local DB key, matches backend site id
+        public final String name;
+        public final String description;
+
+        public DefaultSiteInfo(String guid, String siteId, String name, String description) {
+            this.guid        = guid;
+            this.siteId      = siteId;
+            this.name        = name;
+            this.description = description;
+        }
+    }
+
+    public static final List<DefaultSiteInfo> DEFAULT_SITES = Collections.unmodifiableList(Arrays.asList(
+        new DefaultSiteInfo(
+            "00000000-0000-0000-0000-000000000001", "athlinks",
+            "Athlinks",
+            "Largest race results aggregator — road, trail, triathlon, OCR, cycling"),
+        new DefaultSiteInfo(
+            "00000000-0000-0000-0000-000000000002", "ultrasignup",
+            "Ultrasignup",
+            "Ultra marathon and trail race results"),
+        new DefaultSiteInfo(
+            "00000000-0000-0000-0000-000000000003", "runsignup",
+            "RunSignup",
+            "Road race results from RunSignup-hosted events across the US"),
+        new DefaultSiteInfo(
+            "00000000-0000-0000-0000-000000000004", "nyrr",
+            "New York Road Runners",
+            "NYRR races including NYC Marathon, Queens 10K, and more"),
+        new DefaultSiteInfo(
+            "00000000-0000-0000-0000-000000000005", "baa",
+            "Boston Athletic Association",
+            "Boston Marathon and BAA road race results")
+    ));
+
+    // Total number of default sites
+    public static final int TOTAL_DEFAULT_SITES = DEFAULT_SITES.size();
 
     public LiveData<List<UserSitePrefEntity>> getAllPrefs() {
         return mDao.getAll();
@@ -76,10 +125,48 @@ public class SourcesRepository {
         });
     }
 
+    /**
+     * Returns the list of enabled source GUIDs for the current user.
+     * For default sites, this is the GUID constant in DEFAULT_SITES.
+     * For custom sources, the siteId (a UUID) doubles as the GUID.
+     * Hidden sources are excluded.
+     *
+     * Must be called on a background thread.
+     */
+    public List<String> getEnabledSourceGuidsSync() {
+        Set<String> hiddenSiteIds = new HashSet<>(mDao.getHiddenSiteIds());
+        List<String> guids = new ArrayList<>();
+
+        // Enabled default sites
+        for (DefaultSiteInfo site : DEFAULT_SITES) {
+            if (!hiddenSiteIds.contains(site.siteId)) {
+                guids.add(site.guid);
+            }
+        }
+
+        // Enabled custom sources — their siteId is a UUID that doubles as the GUID
+        List<UserSitePrefEntity> all = mDao.getAllSync();
+        for (UserSitePrefEntity pref : all) {
+            if (pref.customUrl != null && !pref.hidden) {
+                guids.add(pref.siteId);
+            }
+        }
+
+        return guids;
+    }
+
+    /** Returns the GUID for a single default site by its siteId. */
+    public static String getGuidForSiteId(String siteId) {
+        for (DefaultSiteInfo site : DEFAULT_SITES) {
+            if (site.siteId.equals(siteId)) return site.guid;
+        }
+        return siteId; // fallback: custom sources use siteId as GUID
+    }
+
     public void addCustomSource(String name, String url) {
         mExecutor.execute(() -> {
-            // Generate a unique siteId for this custom source
-            String siteId = "custom_" + System.currentTimeMillis();
+            // Use UUID so the siteId doubles as the GUID for backend identification
+            String siteId = UUID.randomUUID().toString();
             UserSitePrefEntity pref = new UserSitePrefEntity();
             pref.siteId     = siteId;
             pref.hidden      = false;

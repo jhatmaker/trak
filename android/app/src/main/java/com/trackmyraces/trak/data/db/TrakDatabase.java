@@ -43,6 +43,7 @@ import com.trackmyraces.trak.data.db.entity.SavedViewEntity;
  *   9 — added per-result detail columns to pending_match (race_name, race_date,
  *        distance_label, distance_meters, location, bib_number, finish_time,
  *        finish_seconds, overall_place, overall_total, raw_data)
+ *  10 — added user_id to runner_profile (device-local UUID for backend identification)
  */
 @Database(
     entities = {
@@ -55,7 +56,7 @@ import com.trackmyraces.trak.data.db.entity.SavedViewEntity;
         PendingMatchEntity.class,
         UserSitePrefEntity.class,
     },
-    version = 9,
+    version = 10,
     exportSchema = true
 )
 public abstract class TrakDatabase extends RoomDatabase {
@@ -85,7 +86,7 @@ public abstract class TrakDatabase extends RoomDatabase {
                             TrakDatabase.class,
                             DB_NAME
                         )
-                        .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
+                        .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10)
                         .build();
                 }
             }
@@ -230,6 +231,14 @@ public abstract class TrakDatabase extends RoomDatabase {
                 "`added_at` TEXT, " +
                 "PRIMARY KEY(`site_id`))"
             );
+        }
+    };
+
+    static final Migration MIGRATION_9_10 = new Migration(9, 10) {
+        @Override
+        public void migrate(@androidx.annotation.NonNull SupportSQLiteDatabase db) {
+            // Device-local UUID for backend identification (pre-auth)
+            db.execSQL("ALTER TABLE `runner_profile` ADD COLUMN `user_id` TEXT");
         }
     };
 

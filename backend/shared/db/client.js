@@ -318,4 +318,26 @@ const views = {
   },
 };
 
-module.exports = { runner, extraction, claims, results, raceEvents, credentials, views };
+// ─── Per-user site counts ─────────────────────────────────────────────────────
+// Stores the last known result count per source for each user.
+// Used by /discover to detect new results without an AI call.
+//
+// DynamoDB key: PK=RUNNER#{userId}, SK=SITE_COUNTS
+// Attributes:   { counts: { athlinks: 22, ultrasignup: 5, ... } }
+
+const siteCounts = {
+  async get(userId) {
+    return get(`RUNNER#${userId}`, 'SITE_COUNTS');
+  },
+
+  async put(userId, counts) {
+    await put({
+      PK: `RUNNER#${userId}`,
+      SK: 'SITE_COUNTS',
+      entityType: 'SITE_COUNTS',
+      counts,
+    });
+  },
+};
+
+module.exports = { runner, extraction, claims, results, raceEvents, credentials, views, siteCounts };

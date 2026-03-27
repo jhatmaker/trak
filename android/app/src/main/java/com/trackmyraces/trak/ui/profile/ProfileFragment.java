@@ -135,16 +135,25 @@ public class ProfileFragment extends Fragment {
                         return;
                     }
                     if (isFirstSave) {
-                        // New profile — go search for their existing results
-                        String excludeCsv = android.text.TextUtils.join(",",
-                            mViewModel.getHiddenSiteIdsNow());
-                        Bundle args = new Bundle();
-                        args.putString("runnerName",    name);
-                        args.putString("dateOfBirth",   dob);
-                        args.putString("interests",     interests);
-                        args.putString("excludeSiteIds", excludeCsv);
-                        Navigation.findNavController(requireView())
-                            .navigate(R.id.action_profile_to_discover, args);
+                        // New profile — go search for their existing results.
+                        // getEnabledSourceGuidsNow() reads the DB; run on a short background hop.
+                        final String finalName = name;
+                        final String finalDob  = dob;
+                        new Thread(() -> {
+                            java.util.List<String> guids = mViewModel.getEnabledSourceGuidsNow();
+                            String sourceIdsCsv = android.text.TextUtils.join(",", guids);
+                            String uid          = mViewModel.getUserId();
+                            requireActivity().runOnUiThread(() -> {
+                                if (!isAdded()) return;
+                                Bundle args = new Bundle();
+                                args.putString("userId",     uid != null ? uid : "");
+                                args.putString("runnerName", finalName);
+                                args.putString("dateOfBirth", finalDob);
+                                args.putString("sourceIds",  sourceIdsCsv);
+                                Navigation.findNavController(requireView())
+                                    .navigate(R.id.action_profile_to_discover, args);
+                            });
+                        }).start();
                     } else {
                         Toast.makeText(requireContext(), "Profile saved", Toast.LENGTH_SHORT).show();
                     }
@@ -293,15 +302,22 @@ public class ProfileFragment extends Fragment {
             if (decision == PollScheduler.PollDecision.NOW) {
                 // Run immediately — navigate to DiscoverFragment
                 PollScheduler.stampLastExtract(requireContext());
-                String excludeCsv = android.text.TextUtils.join(",", mViewModel.getHiddenSiteIdsNow());
-                Bundle args = new Bundle();
-                args.putString("runnerName",     profile.name);
-                args.putString("dateOfBirth",    profile.dateOfBirth != null ? profile.dateOfBirth : "");
-                args.putString("interests",      profile.interests   != null ? profile.interests   : "");
-                args.putString("excludeSiteIds", excludeCsv);
-                args.putString("sinceDate",      sinceDate != null ? sinceDate : "");
-                Navigation.findNavController(requireView())
-                    .navigate(R.id.action_profile_to_discover, args);
+                final String finalSinceDate = sinceDate;
+                new Thread(() -> {
+                    java.util.List<String> guids = mViewModel.getEnabledSourceGuidsNow();
+                    String sourceIdsCsv = android.text.TextUtils.join(",", guids);
+                    requireActivity().runOnUiThread(() -> {
+                        if (!isAdded()) return;
+                        Bundle args = new Bundle();
+                        args.putString("userId",     profile.userId != null ? profile.userId : "");
+                        args.putString("runnerName", profile.name);
+                        args.putString("dateOfBirth", profile.dateOfBirth != null ? profile.dateOfBirth : "");
+                        args.putString("sourceIds",  sourceIdsCsv);
+                        args.putString("sinceDate",  finalSinceDate != null ? finalSinceDate : "");
+                        Navigation.findNavController(requireView())
+                            .navigate(R.id.action_profile_to_discover, args);
+                    });
+                }).start();
             }
             // If SCHEDULED: WorkManager handles it; pendingPollWorkInfo observer updates button state
         });

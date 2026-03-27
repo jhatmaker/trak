@@ -26,8 +26,11 @@
  * Most running result sites are JavaScript-rendered and can't be fetched directly —
  * but their athlete pages are indexed by Google and reliably found via site: searches.
  */
+// Stable GUIDs — must stay in sync with SourcesRepository.java on Android.
+// Format: 00000000-0000-0000-0000-00000000000N (sequential, easy to spot in logs)
 const DEFAULT_SITES = [
   {
+    guid:                '00000000-0000-0000-0000-000000000001',
     id:                  'athlinks',
     name:                'Athlinks',
     description:         'Largest race results aggregator — road, trail, triathlon, OCR, cycling',
@@ -40,6 +43,7 @@ const DEFAULT_SITES = [
     enabled:             true,
   },
   {
+    guid:        '00000000-0000-0000-0000-000000000002',
     id:          'ultrasignup',
     name:        'Ultrasignup',
     description: 'Ultra marathon and trail race results',
@@ -49,6 +53,7 @@ const DEFAULT_SITES = [
     enabled:     true,
   },
   {
+    guid:        '00000000-0000-0000-0000-000000000003',
     id:          'runsignup',
     name:        'RunSignup',
     description: 'Road race results from RunSignup-hosted events across the US',
@@ -58,6 +63,7 @@ const DEFAULT_SITES = [
     enabled:     true,
   },
   {
+    guid:        '00000000-0000-0000-0000-000000000004',
     id:          'nyrr',
     name:        'New York Road Runners',
     description: 'NYRR races including NYC Marathon, Queens 10K, and more',
@@ -67,6 +73,7 @@ const DEFAULT_SITES = [
     enabled:     true,
   },
   {
+    guid:        '00000000-0000-0000-0000-000000000005',
     id:          'baa',
     name:        'Boston Athletic Association',
     description: 'Boston Marathon and BAA road race results',
@@ -126,4 +133,44 @@ function resolveSiteUrls(fullName, interests = [], excludeIds = []) {
     }));
 }
 
-module.exports = { DEFAULT_SITES, resolveSiteUrls };
+/**
+ * Resolve site configs for a specific list of source GUIDs.
+ * Used when the client sends `sourceIds` instead of interests/excludeIds.
+ * Unknown GUIDs (e.g. custom source UUIDs) are silently ignored — custom
+ * source URLs aren't stored on the backend yet and are skipped.
+ *
+ * @param {string}   fullName  — "Jane Smith"
+ * @param {string[]} guids     — e.g. ["00000000-0000-0000-0000-000000000001", ...]
+ * @returns {Array}
+ */
+function resolveSiteUrlsByGuid(fullName, guids = []) {
+  const parts       = fullName.trim().split(/\s+/);
+  const firstName   = parts[0] || '';
+  const lastName    = parts[parts.length - 1] || '';
+  const nameEncoded = encodeURIComponent(fullName.trim());
+
+  const guidSet = new Set(guids);
+
+  return DEFAULT_SITES
+    .filter(s => s.enabled && guidSet.has(s.guid))
+    .map(s => ({
+      id:           s.id,
+      name:         s.name,
+      description:  s.description,
+      tags:         s.tags,
+      directApiUrl: s.directApiUrlTemplate
+        ? s.directApiUrlTemplate.replace('{nameEncoded}', nameEncoded)
+        : null,
+      resultsUrl:   s.resultsUrlTemplate
+        ? s.resultsUrlTemplate.replace('{nameEncoded}', nameEncoded)
+        : null,
+      searchQuery:  s.searchQueryTemplate
+        ? s.searchQueryTemplate
+            .replace('{name}',      fullName.trim())
+            .replace('{firstName}', firstName)
+            .replace('{lastName}',  lastName)
+        : null,
+    }));
+}
+
+module.exports = { DEFAULT_SITES, resolveSiteUrls, resolveSiteUrlsByGuid };

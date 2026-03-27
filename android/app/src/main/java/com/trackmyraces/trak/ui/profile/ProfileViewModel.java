@@ -77,10 +77,31 @@ public class ProfileViewModel extends AndroidViewModel {
         enabledSourceCount = combined;
     }
 
-    /** Returns the current hidden site IDs synchronously for use at navigation time. */
+    /**
+     * Returns the list of enabled source GUIDs for the current profile.
+     * Must be called from a background thread (DB read).
+     */
+    public List<String> getEnabledSourceGuidsNow() {
+        return mSourcesRepo.getEnabledSourceGuidsSync();
+    }
+
+    /** @deprecated Use getEnabledSourceGuidsNow() for the new GUID-based API. */
     public List<String> getHiddenSiteIdsNow() {
         List<String> current = hiddenSiteIds.getValue();
         return current != null ? current : Collections.emptyList();
+    }
+
+    /**
+     * Returns the userId for the current profile.
+     * Falls back to mLastSavedUserId in the rare window between a save completing
+     * on the executor thread and the Room LiveData updating on the main thread.
+     */
+    private volatile String mLastSavedUserId = null;
+
+    public String getUserId() {
+        RunnerProfileEntity p = profile.getValue();
+        if (p != null && p.userId != null) return p.userId;
+        return mLastSavedUserId;
     }
 
     public interface SaveCallback {
@@ -95,6 +116,8 @@ public class ProfileViewModel extends AndroidViewModel {
 
             RunnerProfileEntity entity = current != null ? current : new RunnerProfileEntity();
             if (entity.id == null) entity.id = UUID.randomUUID().toString();
+            if (entity.userId == null) entity.userId = UUID.randomUUID().toString();
+            mLastSavedUserId = entity.userId;
             entity.name           = name;
             entity.dateOfBirth    = dob;
             entity.gender         = gender;

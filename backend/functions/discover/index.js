@@ -16,7 +16,9 @@
 
 const { wrap, parseBody, ok, errors } = require('/opt/nodejs/shared/utils/response');
 const { discoverRunner }              = require('/opt/nodejs/shared/utils/anthropic');
-const { resolveSiteUrls }             = require('/opt/nodejs/shared/config/defaultSites');
+const { resolveSiteUrls,
+        resolveSiteUrlsByGuid }       = require('/opt/nodejs/shared/config/defaultSites');
+const db                              = require('/opt/nodejs/shared/db/client');
 
 // ─── Age helper ───────────────────────────────────────────────────────────────
 
@@ -192,29 +194,48 @@ exports.handler = wrap(async (event) => {
   const body = parseBody(event);
 
   const {
+    userId          = null,   // device-local UUID — used to load/store counts in DynamoDB
+    sourceIds       = null,   // array of source GUIDs — when present, overrides interests/excludeSiteIds
     runnerName,
     dateOfBirth     = null,
     interests       = [],
     excludeSiteIds  = [],
     extractResults  = true,   // false → cheap check only (background worker)
     sinceDate       = null,   // YYYY-MM-DD — incremental: only return results after this date
-    lastKnownCounts = {},     // siteId → last known result count for free pre-check
+    lastKnownCounts = {},     // siteId → last known result count for free pre-check (Android fallback)
   } = body;
 
   if (!runnerName || typeof runnerName !== 'string' || runnerName.trim().length < 2) {
     return errors.badRequest('runnerName is required (minimum 2 characters)');
   }
 
-  const validTags      = ['road','trail','ultra','marathon','parkrun','triathlon','ocr','track','crosscountry'];
-  const cleanInterests = Array.isArray(interests)
-    ? interests.filter(t => validTags.includes(t))
-    : [];
-
-  const cleanExclude = Array.isArray(excludeSiteIds) ? excludeSiteIds.filter(s => typeof s === 'string') : [];
-
   const name           = runnerName.trim();
   const approximateAge = calcAge(dateOfBirth);
-  const sites          = resolveSiteUrls(name, cleanInterests, cleanExclude);
+
+  // Resolve which sites to search:
+  //   sourceIds present → GUID-based selection (new architecture)
+  //   otherwise         → interest/exclude filter (legacy fallback)
+  let sites;
+  if (Array.isArray(sourceIds) && sourceIds.length > 0) {
+    sites = resolveSiteUrlsByGuid(name, sourceIds);
+  } else {
+    const validTags      = ['road','trail','ultra','marathon','parkrun','triathlon','ocr','track','crosscountry'];
+    const cleanInterests = Array.isArray(interests) ? interests.filter(t => validTags.includes(t)) : [];
+    const cleanExclude   = Array.isArray(excludeSiteIds) ? excludeSiteIds.filter(s => typeof s === 'string') : [];
+    sites = resolveSiteUrls(name, cleanInterests, cleanExclude);
+  }
+
+  // Load stored per-user counts from DynamoDB if userId is present.
+  // These take precedence over lastKnownCounts sent from the device.
+  let storedCounts = lastKnownCounts;
+  if (userId) {
+    try {
+      const record = await db.siteCounts.get(userId);
+      if (record && record.counts) storedCounts = record.counts;
+    } catch (err) {
+      console.log(JSON.stringify({ type: 'SITE_COUNTS_READ_ERROR', userId, err: err.message }));
+    }
+  }
 
   // Split: sites with a direct API vs. those that need Claude web_search
   const directSites = sites.filter(s => s.directApiUrl);
@@ -228,12 +249,12 @@ exports.handler = wrap(async (event) => {
   for (const r of directResults) siteResultCounts[r.siteId] = r.resultCount ?? 0;
 
   // ── Free pre-check (cheap mode only) ──────────────────────────────────────
-  // If the caller supplied lastKnownCounts and we're doing a cheap check,
-  // compare each direct-API site's current count to the stored value.
+  // Compare each direct-API site's current count to the stored value.
+  // storedCounts comes from DynamoDB (when userId present) or from the request.
   // If ALL direct sites are unchanged, skip Claude entirely — nothing new to find.
-  if (!extractResults && Object.keys(lastKnownCounts).length > 0) {
+  if (!extractResults && Object.keys(storedCounts).length > 0) {
     const allUnchanged = directResults.every(r => {
-      const known = lastKnownCounts[r.siteId];
+      const known = storedCounts[r.siteId];
       return known !== undefined && r.resultCount === known;
     });
     if (allUnchanged && directResults.length > 0) {
@@ -291,6 +312,15 @@ exports.handler = wrap(async (event) => {
 
   // Accumulate Claude site counts into siteResultCounts for Android to store
   for (const r of claudeResults) siteResultCounts[r.siteId] = r.resultCount ?? 0;
+
+  // Persist updated counts to DynamoDB when userId is present
+  if (userId && Object.keys(siteResultCounts).length > 0) {
+    try {
+      await db.siteCounts.put(userId, siteResultCounts);
+    } catch (err) {
+      console.log(JSON.stringify({ type: 'SITE_COUNTS_WRITE_ERROR', userId, err: err.message }));
+    }
+  }
 
   const totalResults = results.reduce((n, r) => n + (Array.isArray(r.results) ? r.results.length : 0), 0);
   console.log(JSON.stringify({
