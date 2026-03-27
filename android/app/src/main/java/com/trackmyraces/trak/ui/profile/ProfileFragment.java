@@ -159,6 +159,11 @@ public class ProfileFragment extends Fragment {
         mBinding.btnManageSources.setOnClickListener(v ->
             Navigation.findNavController(requireView())
                 .navigate(R.id.action_profile_to_manage_sources));
+
+        // View dismissed results — all sites, no filter
+        mBinding.btnViewDismissed.setOnClickListener(v ->
+            Navigation.findNavController(requireView())
+                .navigate(R.id.action_profile_to_dismissed));
     }
 
     private void observeViewModel() {

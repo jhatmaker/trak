@@ -188,6 +188,15 @@
     <string name="pending_match_dismiss">Not me</string>
     <string name="pending_match_empty">No pending matches. Tap "Search all sources now" on the Profile screen to look for results.</string>
 
+    <!-- Dismissed matches -->
+    <string name="dismissed_title">Dismissed results</string>
+    <string name="dismissed_label">Marked "Not me"</string>
+    <string name="dismissed_restore">Restore to pending</string>
+    <string name="dismissed_restored_toast">moved back to pending</string>
+    <string name="dismissed_empty">No dismissed results. Entries you mark "Not me" will appear here so you can restore them if needed.</string>
+    <string name="dismissed_view_all_button">View dismissed results</string>
+    <string name="source_view_dismissed">Dismissed</string>
+
     <!-- Common -->
     <string name="ok">OK</string>
     <string name="cancel">Cancel</string>

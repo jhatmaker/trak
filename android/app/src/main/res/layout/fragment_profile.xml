@@ -287,6 +287,14 @@
             android:text="@string/sources_manage_button"
             style="@style/Trak.Button.Outlined" />
 
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_view_dismissed"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="@string/dismissed_view_all_button"
+            style="@style/Widget.MaterialComponents.Button.TextButton" />
+
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"

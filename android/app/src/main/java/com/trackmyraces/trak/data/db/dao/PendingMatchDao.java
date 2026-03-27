@@ -56,4 +56,20 @@ public interface PendingMatchDao {
     /** Delete dismissed matches older than a given timestamp to keep the table tidy. */
     @Query("DELETE FROM pending_match WHERE status = 'dismissed' AND updated_at < :cutoff")
     void purgeDismissedBefore(String cutoff);
+
+    /** All dismissed matches, newest-dismissed first. */
+    @Query("SELECT * FROM pending_match WHERE status = 'dismissed' ORDER BY updated_at DESC")
+    LiveData<List<PendingMatchEntity>> getDismissed();
+
+    /** Dismissed matches for a specific site, newest-dismissed first. */
+    @Query("SELECT * FROM pending_match WHERE status = 'dismissed' AND site_id = :siteId ORDER BY updated_at DESC")
+    LiveData<List<PendingMatchEntity>> getDismissedForSite(String siteId);
+
+    /** Count of dismissed matches for a specific site — used for the badge in Manage Sources. */
+    @Query("SELECT COUNT(*) FROM pending_match WHERE status = 'dismissed' AND site_id = :siteId")
+    LiveData<Integer> getDismissedCountForSite(String siteId);
+
+    /** Restore a dismissed match back to pending so the runner can act on it again. */
+    @Query("UPDATE pending_match SET status = 'pending', updated_at = :updatedAt WHERE id = :id")
+    void restoreToPending(String id, String updatedAt);
 }

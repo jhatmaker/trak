@@ -39,10 +39,20 @@
         android:id="@+id/btn_poll_once"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginEnd="8dp"
+        android:layout_marginEnd="4dp"
         android:text="@string/source_poll_once"
         android:textSize="12sp"
         style="@style/Trak.Button.Outlined" />
+
+    <!-- View dismissed entries for this source -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_view_dismissed"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="4dp"
+        android:text="@string/source_view_dismissed"
+        android:textSize="12sp"
+        style="@style/Widget.MaterialComponents.Button.TextButton" />
 
     <!-- Hide/show toggle -->
     <com.google.android.material.switchmaterial.SwitchMaterial

@@ -156,6 +156,18 @@ public class RaceResultRepository {
      * @param runnerName  Matched runner name — used to build the deduplication key
      */
     public void savePendingMatches(List<DiscoverSiteResult> foundSites, String runnerName) {
+        savePendingMatches(foundSites, runnerName, null);
+    }
+
+    /**
+     * Persist found discovery sites as pending matches in Room.
+     *
+     * @param callback  Optional — called on the executor thread with the total pending count
+     *                  after all inserts complete. The caller must marshal to the UI thread
+     *                  before touching views.
+     */
+    public void savePendingMatches(List<DiscoverSiteResult> foundSites, String runnerName,
+                                   @androidx.annotation.Nullable RepositoryCallback<Integer> callback) {
         mExecutor.execute(() -> {
             String timestamp = now();
 
@@ -215,6 +227,7 @@ public class RaceResultRepository {
 
             int pendingCount = mPendingMatchDao.getPendingCountSync();
             mProfileDao.updateDiscoverStats(timestamp, pendingCount);
+            if (callback != null) callback.onSuccess(pendingCount);
         });
     }
 
@@ -233,6 +246,23 @@ public class RaceResultRepository {
 
     public void dismissPendingMatch(String matchId) {
         mExecutor.execute(() -> mPendingMatchDao.markDismissed(matchId, now()));
+    }
+
+    public LiveData<List<PendingMatchEntity>> getDismissedMatches() {
+        return mPendingMatchDao.getDismissed();
+    }
+
+    public LiveData<List<PendingMatchEntity>> getDismissedMatchesForSite(String siteId) {
+        return mPendingMatchDao.getDismissedForSite(siteId);
+    }
+
+    public LiveData<Integer> getDismissedCountForSite(String siteId) {
+        return mPendingMatchDao.getDismissedCountForSite(siteId);
+    }
+
+    /** Move a dismissed match back to pending so the runner can claim or dismiss it again. */
+    public void restorePendingMatch(String matchId) {
+        mExecutor.execute(() -> mPendingMatchDao.restoreToPending(matchId, now()));
     }
 
     public void claimPendingMatch(String matchId) {

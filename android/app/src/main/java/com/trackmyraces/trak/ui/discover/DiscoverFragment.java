@@ -124,19 +124,34 @@ public class DiscoverFragment extends Fragment {
             return;
         }
 
-        // Count individual race results across all found sites
-        int totalResults = 0;
-        for (DiscoverSiteResult s : found) {
-            totalResults += (s.results != null && !s.results.isEmpty()) ? s.results.size() : 1;
-        }
-
-        // Save results then navigate to Dashboard — banner will prompt runner to review
-        mRepo.savePendingMatches(found, mRunnerName);
-        Toast.makeText(requireContext(),
-            getResources().getQuantityString(R.plurals.discover_results_found_toast, totalResults, totalResults),
-            Toast.LENGTH_LONG).show();
-        Navigation.findNavController(requireView())
-            .navigate(R.id.action_discover_to_dashboard);
+        // Save results — callback fires on executor thread with actual pending count after DB writes.
+        // Dedup: if all found results were already in the DB (claimed/dismissed), count may be 0.
+        mRepo.savePendingMatches(found, mRunnerName,
+            new RaceResultRepository.RepositoryCallback<Integer>() {
+                @Override
+                public void onSuccess(Integer pendingCount) {
+                    requireActivity().runOnUiThread(() -> {
+                        if (!isAdded()) return;
+                        if (pendingCount > 0) {
+                            Toast.makeText(requireContext(),
+                                getResources().getQuantityString(
+                                    R.plurals.discover_results_found_toast,
+                                    pendingCount, pendingCount),
+                                Toast.LENGTH_LONG).show();
+                            Navigation.findNavController(requireView())
+                                .navigate(R.id.action_discover_to_dashboard);
+                        } else {
+                            // API found results but they were all already claimed/dismissed
+                            Toast.makeText(requireContext(),
+                                getString(R.string.discover_no_new_results_toast),
+                                Toast.LENGTH_SHORT).show();
+                            Navigation.findNavController(requireView()).popBackStack();
+                        }
+                    });
+                }
+                @Override
+                public void onError(String message) { /* DB writes don't fail */ }
+            });
     }
 
     private void showError(String message) {

@@ -141,6 +141,10 @@
             android:id="@+id/action_profile_to_manage_sources"
             app:destination="@id/manageSourcesFragment" />
 
+        <action
+            android:id="@+id/action_profile_to_dismissed"
+            app:destination="@id/dismissedMatchesFragment" />
+
     </fragment>
 
     <!-- Manage Sources -->
@@ -157,6 +161,29 @@
         <action
             android:id="@+id/action_manage_sources_to_add"
             app:destination="@id/addResultFragment" />
+
+        <action
+            android:id="@+id/action_manage_sources_to_dismissed"
+            app:destination="@id/dismissedMatchesFragment" />
+
+    </fragment>
+
+    <!-- Dismissed Matches -->
+    <fragment
+        android:id="@+id/dismissedMatchesFragment"
+        android:name="com.trackmyraces.trak.ui.dismissed.DismissedMatchesFragment"
+        android:label="@string/dismissed_title"
+        tools:layout="@layout/fragment_dismissed_matches">
+
+        <argument
+            android:name="siteId"
+            app:argType="string"
+            android:defaultValue="" />
+
+        <argument
+            android:name="siteName"
+            app:argType="string"
+            android:defaultValue="" />
 
     </fragment>
 

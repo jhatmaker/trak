@@ -128,6 +128,8 @@ public class ManageSourcesFragment extends Fragment {
             SwitchMaterial switch_ = row.findViewById(R.id.switch_visible);
             com.google.android.material.button.MaterialButton btnPoll =
                 row.findViewById(R.id.btn_poll_once);
+            com.google.android.material.button.MaterialButton btnDismissed =
+                row.findViewById(R.id.btn_view_dismissed);
 
             tvName.setText(site.name);
             tvDesc.setText(site.description);
@@ -140,6 +142,7 @@ public class ManageSourcesFragment extends Fragment {
             });
 
             btnPoll.setOnClickListener(v -> pollOnce(site));
+            btnDismissed.setOnClickListener(v -> viewDismissed(site.id, site.name));
 
             mSwitchMap.put(site.id, switch_);
             container.addView(row);
@@ -182,6 +185,8 @@ public class ManageSourcesFragment extends Fragment {
             SwitchMaterial swVis   = row.findViewById(R.id.switch_visible);
             com.google.android.material.button.MaterialButton btnPoll =
                 row.findViewById(R.id.btn_poll_once);
+            com.google.android.material.button.MaterialButton btnDismissed =
+                row.findViewById(R.id.btn_view_dismissed);
 
             tvName.setText(custom.customName);
             tvDesc.setText(custom.customUrl);
@@ -203,6 +208,8 @@ public class ManageSourcesFragment extends Fragment {
             });
 
             btnPoll.setOnClickListener(v -> pollOnceCustom(custom));
+            btnDismissed.setOnClickListener(v ->
+                viewDismissed(custom.siteId, custom.customName));
             container.addView(row);
         }
     }
@@ -229,6 +236,14 @@ public class ManageSourcesFragment extends Fragment {
         args.putString("excludeSiteIds", android.text.TextUtils.join(",", excludeIds));
         Navigation.findNavController(requireView())
             .navigate(R.id.action_manage_sources_to_discover, args);
+    }
+
+    private void viewDismissed(String siteId, String siteName) {
+        Bundle args = new Bundle();
+        args.putString("siteId",   siteId);
+        args.putString("siteName", siteName != null ? siteName : "");
+        Navigation.findNavController(requireView())
+            .navigate(R.id.action_manage_sources_to_dismissed, args);
     }
 
     private void pollOnceCustom(UserSitePrefEntity custom) {
