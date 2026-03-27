@@ -2,7 +2,28 @@
 
 ## Project Overview
 
-Trak is a personal race history platform. Runners create a profile, then find and "claim" race results from any public or credentialed race results website. An AI pipeline (AWS Lambda + Anthropic API) extracts structured result data from arbitrary HTML pages. The Android app provides the primary UI with full offline support via Room DB, syncing to a shared AWS backend. A companion web app (optional Phase 2) hits the same API endpoints.
+Trak is a personal race history platform for runners. The goal is to give every runner a single, permanent, offline-capable record of every race they've ever run — without requiring them to manually enter anything.
+
+### The intended workflow
+
+1. **Profile setup** — runner enters name, DOB, interests (road/trail/ultra/marathon/etc.), preferred units. Name + DOB are the only required fields; they're what timing sites use to identify a runner.
+
+2. **Automatic discovery** — on first save and on every subsequent background poll, the app searches a curated list of running result sites for the runner's name. Athlinks is called via a direct free API (no AI tokens). Other sites (Ultrasignup, RunSignup, NYRR, BAA) are searched via Claude's web_search tool. The runner's interests filter which non-Athlinks sites are searched. User-added custom sources (local club sites, regional timers) are included in the search list.
+
+3. **Per-result pending matches** — every individual race found during discovery is stored as a PendingMatchEntity in Room with full detail: race name, date, distance, finish time, place, bib, location. The dashboard shows a banner with the count of pending matches waiting for review.
+
+4. **Review and claim** — the runner sees each discovered race as a card with all details. They tap "Add to profile" to accept it or "Not me" to dismiss it. Accepting a result creates a RaceResultEntity directly from the pending match data — no API call, fully offline. PRs are recalculated for that distance immediately.
+
+5. **Background polling** — WorkManager runs a cheap weekly check. Before making any AI call, the app compares stored result counts per site (from last full extraction) against the current count (free Athlinks API call). If counts are unchanged, the entire check is skipped with noChange=true. Manual "Search now" is rate-limited to once per 48 hours; a second tap within the window schedules the search for the 48-hour mark and shows the scheduled time in the UI.
+
+6. **Manual URL add** (not yet available — auth required) — for races not on default sites, the runner pastes a results page URL. The AI (Claude) extracts the structured result. This requires JWT authentication, which is not yet implemented.
+
+### Auth status (important for development)
+
+The `/discover` endpoint is public — no auth required. All other Lambda endpoints (`/extract`, `/claims`, `/results`, `/profile`) require a JWT Bearer token. There is currently no login/registration flow in the Android app, so `auth_token` in the profile is always null. This means:
+- Discovery and local claim flow work fully
+- Manual URL extraction always returns 401
+- Locally claimed results have `isSynced=false` and are queued for backend sync once auth is added
 
 ---
 
@@ -386,26 +407,64 @@ Sort params: `date`, `distance`, `finishTime`, `overallPlace`, `ageGroupPlace`
 
 ---
 
+## Implemented Features (reference)
+
+### Core flow
+- [x] Profile setup — name, DOB, gender, distance units (miles/km), temperature units (°F/°C), running interests
+- [x] Discovery via `/discover` — Athlinks direct API + Claude web_search for other default sites
+- [x] Interests filter — which non-Athlinks sites are included in a search (road, trail, ultra, marathon, parkrun, triathlon, ocr, track, crosscountry)
+- [x] Per-result pending matches — each discovered race stored individually with full detail (name, date, distance, finish time, place, bib, location)
+- [x] Accept/reject per-result — "Add to profile" creates a local `RaceResultEntity` without any API call; "Not me" dismisses permanently
+- [x] Local PR recalculation on claim — chip time preferred over gun time, ±5% distance tolerance
+- [x] Dashboard pending-matches banner with live count
+
+### Polling and cost controls
+- [x] Background weekly poll — `ResultPollWorker` via WorkManager periodic work (cheap check, no individual result extraction)
+- [x] Free count pre-check — stores `site_count_{siteId}` in SharedPrefs; skips Claude entirely when counts are unchanged
+- [x] 48-hour rate limit on full extraction — `last_extract_at_ms` in SharedPrefs
+- [x] Scheduled-state UI — "Search scheduled · runs at HH:mm" when within rate-limit window; auto-resets via WorkInfo LiveData
+- [x] Incremental `sinceDate` filter — subsequent searches only request results newer than last discovery run
+- [x] 50-result cap on first full discovery, newest-first
+- [x] Debug build uses 60-second rate limit instead of 48 hours
+
+### Source management
+- [x] Manage Sources screen — hide/show default sites, add/hide/delete custom sources
+- [x] Custom sources — user can add any URL (local club, regional timer); appears in the search count
+- [x] Source deduplication — adding a known domain suggests using the existing default entry instead
+- [x] Enabled source count drives the "Search all (N) enabled sources now" button label (defaults + custom)
+
+### Data
+- [x] Room DB migrations 1–9
+- [x] Offline-first — all reads from Room; network updates Room in background
+- [x] Elevation at race start — `elevationStartMeters` from Open-Meteo geocoding
+- [x] `isSynced=false` flag on locally-claimed results — queued for backend sync once auth is added
+
 ## Features Not Yet Implemented (Backlog)
 
+### Blocked on auth
+- [ ] User registration / login (JWT)
+- [ ] Manual URL extraction via `/extract` — returns 401 until auth exists
+- [ ] Backend sync of locally-claimed results
+- [ ] Multi-device history
+
+### Discovery
+- [ ] Custom sources actually searched during discovery — currently added to count but not passed to `/discover`
 - [ ] Parkrun integration (public API — no auth needed)
+
+### Race data
 - [ ] Boston Qualifier (BQ) tracking and gap calculation
 - [ ] Age-graded performance score (WMA tables)
 - [ ] Course certification flag (USATF/IAAF certified)
-- [ ] Social share card generation (race result image for Instagram)
-- [ ] Coach access (read-only share link with expiry)
+
+### Social / sharing
+- [ ] Social share card generation (race result image)
+- [ ] Coach read-only access (share link with expiry)
 - [ ] Club leaderboard (multi-user, opt-in)
-- [ ] Virtual race support (Strava segment results)
-- [ ] OAuth — Strava, Garmin Connect
-- [ ] Playwright Lambda for JS-heavy login portals (Phase 3)
+
+### Platform
+- [ ] OAuth — Strava, Garmin Connect, virtual race support
+- [ ] Playwright Lambda for JS-heavy login portals
 - [ ] Web frontend (React — same API endpoints)
-
-## Implemented Features (reference)
-
-- [x] Background polling — `ResultPollWorker` (WorkManager) searches sites daily/weekly; push notification on match
-- [x] "Search now" — `PollScheduler.pollNow()` triggers an immediate `OneTimeWorkRequest`
-- [x] Elevation at race start — returned from Open-Meteo geocoding, stored as `elevationStartMeters`
-- [x] Separate distance/temperature unit preferences — `preferredUnits` (miles/km) and `preferredTempUnit` (°F/°C)
 
 ---
 
@@ -421,7 +480,9 @@ Sort params: `date`, `distance`, `finishTime`, `overallPlace`, `ageGroupPlace`
 
 ### Cost Model (per active Pro user/month)
 - Lambda + DynamoDB: ~$0.00 (free tier covers it)
-- Anthropic API: ~$0.10–0.30 (5–15 extraction runs × $0.02–0.05 each)
+- Anthropic API (with all 4 cost mitigations): ~$0.51 light / ~$1.79 active user
+  - Mitigations: free count pre-check, 48h rate limit, sinceDate incremental filter, 50-result cap, background = cheap check only
+- Without mitigations (naive extraction on every poll): ~$15–20/month — unsustainable
 - Break-even: ~10 Pro users covers all fixed costs
 
 ---
