@@ -249,9 +249,13 @@ Resources:
                   - secretsmanager:GetSecretValue
                   - secretsmanager:UpdateSecret
                   - secretsmanager:TagResource
-                  - secretsmanager:GetRandomPassword
                 Resource:
                   - !Sub arn:aws:secretsmanager:us-east-1:${AWS::AccountId}:secret:trak/dev/*
+              - Sid: SecretsManagerGlobal
+                Effect: Allow
+                Action:
+                  - secretsmanager:GetRandomPassword
+                Resource: '*'
 
   # ── Role 3: deploy-prod (main branch only) ───────────────────────────────────
 
@@ -437,9 +441,13 @@ Resources:
                   - secretsmanager:GetSecretValue
                   - secretsmanager:UpdateSecret
                   - secretsmanager:TagResource
-                  - secretsmanager:GetRandomPassword
                 Resource:
                   - !Sub arn:aws:secretsmanager:us-east-1:${AWS::AccountId}:secret:trak/prod/*
+              - Sid: SecretsManagerGlobal
+                Effect: Allow
+                Action:
+                  - secretsmanager:GetRandomPassword
+                Resource: '*'
 
 Outputs:
   ValidateRoleArn:
