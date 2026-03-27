@@ -40,6 +40,9 @@ import com.trackmyraces.trak.data.db.entity.SavedViewEntity;
  *   6 — added preferred_temp_unit to runner_profile
  *   7 — added pending_match table; added last_discover_at + pending_count to runner_profile
  *   8 — added user_site_pref table (per-user hide flag for default and custom sources)
+ *   9 — added per-result detail columns to pending_match (race_name, race_date,
+ *        distance_label, distance_meters, location, bib_number, finish_time,
+ *        finish_seconds, overall_place, overall_total, raw_data)
  */
 @Database(
     entities = {
@@ -52,7 +55,7 @@ import com.trackmyraces.trak.data.db.entity.SavedViewEntity;
         PendingMatchEntity.class,
         UserSitePrefEntity.class,
     },
-    version = 8,
+    version = 9,
     exportSchema = true
 )
 public abstract class TrakDatabase extends RoomDatabase {
@@ -82,7 +85,7 @@ public abstract class TrakDatabase extends RoomDatabase {
                             TrakDatabase.class,
                             DB_NAME
                         )
-                        .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
+                        .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
                         .build();
                 }
             }
@@ -191,6 +194,25 @@ public abstract class TrakDatabase extends RoomDatabase {
         public void migrate(@androidx.annotation.NonNull SupportSQLiteDatabase db) {
             // Separate temperature unit preference ("celsius" or "fahrenheit")
             db.execSQL("ALTER TABLE `runner_profile` ADD COLUMN `preferred_temp_unit` TEXT");
+        }
+    };
+
+    static final Migration MIGRATION_8_9 = new Migration(8, 9) {
+        @Override
+        public void migrate(@androidx.annotation.NonNull SupportSQLiteDatabase db) {
+            // Expand pending_match with per-result detail columns so each row
+            // represents one individual race result rather than one site.
+            db.execSQL("ALTER TABLE `pending_match` ADD COLUMN `race_name` TEXT");
+            db.execSQL("ALTER TABLE `pending_match` ADD COLUMN `race_date` TEXT");
+            db.execSQL("ALTER TABLE `pending_match` ADD COLUMN `distance_label` TEXT");
+            db.execSQL("ALTER TABLE `pending_match` ADD COLUMN `distance_meters` REAL NOT NULL DEFAULT 0");
+            db.execSQL("ALTER TABLE `pending_match` ADD COLUMN `location` TEXT");
+            db.execSQL("ALTER TABLE `pending_match` ADD COLUMN `bib_number` TEXT");
+            db.execSQL("ALTER TABLE `pending_match` ADD COLUMN `finish_time` TEXT");
+            db.execSQL("ALTER TABLE `pending_match` ADD COLUMN `finish_seconds` INTEGER NOT NULL DEFAULT 0");
+            db.execSQL("ALTER TABLE `pending_match` ADD COLUMN `overall_place` INTEGER NOT NULL DEFAULT 0");
+            db.execSQL("ALTER TABLE `pending_match` ADD COLUMN `overall_total` INTEGER NOT NULL DEFAULT 0");
+            db.execSQL("ALTER TABLE `pending_match` ADD COLUMN `raw_data` TEXT");
         }
     };
 

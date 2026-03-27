@@ -166,47 +166,67 @@ function buildDiscoveryPrompt({ runnerName, approximateAge, sites }) {
     `${i + 1}. ${s.name} — search query: ${s.searchQuery}`
   ).join('\n');
 
-  return `You are helping a runner find their race history on popular running websites.
+  return `You are helping a runner find their complete race history on popular running websites.
 
 Runner: "${runnerName}"${ageNote}
 
-For each site listed below, call web_search with the provided query. Look at the search results to determine if this specific runner has a profile or race results on that site.
+For each site listed below, call web_search with the provided query. If the runner is found,
+navigate to their athlete profile page and extract ALL individual race results listed there.
 If multiple people share the same name, use the approximate age to select the correct person.
-If you find the runner, return the direct URL to their athlete profile or results page — not the search results page.
 
 Search each site now:
 ${siteList}
 
-For each site, return:
-- Whether the runner was found
-- The direct URL to their results or profile page (not the search page)
-- An approximate count of results if visible
-- Brief notes to confirm it's the right person (age, location, etc.)
+For each site, return an object. If the runner was found, populate the "results" array with
+one object per race result listed on their profile page.
 
 Return ONLY a valid JSON array — no markdown, no explanation:
 
 [
   {
-    "siteId": "athlinks",
+    "siteId": "ultrasignup",
     "found": true,
-    "resultsUrl": "https://www.athlinks.com/athletes/123456789/results",
-    "resultCount": 47,
-    "notes": "Jane Smith, age 38, Boston MA — 47 race results"
+    "athleteUrl": "https://ultrasignup.com/runner/jane-smith-12345",
+    "results": [
+      {
+        "resultId": "ultrasignup-event-67890-runner-12345",
+        "raceName": "2024 Vermont 100",
+        "raceDate": "2024-07-20",
+        "distanceLabel": "100 Mile",
+        "distanceMeters": 160934,
+        "location": "South Woodstock, VT",
+        "bibNumber": "123",
+        "finishTime": "23:45:30",
+        "finishSeconds": 85530,
+        "overallPlace": 45,
+        "overallTotal": 312,
+        "resultsUrl": "https://ultrasignup.com/results_event.aspx?did=12345&id=67890"
+      }
+    ],
+    "notes": null
   },
   {
-    "siteId": "ultrasignup",
+    "siteId": "runsignup",
     "found": false,
-    "resultsUrl": null,
-    "resultCount": 0,
+    "athleteUrl": null,
+    "results": [],
     "notes": null
   }
 ]
 
 Rules:
 - Return one object per site in the same order they were listed above.
-- If the runner is NOT found on a site, set found: false, resultsUrl: null, resultCount: 0.
-- resultsUrl must point to the runner's results/profile page, NOT the search results page.
-- resultCount is approximate — 0 if unknown.
+- If the runner is NOT found, set found: false, results: [], athleteUrl: null.
+- athleteUrl is the runner's profile/results page — NOT the search results page.
+- results array must contain one entry per individual race result on that page.
+  Include as many results as are visible — do not truncate.
+- resultId should be a stable unique identifier for this specific result; use a combination
+  of site IDs and race/event IDs if visible; null if no stable ID is available.
+- finishSeconds must be an integer (e.g. 3:45:22 = 13522).
+- distanceMeters: standard values — 5K=5000, 10K=10000, HM=21097, Marathon=42195, 50K=50000.
+  Use 0 if truly unknown.
+- resultsUrl should point to this specific result entry, not the athlete profile page.
+  If only the athlete page is available, use that URL.
 - Return ONLY the JSON array. No markdown fences. No explanation.`;
 }
 
@@ -224,7 +244,7 @@ async function discoverRunner(params) {
 
   const message = await client.messages.create({
     model:      'claude-sonnet-4-20250514',
-    max_tokens: 2000,
+    max_tokens: 8000,   // individual results per site can be many rows
     tools: [{
       type: 'web_search_20250305',
       name: 'web_search',
@@ -245,14 +265,19 @@ async function discoverRunner(params) {
     throw new Error(`Discovery response was not valid JSON: ${jsonText.slice(0, 200)}`);
   }
 
+  const totalResults = Array.isArray(parsed)
+    ? parsed.reduce((n, s) => n + (Array.isArray(s.results) ? s.results.length : 0), 0)
+    : 0;
+
   console.log(JSON.stringify({
-    type:         'ANTHROPIC_USAGE',
-    operation:    'discover',
-    inputTokens:  message.usage?.input_tokens,
-    outputTokens: message.usage?.output_tokens,
-    runnerName:   params.runnerName,
+    type:          'ANTHROPIC_USAGE',
+    operation:     'discover',
+    inputTokens:   message.usage?.input_tokens,
+    outputTokens:  message.usage?.output_tokens,
+    runnerName:    params.runnerName,
     sitesSearched: params.sites.length,
-    sitesFound:   Array.isArray(parsed) ? parsed.filter(s => s.found).length : 0,
+    sitesFound:    Array.isArray(parsed) ? parsed.filter(s => s.found).length : 0,
+    totalResults,
   }));
 
   return parsed;

@@ -179,7 +179,7 @@
     <string name="pending_matches_title">Results found</string>
     <string name="pending_matches_banner_title">Results found for you</string>
     <string name="pending_matches_review">Review</string>
-    <string name="pending_match_view">View on site</string>
+    <string name="pending_match_raw_data">View raw data</string>
     <string name="pending_match_claim">Add to profile</string>
     <string name="pending_match_dismiss">Not me</string>
     <string name="pending_match_empty">No pending matches. Tap "Search all sources now" on the Profile screen to look for results.</string>

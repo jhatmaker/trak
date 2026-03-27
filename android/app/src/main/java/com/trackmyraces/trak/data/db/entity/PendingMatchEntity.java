@@ -55,14 +55,11 @@ public class PendingMatchEntity {
     @ColumnInfo(name = "results_url")
     public String resultsUrl;
 
-    /** Approximate total number of results found on this site */
+    /** Kept for backwards compatibility; always 1 for per-result rows. */
     @ColumnInfo(name = "result_count")
     public int resultCount;
 
-    /**
-     * Brief human-readable notes confirming the match — e.g. "Jane Smith, age 38, Boston MA".
-     * Null for Athlinks direct-API results (not confirmed by AI).
-     */
+    /** Any extra notes about this match. */
     @ColumnInfo(name = "notes")
     public String notes;
 
@@ -81,4 +78,50 @@ public class PendingMatchEntity {
     /** ISO timestamp of last status change */
     @ColumnInfo(name = "updated_at")
     public String updatedAt;
+
+    // ── Per-result detail fields (added in migration 8→9) ─────────────────────
+
+    /** Full race name e.g. "2024 Boston Marathon". */
+    @ColumnInfo(name = "race_name")
+    public String raceName;
+
+    /** Race date in YYYY-MM-DD format. */
+    @ColumnInfo(name = "race_date")
+    public String raceDate;
+
+    /** Distance label as shown on the source site e.g. "Marathon", "10K". */
+    @ColumnInfo(name = "distance_label")
+    public String distanceLabel;
+
+    /** Distance in metres — 0 if unknown. */
+    @ColumnInfo(name = "distance_meters", defaultValue = "0")
+    public double distanceMeters;
+
+    /** "City, State" or "City, Country" — null if unknown. */
+    @ColumnInfo(name = "location")
+    public String location;
+
+    /** Bib number as a string — null if unknown. */
+    @ColumnInfo(name = "bib_number")
+    public String bibNumber;
+
+    /** Finish time string e.g. "3:45:22" — null if unknown. */
+    @ColumnInfo(name = "finish_time")
+    public String finishTime;
+
+    /** Finish time in seconds — 0 if unknown. */
+    @ColumnInfo(name = "finish_seconds", defaultValue = "0")
+    public int finishSeconds;
+
+    /** Overall finishing place — 0 if unknown. */
+    @ColumnInfo(name = "overall_place", defaultValue = "0")
+    public int overallPlace;
+
+    /** Total finishers in the overall field — 0 if unknown. */
+    @ColumnInfo(name = "overall_total", defaultValue = "0")
+    public int overallTotal;
+
+    /** Raw JSON from the source — shown via "View raw data" in the UI. */
+    @ColumnInfo(name = "raw_data")
+    public String rawData;
 }

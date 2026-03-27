@@ -51,11 +51,18 @@ public class PendingMatchesFragment extends Fragment {
             @Override
             public void onClaim(PendingMatchEntity match) {
                 mViewModel.claim(match);
-                // Navigate to AddResultFragment with the site's results URL pre-filled
-                // so the AI can extract the full result details
+                // Navigate to AddResultFragment with the specific result URL so the AI
+                // can do a full extraction (splits, elevation, weather, etc.).
+                // For individual result rows, resultsUrl is the direct result page.
+                // For placeholder rows (no individual data), it's the athlete profile page.
                 Bundle args = new Bundle();
                 args.putString("prefillUrl",    match.resultsUrl != null ? match.resultsUrl : "");
-                args.putString("prefillSource", match.siteName);
+                args.putString("prefillSource", match.siteName != null ? match.siteName : "");
+                if (match.raceName != null && !match.raceName.isEmpty()) {
+                    // Pre-fill context with race name to help the AI locate this specific result
+                    args.putString("prefillContext", match.raceName
+                        + (match.raceDate != null ? " " + match.raceDate : ""));
+                }
                 Navigation.findNavController(requireView())
                     .navigate(R.id.action_pending_to_add, args);
             }

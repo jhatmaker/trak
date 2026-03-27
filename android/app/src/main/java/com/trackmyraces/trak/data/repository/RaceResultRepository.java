@@ -152,28 +152,69 @@ public class RaceResultRepository {
     public void savePendingMatches(List<DiscoverSiteResult> foundSites, String runnerName) {
         mExecutor.execute(() -> {
             String timestamp = now();
-            String normalizedName = runnerName.toLowerCase(java.util.Locale.US).trim()
-                .replaceAll("\\s+", "_");
 
             for (com.trackmyraces.trak.data.network.dto.DiscoverSiteResult site : foundSites) {
-                PendingMatchEntity match = new PendingMatchEntity();
-                match.id               = java.util.UUID.randomUUID().toString();
-                match.deduplicationKey = site.siteId + ":" + normalizedName;
-                match.siteId           = site.siteId;
-                match.siteName         = site.siteName;
-                match.runnerName       = runnerName;
-                match.resultsUrl       = site.resultsUrl;
-                match.resultCount      = site.resultCount;
-                match.notes            = site.notes;
-                match.status           = "pending";
-                match.discoveredAt     = timestamp;
-                match.updatedAt        = timestamp;
-                mPendingMatchDao.insertIfAbsent(match);
+                boolean hasIndividualResults = site.results != null && !site.results.isEmpty();
+
+                if (hasIndividualResults) {
+                    // One row per individual race result
+                    for (com.trackmyraces.trak.data.network.dto.DiscoverResultRecord rec : site.results) {
+                        PendingMatchEntity match = new PendingMatchEntity();
+                        match.id = java.util.UUID.randomUUID().toString();
+                        // Dedup key: prefer site-specific resultId; fall back to raceName+raceDate
+                        String stableId = (rec.resultId != null && !rec.resultId.isEmpty())
+                            ? rec.resultId
+                            : normalizeForKey(rec.raceName) + "_" + (rec.raceDate != null ? rec.raceDate : "unknown");
+                        match.deduplicationKey = site.siteId + ":" + stableId;
+                        match.siteId           = site.siteId;
+                        match.siteName         = site.siteName;
+                        match.runnerName       = runnerName;
+                        match.resultsUrl       = rec.resultsUrl != null ? rec.resultsUrl : site.resultsUrl;
+                        match.resultCount      = 1;
+                        match.status           = "pending";
+                        match.discoveredAt     = timestamp;
+                        match.updatedAt        = timestamp;
+                        // Per-result detail fields
+                        match.raceName         = rec.raceName;
+                        match.raceDate         = rec.raceDate;
+                        match.distanceLabel    = rec.distanceLabel;
+                        match.distanceMeters   = rec.distanceMeters;
+                        match.location         = rec.location;
+                        match.bibNumber        = rec.bibNumber;
+                        match.finishTime       = rec.finishTime;
+                        match.finishSeconds    = rec.finishSeconds;
+                        match.overallPlace     = rec.overallPlace;
+                        match.overallTotal     = rec.overallTotal;
+                        mPendingMatchDao.insertIfAbsent(match);
+                    }
+                } else {
+                    // Fallback: site says found=true but gave no individual results —
+                    // store one placeholder row so the runner knows the site matched.
+                    String normalizedName = normalizeForKey(runnerName);
+                    PendingMatchEntity match = new PendingMatchEntity();
+                    match.id               = java.util.UUID.randomUUID().toString();
+                    match.deduplicationKey = site.siteId + ":" + normalizedName;
+                    match.siteId           = site.siteId;
+                    match.siteName         = site.siteName;
+                    match.runnerName       = runnerName;
+                    match.resultsUrl       = site.resultsUrl;
+                    match.resultCount      = site.resultCount;
+                    match.notes            = site.notes;
+                    match.status           = "pending";
+                    match.discoveredAt     = timestamp;
+                    match.updatedAt        = timestamp;
+                    mPendingMatchDao.insertIfAbsent(match);
+                }
             }
 
             int pendingCount = mPendingMatchDao.getPendingCountSync();
             mProfileDao.updateDiscoverStats(timestamp, pendingCount);
         });
+    }
+
+    private static String normalizeForKey(String s) {
+        if (s == null) return "unknown";
+        return s.toLowerCase(java.util.Locale.US).trim().replaceAll("[^a-z0-9]+", "_");
     }
 
     public LiveData<List<PendingMatchEntity>> getPendingMatches() {
