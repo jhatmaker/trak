@@ -21,11 +21,11 @@ Parameters:
 
   # ── Aurora PostgreSQL / VPC ────────────────────────────────────────────────
   VpcId:
-    Type: AWS::EC2::VPC::Id
-    Description: VPC where Aurora and RDS Proxy are deployed (Lambda functions that need Aurora are placed here too)
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::VPC::Id>
+    Description: SSM path to the VPC ID (e.g. /trak/dev/vpc-id)
   DbSubnetIds:
-    Type: CommaDelimitedList
-    Description: Two private subnet IDs in different AZs (e.g. "subnet-aaa,subnet-bbb")
+    Type: AWS::SSM::Parameter::Value<List<AWS::EC2::Subnet::Id>>
+    Description: SSM path to comma-delimited private subnet IDs (e.g. /trak/dev/db-subnet-ids)
   DbName:
     Type: String
     Default: trak

@@ -189,6 +189,13 @@ Resources:
                 Resource:
                   - arn:aws:route53:::hostedzone/Z07221791SG93GBUMA7Y7
                   - arn:aws:route53:::change/*
+              - Sid: SSMParameters
+                Effect: Allow
+                Action:
+                  - ssm:GetParameter
+                  - ssm:GetParameters
+                Resource:
+                  - !Sub arn:aws:ssm:us-east-1:${AWS::AccountId}:parameter/trak/dev/*
               - Sid: EC2VPC
                 Effect: Allow
                 Action:
@@ -370,6 +377,13 @@ Resources:
                 Resource:
                   - arn:aws:route53:::hostedzone/Z07221791SG93GBUMA7Y7
                   - arn:aws:route53:::change/*
+              - Sid: SSMParameters
+                Effect: Allow
+                Action:
+                  - ssm:GetParameter
+                  - ssm:GetParameters
+                Resource:
+                  - !Sub arn:aws:ssm:us-east-1:${AWS::AccountId}:parameter/trak/prod/*
               - Sid: EC2VPC
                 Effect: Allow
                 Action:
