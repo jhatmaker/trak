@@ -93,6 +93,7 @@ public final class TimeFormatter {
      * Format distance in metres to a human string (legacy boolean overload).
      * @deprecated Use {@link #formatDistance(double, String)} with a unitPref string.
      */
+    @Deprecated
     public static String formatDistance(double meters, boolean imperial) {
         return formatDistance(meters, imperial ? "imperial" : "metric");
     }
