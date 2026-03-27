@@ -4,4 +4,9 @@
         <item quantity="one">%d result</item>
         <item quantity="other">%d results</item>
     </plurals>
+
+    <plurals name="pending_matches_subtitle">
+        <item quantity="one">%d site matched your name — tap to confirm or dismiss</item>
+        <item quantity="other">%d sites matched your name — tap to confirm or dismiss</item>
+    </plurals>
 </resources>

@@ -9,12 +9,16 @@ import androidx.room.migration.Migration;
 import androidx.sqlite.db.SupportSQLiteDatabase;
 
 import com.trackmyraces.trak.data.db.dao.CredentialEntryDao;
+import com.trackmyraces.trak.data.db.dao.PendingMatchDao;
 import com.trackmyraces.trak.data.db.dao.RaceResultDao;
+import com.trackmyraces.trak.data.db.dao.UserSitePrefDao;
 import com.trackmyraces.trak.data.db.dao.ResultClaimDao;
 import com.trackmyraces.trak.data.db.dao.ResultSplitDao;
 import com.trackmyraces.trak.data.db.dao.RunnerProfileDao;
 import com.trackmyraces.trak.data.db.dao.SavedViewDao;
 import com.trackmyraces.trak.data.db.entity.CredentialEntryEntity;
+import com.trackmyraces.trak.data.db.entity.PendingMatchEntity;
+import com.trackmyraces.trak.data.db.entity.UserSitePrefEntity;
 import com.trackmyraces.trak.data.db.entity.RaceResultEntity;
 import com.trackmyraces.trak.data.db.entity.ResultClaimEntity;
 import com.trackmyraces.trak.data.db.entity.ResultSplitEntity;
@@ -34,6 +38,8 @@ import com.trackmyraces.trak.data.db.entity.SavedViewEntity;
  *   4 — added interests to runner_profile
  *   5 — added elevation_start_meters to race_result
  *   6 — added preferred_temp_unit to runner_profile
+ *   7 — added pending_match table; added last_discover_at + pending_count to runner_profile
+ *   8 — added user_site_pref table (per-user hide flag for default and custom sources)
  */
 @Database(
     entities = {
@@ -43,8 +49,10 @@ import com.trackmyraces.trak.data.db.entity.SavedViewEntity;
         ResultClaimEntity.class,
         CredentialEntryEntity.class,
         SavedViewEntity.class,
+        PendingMatchEntity.class,
+        UserSitePrefEntity.class,
     },
-    version = 6,
+    version = 8,
     exportSchema = true
 )
 public abstract class TrakDatabase extends RoomDatabase {
@@ -60,6 +68,8 @@ public abstract class TrakDatabase extends RoomDatabase {
     public abstract ResultClaimDao    resultClaimDao();
     public abstract CredentialEntryDao credentialEntryDao();
     public abstract SavedViewDao      savedViewDao();
+    public abstract PendingMatchDao   pendingMatchDao();
+    public abstract UserSitePrefDao   userSitePrefDao();
 
     // ── Singleton ─────────────────────────────────────────────────────────
 
@@ -72,7 +82,7 @@ public abstract class TrakDatabase extends RoomDatabase {
                             TrakDatabase.class,
                             DB_NAME
                         )
-                        .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+                        .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
                         .build();
                 }
             }
@@ -181,6 +191,52 @@ public abstract class TrakDatabase extends RoomDatabase {
         public void migrate(@androidx.annotation.NonNull SupportSQLiteDatabase db) {
             // Separate temperature unit preference ("celsius" or "fahrenheit")
             db.execSQL("ALTER TABLE `runner_profile` ADD COLUMN `preferred_temp_unit` TEXT");
+        }
+    };
+
+    static final Migration MIGRATION_7_8 = new Migration(7, 8) {
+        @Override
+        public void migrate(@androidx.annotation.NonNull SupportSQLiteDatabase db) {
+            // Per-user preferences for discovery sources.
+            // Covers both default sites (hidden flag) and custom user-added sites.
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS `user_site_pref` (" +
+                "`site_id` TEXT NOT NULL, " +          // matches DEFAULT_SITES id or "custom_N"
+                "`hidden` INTEGER NOT NULL DEFAULT 0, " +
+                "`custom_name` TEXT, " +               // null for default sites
+                "`custom_url` TEXT, " +                // null for default sites
+                "`added_at` TEXT, " +
+                "PRIMARY KEY(`site_id`))"
+            );
+        }
+    };
+
+    static final Migration MIGRATION_6_7 = new Migration(6, 7) {
+        @Override
+        public void migrate(@androidx.annotation.NonNull SupportSQLiteDatabase db) {
+            // New table: candidate matches waiting for runner confirmation
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS `pending_match` (" +
+                "`id` TEXT NOT NULL, " +
+                "`deduplication_key` TEXT, " +
+                "`site_id` TEXT, " +
+                "`site_name` TEXT, " +
+                "`runner_name` TEXT, " +
+                "`results_url` TEXT, " +
+                "`result_count` INTEGER NOT NULL DEFAULT 0, " +
+                "`notes` TEXT, " +
+                "`status` TEXT, " +
+                "`discovered_at` TEXT, " +
+                "`updated_at` TEXT, " +
+                "PRIMARY KEY(`id`))"
+            );
+            db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_pending_match_deduplication_key` ON `pending_match` (`deduplication_key`)");
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_pending_match_status` ON `pending_match` (`status`)");
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_pending_match_discovered_at` ON `pending_match` (`discovered_at`)");
+
+            // Track when discovery last ran and how many matches are waiting
+            db.execSQL("ALTER TABLE `runner_profile` ADD COLUMN `last_discover_at` TEXT");
+            db.execSQL("ALTER TABLE `runner_profile` ADD COLUMN `pending_count` INTEGER NOT NULL DEFAULT 0");
         }
     };
 }

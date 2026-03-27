@@ -53,11 +53,12 @@ public class MainActivity extends AppCompatActivity {
                 .findFragmentById(R.id.nav_host_fragment);
         mNavController = navHostFragment.getNavController();
 
-        // Top-level destinations — back button won't show on these
+        // Top-level destinations — back button won't show on these.
+        // addResultFragment is NOT listed here so the toolbar shows a back arrow
+        // whenever it is reached via navigation (e.g. from Discover or Pending Matches).
         AppBarConfiguration appBarConfig = new AppBarConfiguration.Builder(
             R.id.dashboardFragment,
             R.id.historyFragment,
-            R.id.addResultFragment,
             R.id.profileFragment
         ).build();
 

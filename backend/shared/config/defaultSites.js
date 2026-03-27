@@ -88,7 +88,7 @@ const DEFAULT_SITES = [
  * @param {string[]} interests  — e.g. ["trail", "ultra"] — from runner profile
  * @returns {Array<{id, name, description, searchUrl, tags}>}
  */
-function resolveSiteUrls(fullName, interests = []) {
+function resolveSiteUrls(fullName, interests = [], excludeIds = []) {
   const parts       = fullName.trim().split(/\s+/);
   const firstName   = parts[0] || '';
   const lastName    = parts[parts.length - 1] || '';
@@ -98,6 +98,7 @@ function resolveSiteUrls(fullName, interests = []) {
 
   return DEFAULT_SITES
     .filter(s => s.enabled)
+    .filter(s => !excludeIds.includes(s.id))
     .filter(s => {
       if (!hasInterests)            return true;
       if (s.priority === 'always')  return true;

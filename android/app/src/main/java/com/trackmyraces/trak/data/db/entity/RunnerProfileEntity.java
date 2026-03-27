@@ -74,6 +74,14 @@ public class RunnerProfileEntity {
     @ColumnInfo(name = "interests")
     public String interests;
 
+    /** ISO timestamp of the last successful discovery run — used to rate-limit background polling. */
+    @ColumnInfo(name = "last_discover_at")
+    public String lastDiscoverAt;
+
+    /** Cached count of pending matches — drives the dashboard notification chip. */
+    @ColumnInfo(name = "pending_count", defaultValue = "0")
+    public int pendingCount;
+
     /** Returns interests as a list, never null. */
     public java.util.List<String> getInterestList() {
         if (interests == null || interests.isEmpty()) return new java.util.ArrayList<>();

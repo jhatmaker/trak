@@ -80,7 +80,7 @@ async function callDirectApi(site) {
 exports.handler = wrap(async (event) => {
   const body = parseBody(event);
 
-  const { runnerName, dateOfBirth = null, interests = [] } = body;
+  const { runnerName, dateOfBirth = null, interests = [], excludeSiteIds = [] } = body;
 
   if (!runnerName || typeof runnerName !== 'string' || runnerName.trim().length < 2) {
     return errors.badRequest('runnerName is required (minimum 2 characters)');
@@ -91,9 +91,11 @@ exports.handler = wrap(async (event) => {
     ? interests.filter(t => validTags.includes(t))
     : [];
 
+  const cleanExclude = Array.isArray(excludeSiteIds) ? excludeSiteIds.filter(s => typeof s === 'string') : [];
+
   const name           = runnerName.trim();
   const approximateAge = calcAge(dateOfBirth);
-  const sites          = resolveSiteUrls(name, cleanInterests);
+  const sites          = resolveSiteUrls(name, cleanInterests, cleanExclude);
 
   // Split: sites with a direct API vs. those that need Claude web_search
   const directSites = sites.filter(s => s.directApiUrl);

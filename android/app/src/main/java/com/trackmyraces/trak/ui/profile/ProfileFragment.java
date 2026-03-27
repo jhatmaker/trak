@@ -22,6 +22,7 @@ import com.google.android.material.datepicker.MaterialDatePicker;
 import com.trackmyraces.trak.R;
 import com.trackmyraces.trak.data.db.entity.RunnerProfileEntity;
 import com.trackmyraces.trak.databinding.FragmentProfileBinding;
+import com.trackmyraces.trak.data.repository.SourcesRepository;
 import com.trackmyraces.trak.sync.PollScheduler;
 
 import java.util.Calendar;
@@ -135,10 +136,13 @@ public class ProfileFragment extends Fragment {
                     }
                     if (isFirstSave) {
                         // New profile — go search for their existing results
+                        String excludeCsv = android.text.TextUtils.join(",",
+                            mViewModel.getHiddenSiteIdsNow());
                         Bundle args = new Bundle();
-                        args.putString("runnerName",  name);
-                        args.putString("dateOfBirth", dob);
-                        args.putString("interests",   interests);
+                        args.putString("runnerName",    name);
+                        args.putString("dateOfBirth",   dob);
+                        args.putString("interests",     interests);
+                        args.putString("excludeSiteIds", excludeCsv);
                         Navigation.findNavController(requireView())
                             .navigate(R.id.action_profile_to_discover, args);
                     } else {
@@ -150,9 +154,22 @@ public class ProfileFragment extends Fragment {
 
         // Add site login button
         mBinding.btnAddSite.setOnClickListener(v -> showAddSiteDialog());
+
+        // Manage sources — navigate to dedicated sub-page
+        mBinding.btnManageSources.setOnClickListener(v ->
+            Navigation.findNavController(requireView())
+                .navigate(R.id.action_profile_to_manage_sources));
     }
 
     private void observeViewModel() {
+        // Update poll-now button label with live enabled-source count
+        mViewModel.hiddenDefaultSiteCount.observe(getViewLifecycleOwner(), hiddenCount -> {
+            int hidden  = hiddenCount != null ? hiddenCount : 0;
+            int enabled = SourcesRepository.TOTAL_DEFAULT_SITES - hidden;
+            mBinding.btnPollNow.setText(
+                getString(R.string.poll_now_button_counted, enabled));
+        });
+
         mViewModel.profile.observe(getViewLifecycleOwner(), profile -> {
             boolean isNewProfile = (profile == null || profile.name == null || profile.name.isEmpty());
             mIsNewProfile = isNewProfile;
@@ -235,10 +252,13 @@ public class ProfileFragment extends Fragment {
                     "Save your profile first", Toast.LENGTH_SHORT).show();
                 return;
             }
+            String excludeCsv = android.text.TextUtils.join(",",
+                mViewModel.getHiddenSiteIdsNow());
             Bundle args = new Bundle();
-            args.putString("runnerName",  profile.name);
-            args.putString("dateOfBirth", profile.dateOfBirth != null ? profile.dateOfBirth : "");
-            args.putString("interests",   profile.interests   != null ? profile.interests   : "");
+            args.putString("runnerName",    profile.name);
+            args.putString("dateOfBirth",   profile.dateOfBirth != null ? profile.dateOfBirth : "");
+            args.putString("interests",     profile.interests   != null ? profile.interests   : "");
+            args.putString("excludeSiteIds", excludeCsv);
             Navigation.findNavController(requireView())
                 .navigate(R.id.action_profile_to_discover, args);
         });

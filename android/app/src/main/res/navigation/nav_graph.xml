@@ -17,6 +17,25 @@
             android:id="@+id/action_dashboard_to_detail"
             app:destination="@id/resultDetailFragment" />
 
+        <action
+            android:id="@+id/action_dashboard_to_pending"
+            app:destination="@id/pendingMatchesFragment" />
+
+    </fragment>
+
+    <!-- Pending Matches (sites where runner was found, awaiting confirmation) -->
+    <fragment
+        android:id="@+id/pendingMatchesFragment"
+        android:name="com.trackmyraces.trak.ui.pending.PendingMatchesFragment"
+        android:label="@string/pending_matches_title"
+        tools:layout="@layout/fragment_pending_matches">
+
+        <action
+            android:id="@+id/action_pending_to_add"
+            app:destination="@id/addResultFragment"
+            app:popUpTo="@id/pendingMatchesFragment"
+            app:popUpToInclusive="true" />
+
     </fragment>
 
     <!-- History -->
@@ -48,6 +67,10 @@
             android:defaultValue="" />
         <argument
             android:name="interests"
+            app:argType="string"
+            android:defaultValue="" />
+        <argument
+            android:name="excludeSiteIds"
             app:argType="string"
             android:defaultValue="" />
 
@@ -109,6 +132,27 @@
         <action
             android:id="@+id/action_profile_to_discover"
             app:destination="@id/discoverFragment" />
+
+        <action
+            android:id="@+id/action_profile_to_manage_sources"
+            app:destination="@id/manageSourcesFragment" />
+
+    </fragment>
+
+    <!-- Manage Sources -->
+    <fragment
+        android:id="@+id/manageSourcesFragment"
+        android:name="com.trackmyraces.trak.ui.sources.ManageSourcesFragment"
+        android:label="@string/sources_title"
+        tools:layout="@layout/fragment_manage_sources">
+
+        <action
+            android:id="@+id/action_manage_sources_to_discover"
+            app:destination="@id/discoverFragment" />
+
+        <action
+            android:id="@+id/action_manage_sources_to_add"
+            app:destination="@id/addResultFragment" />
 
     </fragment>
 

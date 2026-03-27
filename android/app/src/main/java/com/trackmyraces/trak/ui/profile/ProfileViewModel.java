@@ -9,7 +9,10 @@ import androidx.lifecycle.LiveData;
 import com.trackmyraces.trak.data.db.entity.RunnerProfileEntity;
 import com.trackmyraces.trak.data.repository.RaceResultRepository;
 import com.trackmyraces.trak.data.repository.RunnerProfileRepository;
+import com.trackmyraces.trak.data.repository.SourcesRepository;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -18,13 +21,36 @@ import com.trackmyraces.trak.data.repository.RaceResultRepository.RepositoryCall
 public class ProfileViewModel extends AndroidViewModel {
 
     private final RunnerProfileRepository mRepo;
+    private final SourcesRepository       mSourcesRepo;
     private final ExecutorService         mExecutor = Executors.newSingleThreadExecutor();
-    public  final LiveData<RunnerProfileEntity> profile;
+
+    public final LiveData<RunnerProfileEntity> profile;
+
+    /**
+     * Live list of hidden default site IDs — passed to /discover so those sites are skipped.
+     * Null/empty means all default sites are searched.
+     */
+    public final LiveData<List<String>> hiddenSiteIds;
+
+    /**
+     * Live count of currently-enabled default sources — drives the "Search all (N) enabled
+     * sources now" button label.
+     */
+    public final LiveData<Integer> hiddenDefaultSiteCount;
 
     public ProfileViewModel(@NonNull Application application) {
         super(application);
-        mRepo   = new RunnerProfileRepository(application);
-        profile = mRepo.getProfile();
+        mRepo        = new RunnerProfileRepository(application);
+        mSourcesRepo = new SourcesRepository(application);
+        profile                = mRepo.getProfile();
+        hiddenSiteIds          = mSourcesRepo.getHiddenDefaultSiteIdsLive();
+        hiddenDefaultSiteCount = mSourcesRepo.getHiddenDefaultSiteCount();
+    }
+
+    /** Returns the current hidden site IDs synchronously for use at navigation time. */
+    public List<String> getHiddenSiteIdsNow() {
+        List<String> current = hiddenSiteIds.getValue();
+        return current != null ? current : Collections.emptyList();
     }
 
     public interface SaveCallback {

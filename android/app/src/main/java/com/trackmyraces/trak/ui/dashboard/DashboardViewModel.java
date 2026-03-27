@@ -39,6 +39,7 @@ public class DashboardViewModel extends AndroidViewModel {
     public final LiveData<Integer>                 uniqueRaceCount;
     public final LiveData<List<RaceResultEntity>>  prList;
     public final LiveData<List<RaceResultEntity>>  recentResults;
+    public final LiveData<Integer>                 pendingMatchCount;
 
     // Sync state for pull-to-refresh UI feedback
     private final MutableLiveData<SyncState> mSyncState = new MutableLiveData<>(SyncState.IDLE);
@@ -55,6 +56,7 @@ public class DashboardViewModel extends AndroidViewModel {
         uniqueRaceCount     = mResultRepo.getUniqueRaceCount();
         prList              = mResultRepo.getPRs();
         recentResults       = mResultRepo.getRecentResults(5);
+        pendingMatchCount   = mResultRepo.getPendingMatchCount();
     }
 
     /**

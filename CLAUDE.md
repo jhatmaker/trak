@@ -120,17 +120,19 @@ implementation 'com.github.PhilJay:MPAndroidChart:v3.1.0'
 
 ### Room DB Entities
 
-Current schema version: **6**
+Current schema version: **8**
 
 | Entity | Purpose |
 |---|---|
-| `RunnerProfileEntity` | Local copy of the runner's profile (name, dob, gender, units, tempUnit, interests, pollSchedule) |
+| `RunnerProfileEntity` | Local copy of the runner's profile (name, dob, gender, units, tempUnit, interests, lastDiscoverAt, pendingCount) |
 | `RaceEventEntity` | Deduplicated race events |
 | `ResultClaimEntity` | Claim records (pending/confirmed/rejected) |
 | `RaceResultEntity` | Full extracted result data (includes `elevationStartMeters`) |
 | `ResultSplitEntity` | Per-km/mile splits |
 | `CredentialEntryEntity` | Encrypted credential metadata (NOT the password) |
 | `SavedViewEntity` | User-saved filter/sort presets |
+| `PendingMatchEntity` | Discovered sites waiting for runner to confirm/dismiss (dedup key UNIQUE) |
+| `UserSitePrefEntity` | Per-user source preferences: hide flag + custom source URLs |
 
 Room migration history:
 - 1→2: initial schema
@@ -138,6 +140,8 @@ Room migration history:
 - 3→4: added `interests` to `runner_profile`
 - 4→5: added `elevation_start_meters` to `race_result`
 - 5→6: added `preferred_temp_unit` to `runner_profile`
+- 6→7: added `pending_match` table; added `last_discover_at` + `pending_count` to `runner_profile`
+- 7→8: added `user_site_pref` table (per-user hide flags + custom sources)
 
 Distance and temperature preferences are separate fields:
 - `preferredUnits` — `"imperial"` (miles) or `"metric"` (km). Default: `"imperial"`

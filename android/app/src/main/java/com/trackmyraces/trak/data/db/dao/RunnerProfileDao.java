@@ -39,4 +39,7 @@ public interface RunnerProfileDao {
 
     @Query("SELECT COUNT(*) FROM runner_profile WHERE status != 'deleted'")
     int getProfileCount();
+
+    @Query("UPDATE runner_profile SET last_discover_at = :timestamp, pending_count = :count WHERE status != 'deleted'")
+    void updateDiscoverStats(String timestamp, int count);
 }

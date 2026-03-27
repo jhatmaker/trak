@@ -18,6 +18,7 @@ import com.trackmyraces.trak.data.network.dto.DiscoverResponse;
 import com.trackmyraces.trak.data.network.dto.DiscoverSiteResult;
 import com.trackmyraces.trak.data.repository.RaceResultRepository;
 import com.trackmyraces.trak.data.repository.RunnerProfileRepository;
+import com.trackmyraces.trak.data.repository.SourcesRepository;
 import com.trackmyraces.trak.ui.MainActivity;
 
 import java.util.ArrayList;
@@ -62,7 +63,22 @@ public class ResultPollWorker extends Worker {
                 return Result.success();
             }
 
-            List<String> interests = profile.getInterestList();
+            // ── Rate-limit: skip if polled within the last 6 hours ─────────
+            if (profile.lastDiscoverAt != null) {
+                try {
+                    java.text.SimpleDateFormat sdf =
+                        new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", java.util.Locale.US);
+                    long lastMs = sdf.parse(profile.lastDiscoverAt).getTime();
+                    long ageHours = (System.currentTimeMillis() - lastMs) / 3_600_000L;
+                    if (ageHours < 6) {
+                        Log.d(TAG, "Polled " + ageHours + "h ago — skipping");
+                        return Result.success();
+                    }
+                } catch (Exception ignored) { /* malformed date — proceed */ }
+            }
+
+            List<String> interests  = profile.getInterestList();
+            List<String> excludeIds = new SourcesRepository(app).getHiddenSiteIdsSync();
 
             // ── 2. Call /discover ──────────────────────────────────────────
             RaceResultRepository repo = new RaceResultRepository(app);
@@ -71,7 +87,7 @@ public class ResultPollWorker extends Worker {
             final DiscoverResponse[] result = {null};
             final String[]           error  = {null};
 
-            repo.discoverResults(profile.name, profile.dateOfBirth, interests,
+            repo.discoverResults(profile.name, profile.dateOfBirth, interests, excludeIds,
                 new RaceResultRepository.RepositoryCallback<DiscoverResponse>() {
                     @Override public void onSuccess(DiscoverResponse r) {
                         result[0] = r;
@@ -90,22 +106,35 @@ public class ResultPollWorker extends Worker {
                 return Result.retry();
             }
 
-            // ── 3. Check for found sites ───────────────────────────────────
+            // ── 3. Persist found sites as pending matches ──────────────────
             if (result[0] == null || result[0].sites == null) {
                 Log.d(TAG, "No discover response");
                 return Result.success();
             }
 
-            List<String> foundSites = new ArrayList<>();
+            List<DiscoverSiteResult> foundSites = new ArrayList<>();
+            List<String> foundNames = new ArrayList<>();
             for (DiscoverSiteResult site : result[0].sites) {
-                if (site.found) foundSites.add(site.siteName);
+                if (site.found) {
+                    foundSites.add(site);
+                    foundNames.add(site.siteName);
+                }
             }
 
             Log.d(TAG, "Poll complete — found on " + foundSites.size() + " site(s)");
 
-            // ── 4. Notify if anything was found ───────────────────────────
             if (!foundSites.isEmpty()) {
-                sendNotification(foundSites);
+                // Get count before insert to detect truly new matches
+                int countBefore = repo.getPendingMatchCountSync();
+                repo.savePendingMatches(foundSites, profile.name);
+                // Small sleep to let the executor finish the DB writes
+                Thread.sleep(500);
+                int countAfter = repo.getPendingMatchCountSync();
+
+                // ── 4. Notify only if new matches were added ───────────────
+                if (countAfter > countBefore) {
+                    sendNotification(foundNames);
+                }
             }
 
             return Result.success();

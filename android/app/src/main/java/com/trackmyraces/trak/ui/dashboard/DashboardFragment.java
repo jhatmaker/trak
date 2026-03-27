@@ -50,6 +50,10 @@ public class DashboardFragment extends Fragment {
         // Pull-to-refresh
         mBinding.swipeRefresh.setColorSchemeResources(R.color.trak_primary);
         mBinding.swipeRefresh.setOnRefreshListener(() -> mViewModel.refresh());
+
+        mBinding.btnReviewPending.setOnClickListener(v ->
+            Navigation.findNavController(requireView())
+                .navigate(R.id.action_dashboard_to_pending));
     }
 
     private void setupRecyclerViews() {
@@ -94,6 +98,18 @@ public class DashboardFragment extends Fragment {
             mBinding.tvEmpty.setVisibility(empty ? View.VISIBLE : View.GONE);
             mBinding.rvRecent.setVisibility(empty ? View.GONE : View.VISIBLE);
             mBinding.rvPrs.setVisibility(empty ? View.GONE : View.VISIBLE);
+        });
+
+        // Pending matches banner
+        mViewModel.pendingMatchCount.observe(getViewLifecycleOwner(), count -> {
+            int n = count != null ? count : 0;
+            if (n > 0) {
+                mBinding.cardPendingMatches.setVisibility(View.VISIBLE);
+                mBinding.tvPendingSubtitle.setText(
+                    getResources().getQuantityString(R.plurals.pending_matches_subtitle, n, n));
+            } else {
+                mBinding.cardPendingMatches.setVisibility(View.GONE);
+            }
         });
 
         // Sync state → drive SwipeRefreshLayout

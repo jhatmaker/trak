@@ -6,7 +6,10 @@ import android.util.Log;
 import androidx.lifecycle.LiveData;
 
 import com.trackmyraces.trak.data.db.TrakDatabase;
+import com.trackmyraces.trak.data.db.dao.PendingMatchDao;
 import com.trackmyraces.trak.data.db.dao.RaceResultDao;
+import com.trackmyraces.trak.data.db.dao.RunnerProfileDao;
+import com.trackmyraces.trak.data.db.entity.PendingMatchEntity;
 import com.trackmyraces.trak.data.db.entity.RaceResultEntity;
 import com.trackmyraces.trak.data.network.ApiClient;
 import com.trackmyraces.trak.data.network.TrakApiService;
@@ -14,6 +17,7 @@ import com.trackmyraces.trak.data.network.dto.ClaimRequest;
 import com.trackmyraces.trak.data.network.dto.ClaimResponse;
 import com.trackmyraces.trak.data.network.dto.DiscoverRequest;
 import com.trackmyraces.trak.data.network.dto.DiscoverResponse;
+import com.trackmyraces.trak.data.network.dto.DiscoverSiteResult;
 import com.trackmyraces.trak.data.network.dto.ExtractionRequest;
 import com.trackmyraces.trak.data.network.dto.ExtractionResponse;
 
@@ -44,14 +48,18 @@ public class RaceResultRepository {
     private static final String TAG = "RaceResultRepository";
 
     private final RaceResultDao    mDao;
+    private final PendingMatchDao  mPendingMatchDao;
+    private final RunnerProfileDao mProfileDao;
     private final TrakApiService   mApi;
     private final ExecutorService  mExecutor;
 
     public RaceResultRepository(Application application) {
         TrakDatabase db = TrakDatabase.getInstance(application);
-        mDao      = db.raceResultDao();
-        mApi      = new ApiClient(application).getService();
-        mExecutor = Executors.newSingleThreadExecutor();
+        mDao             = db.raceResultDao();
+        mPendingMatchDao = db.pendingMatchDao();
+        mProfileDao      = db.runnerProfileDao();
+        mApi             = new ApiClient(application).getService();
+        mExecutor        = Executors.newSingleThreadExecutor();
     }
 
     // ── Read — all return LiveData observed by ViewModels ─────────────────
@@ -104,12 +112,14 @@ public class RaceResultRepository {
      * Public endpoint — no auth token required.
      */
     public void discoverResults(String runnerName, String dateOfBirth,
-                                java.util.List<String> interests,
+                                List<String> interests,
+                                List<String> excludeSiteIds,
                                 RepositoryCallback<DiscoverResponse> callback) {
         DiscoverRequest request = new DiscoverRequest();
-        request.runnerName  = runnerName;
-        request.dateOfBirth = dateOfBirth;
-        request.interests   = interests;
+        request.runnerName     = runnerName;
+        request.dateOfBirth    = dateOfBirth;
+        request.interests      = interests;
+        request.excludeSiteIds = excludeSiteIds;
 
         mApi.discoverResults(request).enqueue(new Callback<DiscoverResponse>() {
             @Override
@@ -125,6 +135,66 @@ public class RaceResultRepository {
                 callback.onError(t.getMessage());
             }
         });
+    }
+
+    // ── Pending matches ───────────────────────────────────────────────────
+
+    /**
+     * Persist found discovery sites as pending matches in Room.
+     * Uses IGNORE conflict strategy — safe to call on every discovery run;
+     * rows already acted on (claimed/dismissed) are never overwritten.
+     *
+     * Also stamps last_discover_at and updates the pending_count on the profile.
+     *
+     * @param foundSites  Only sites where found==true
+     * @param runnerName  Matched runner name — used to build the deduplication key
+     */
+    public void savePendingMatches(List<DiscoverSiteResult> foundSites, String runnerName) {
+        mExecutor.execute(() -> {
+            String timestamp = now();
+            String normalizedName = runnerName.toLowerCase(java.util.Locale.US).trim()
+                .replaceAll("\\s+", "_");
+
+            for (com.trackmyraces.trak.data.network.dto.DiscoverSiteResult site : foundSites) {
+                PendingMatchEntity match = new PendingMatchEntity();
+                match.id               = java.util.UUID.randomUUID().toString();
+                match.deduplicationKey = site.siteId + ":" + normalizedName;
+                match.siteId           = site.siteId;
+                match.siteName         = site.siteName;
+                match.runnerName       = runnerName;
+                match.resultsUrl       = site.resultsUrl;
+                match.resultCount      = site.resultCount;
+                match.notes            = site.notes;
+                match.status           = "pending";
+                match.discoveredAt     = timestamp;
+                match.updatedAt        = timestamp;
+                mPendingMatchDao.insertIfAbsent(match);
+            }
+
+            int pendingCount = mPendingMatchDao.getPendingCountSync();
+            mProfileDao.updateDiscoverStats(timestamp, pendingCount);
+        });
+    }
+
+    public LiveData<List<PendingMatchEntity>> getPendingMatches() {
+        return mPendingMatchDao.getPending();
+    }
+
+    public LiveData<Integer> getPendingMatchCount() {
+        return mPendingMatchDao.getPendingCount();
+    }
+
+    public void dismissPendingMatch(String matchId) {
+        mExecutor.execute(() -> mPendingMatchDao.markDismissed(matchId, now()));
+    }
+
+    public void claimPendingMatch(String matchId) {
+        mExecutor.execute(() -> mPendingMatchDao.markClaimed(matchId, now()));
+    }
+
+    /** Synchronous pending count — for use in background workers only. */
+    public int getPendingMatchCountSync() {
+        return mPendingMatchDao.getPendingCountSync();
     }
 
     // ── Extraction (online only) ──────────────────────────────────────────
