@@ -4,6 +4,7 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -116,15 +117,26 @@ public class DiscoverFragment extends Fragment {
         }
 
         if (found.isEmpty()) {
-            // Nothing found — show message, let user tap Back
-            mBinding.tvNoResults.setVisibility(View.VISIBLE);
-            mBinding.btnSkip.setText(getString(R.string.ok));
+            Toast.makeText(requireContext(),
+                getString(R.string.discover_no_new_results_toast),
+                Toast.LENGTH_SHORT).show();
+            Navigation.findNavController(requireView()).popBackStack();
             return;
         }
 
-        // Save results then navigate back — dashboard banner will prompt review
+        // Count individual race results across all found sites
+        int totalResults = 0;
+        for (DiscoverSiteResult s : found) {
+            totalResults += (s.results != null && !s.results.isEmpty()) ? s.results.size() : 1;
+        }
+
+        // Save results then navigate to Dashboard — banner will prompt runner to review
         mRepo.savePendingMatches(found, mRunnerName);
-        Navigation.findNavController(requireView()).popBackStack();
+        Toast.makeText(requireContext(),
+            getResources().getQuantityString(R.plurals.discover_results_found_toast, totalResults, totalResults),
+            Toast.LENGTH_LONG).show();
+        Navigation.findNavController(requireView())
+            .navigate(R.id.action_discover_to_dashboard);
     }
 
     private void showError(String message) {

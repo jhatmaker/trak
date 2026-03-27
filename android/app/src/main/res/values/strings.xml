@@ -142,6 +142,7 @@
     <string name="discover_skip">Skip for now</string>
     <string name="discover_done">Done — check Dashboard for matches</string>
     <string name="discover_no_results">No results found on any of the default sites. You can still add results manually or by entering a URL.</string>
+    <string name="discover_no_new_results_toast">No new results found</string>
 
     <!-- Manual entry -->
     <string name="manual_entry_title">Enter result manually</string>

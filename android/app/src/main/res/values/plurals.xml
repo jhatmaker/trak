@@ -5,8 +5,13 @@
         <item quantity="other">%d results</item>
     </plurals>
 
+    <plurals name="discover_results_found_toast">
+        <item quantity="one">%d new result found — review on Dashboard</item>
+        <item quantity="other">%d new results found — review on Dashboard</item>
+    </plurals>
+
     <plurals name="pending_matches_subtitle">
-        <item quantity="one">%d site matched your name — tap to confirm or dismiss</item>
-        <item quantity="other">%d sites matched your name — tap to confirm or dismiss</item>
+        <item quantity="one">%d new result found — tap to claim or dismiss</item>
+        <item quantity="other">%d new results found — tap to claim or dismiss</item>
     </plurals>
 </resources>
