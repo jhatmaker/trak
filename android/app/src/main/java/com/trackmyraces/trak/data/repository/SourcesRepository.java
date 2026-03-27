@@ -50,6 +50,11 @@ public class SourcesRepository {
         return mDao.getHiddenDefaultSiteCount();
     }
 
+    /** Live count of enabled (non-hidden) custom sources — added to default count for button label. */
+    public LiveData<Integer> getEnabledCustomSourceCount() {
+        return mDao.getEnabledCustomSourceCount();
+    }
+
     /** Live list of hidden default site IDs — passed to /discover to skip those sites. */
     public LiveData<List<String>> getHiddenDefaultSiteIdsLive() {
         return mDao.getHiddenDefaultSiteIdsLive();

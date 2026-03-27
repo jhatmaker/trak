@@ -5,6 +5,7 @@ import android.app.Application;
 import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
+import androidx.lifecycle.MediatorLiveData;
 import androidx.work.WorkInfo;
 
 import com.trackmyraces.trak.data.db.entity.RunnerProfileEntity;
@@ -42,6 +43,12 @@ public class ProfileViewModel extends AndroidViewModel {
     public final LiveData<Integer> hiddenDefaultSiteCount;
 
     /**
+     * Total enabled source count = (TOTAL_DEFAULT_SITES − hidden defaults) + enabled custom sources.
+     * Observed by ProfileFragment to keep the poll button label accurate.
+     */
+    public final LiveData<Integer> enabledSourceCount;
+
+    /**
      * LiveData of WorkInfo for the pending delayed poll.
      * ENQUEUED → user sees "Search scheduled"; SUCCEEDED/CANCELLED → button resets.
      */
@@ -55,6 +62,19 @@ public class ProfileViewModel extends AndroidViewModel {
         hiddenSiteIds          = mSourcesRepo.getHiddenDefaultSiteIdsLive();
         hiddenDefaultSiteCount = mSourcesRepo.getHiddenDefaultSiteCount();
         pendingPollWorkInfo    = PollScheduler.getPendingPollWorkInfo(application);
+
+        // Combine hidden-default count + enabled-custom count into a single total
+        LiveData<Integer> customCount = mSourcesRepo.getEnabledCustomSourceCount();
+        MediatorLiveData<Integer> combined = new MediatorLiveData<>();
+        Runnable recompute = () -> {
+            Integer hidden = hiddenDefaultSiteCount.getValue();
+            Integer custom = customCount.getValue();
+            int defaults = SourcesRepository.TOTAL_DEFAULT_SITES - (hidden != null ? hidden : 0);
+            combined.setValue(defaults + (custom != null ? custom : 0));
+        };
+        combined.addSource(hiddenDefaultSiteCount, v -> recompute.run());
+        combined.addSource(customCount,            v -> recompute.run());
+        enabledSourceCount = combined;
     }
 
     /** Returns the current hidden site IDs synchronously for use at navigation time. */

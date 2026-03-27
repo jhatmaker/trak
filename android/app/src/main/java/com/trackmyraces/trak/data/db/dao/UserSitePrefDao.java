@@ -45,6 +45,10 @@ public interface UserSitePrefDao {
     @Query("SELECT * FROM user_site_pref WHERE custom_url IS NOT NULL ORDER BY added_at DESC")
     LiveData<List<UserSitePrefEntity>> getCustomSources();
 
+    /** Live count of enabled (non-hidden) custom sources — for the poll button label. */
+    @Query("SELECT COUNT(*) FROM user_site_pref WHERE hidden = 0 AND custom_url IS NOT NULL")
+    LiveData<Integer> getEnabledCustomSourceCount();
+
     @Query("DELETE FROM user_site_pref WHERE site_id = :siteId AND custom_url IS NOT NULL")
     void deleteCustomSource(String siteId);
 }

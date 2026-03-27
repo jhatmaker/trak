@@ -22,7 +22,6 @@ import com.google.android.material.datepicker.MaterialDatePicker;
 import com.trackmyraces.trak.R;
 import com.trackmyraces.trak.data.db.entity.RunnerProfileEntity;
 import com.trackmyraces.trak.databinding.FragmentProfileBinding;
-import com.trackmyraces.trak.data.repository.SourcesRepository;
 import com.trackmyraces.trak.sync.PollScheduler;
 import androidx.work.WorkInfo;
 
@@ -163,15 +162,14 @@ public class ProfileFragment extends Fragment {
     }
 
     private void observeViewModel() {
-        // Update poll-now button label with live enabled-source count
-        mViewModel.hiddenDefaultSiteCount.observe(getViewLifecycleOwner(), hiddenCount -> {
-            int hidden  = hiddenCount != null ? hiddenCount : 0;
-            int enabled = SourcesRepository.TOTAL_DEFAULT_SITES - hidden;
+        // Update poll-now button label with live total enabled-source count (defaults + custom)
+        mViewModel.enabledSourceCount.observe(getViewLifecycleOwner(), enabled -> {
+            int count = enabled != null ? enabled : 0;
             // Only update label if not currently showing scheduled state
             java.util.List<WorkInfo> workInfos = mViewModel.pendingPollWorkInfo.getValue();
             boolean isScheduled = isPollScheduled(workInfos);
             if (!isScheduled) {
-                mBinding.btnPollNow.setText(getString(R.string.poll_now_button_counted, enabled));
+                mBinding.btnPollNow.setText(getString(R.string.poll_now_button_counted, count));
             }
         });
 
@@ -187,10 +185,10 @@ public class ProfileFragment extends Fragment {
                     : getString(R.string.poll_scheduled_status_soon));
                 mBinding.tvPollStatus.setVisibility(android.view.View.VISIBLE);
             } else {
-                // Reset to normal label (re-read from hiddenDefaultSiteCount)
-                java.lang.Integer hidden = mViewModel.hiddenDefaultSiteCount.getValue();
-                int enabled = SourcesRepository.TOTAL_DEFAULT_SITES - (hidden != null ? hidden : 0);
-                mBinding.btnPollNow.setText(getString(R.string.poll_now_button_counted, enabled));
+                // Reset to normal label (re-read from combined enabledSourceCount)
+                java.lang.Integer count = mViewModel.enabledSourceCount.getValue();
+                mBinding.btnPollNow.setText(getString(R.string.poll_now_button_counted,
+                    count != null ? count : 0));
                 mBinding.tvPollStatus.setVisibility(android.view.View.GONE);
             }
         });
