@@ -9,8 +9,9 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
-import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
+
+import android.widget.Toast;
 
 import com.trackmyraces.trak.R;
 import com.trackmyraces.trak.data.db.entity.PendingMatchEntity;
@@ -50,21 +51,14 @@ public class PendingMatchesFragment extends Fragment {
         mAdapter = new PendingMatchAdapter(new PendingMatchAdapter.Listener() {
             @Override
             public void onClaim(PendingMatchEntity match) {
-                mViewModel.claim(match);
-                // Navigate to AddResultFragment with the specific result URL so the AI
-                // can do a full extraction (splits, elevation, weather, etc.).
-                // For individual result rows, resultsUrl is the direct result page.
-                // For placeholder rows (no individual data), it's the athlete profile page.
-                Bundle args = new Bundle();
-                args.putString("prefillUrl",    match.resultsUrl != null ? match.resultsUrl : "");
-                args.putString("prefillSource", match.siteName != null ? match.siteName : "");
-                if (match.raceName != null && !match.raceName.isEmpty()) {
-                    // Pre-fill context with race name to help the AI locate this specific result
-                    args.putString("prefillContext", match.raceName
-                        + (match.raceDate != null ? " " + match.raceDate : ""));
-                }
-                Navigation.findNavController(requireView())
-                    .navigate(R.id.action_pending_to_add, args);
+                // Save the result directly from pending match data — no API call needed.
+                // All race data was already extracted during discovery.
+                mViewModel.claimAndSave(match);
+                String label = (match.raceName != null && !match.raceName.isEmpty())
+                    ? match.raceName
+                    : (match.siteName != null ? match.siteName : "Result");
+                Toast.makeText(requireContext(),
+                    label + " added to your history", Toast.LENGTH_SHORT).show();
             }
 
             @Override

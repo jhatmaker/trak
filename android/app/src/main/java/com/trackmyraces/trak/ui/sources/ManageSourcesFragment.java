@@ -96,13 +96,11 @@ public class ManageSourcesFragment extends Fragment {
     private void setupShowHiddenToggle() {
         mBinding.switchShowHidden.setOnCheckedChangeListener((btn, checked) -> {
             mShowHidden = checked;
-            // Re-trigger render by invalidating current observer value
-            mViewModel.prefs.getValue(); // no-op; actual re-render happens via re-observe
-            UserSitePrefEntity dummy = null; // force re-render
             List<UserSitePrefEntity> current = mViewModel.prefs.getValue();
             Map<String, UserSitePrefEntity> prefMap = new HashMap<>();
             if (current != null) for (UserSitePrefEntity p : current) prefMap.put(p.siteId, p);
             renderDefaultSites(prefMap);
+            renderCustomSources(prefMap);
         });
     }
 
@@ -163,7 +161,11 @@ public class ManageSourcesFragment extends Fragment {
 
         List<UserSitePrefEntity> customs = new ArrayList<>();
         for (UserSitePrefEntity p : prefMap.values()) {
-            if (p.isCustom()) customs.add(p);
+            if (p.isCustom()) {
+                // Only show hidden custom sources when "Show hidden" toggle is on
+                if (p.hidden && !mShowHidden) continue;
+                customs.add(p);
+            }
         }
 
         if (customs.isEmpty()) {

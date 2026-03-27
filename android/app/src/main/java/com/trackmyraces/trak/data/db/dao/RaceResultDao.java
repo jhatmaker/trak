@@ -89,6 +89,10 @@ public interface RaceResultDao {
     @Query("UPDATE race_result SET is_pr = 0 WHERE distance_canonical = :distanceCanonical AND status != 'deleted'")
     void clearPRFlags(String distanceCanonical);
 
+    /** Active results within a distance range (meters) — for PR recalc after local claim */
+    @Query("SELECT * FROM race_result WHERE status != 'deleted' AND distance_meters BETWEEN :minMeters AND :maxMeters ORDER BY COALESCE(chip_seconds, finish_seconds) ASC")
+    List<RaceResultEntity> getActiveByDistanceRange(double minMeters, double maxMeters);
+
     // ── Sync queries ───────────────────────────────────────────────────────
 
     /** Results not yet synced to backend */

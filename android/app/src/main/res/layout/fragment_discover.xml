@@ -38,12 +38,17 @@
 
         </LinearLayout>
 
-        <!-- Site result cards (populated programmatically) -->
-        <LinearLayout
-            android:id="@+id/layout_sites"
+        <!-- No-results state -->
+        <TextView
+            android:id="@+id/tv_no_results"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
+            android:layout_marginTop="20dp"
+            android:gravity="center"
+            android:textColor="@color/text_secondary"
+            android:textSize="14sp"
+            android:lineSpacingMultiplier="1.4"
+            android:text="@string/discover_no_results"
             android:visibility="gone" />
 
         <!-- Error state -->

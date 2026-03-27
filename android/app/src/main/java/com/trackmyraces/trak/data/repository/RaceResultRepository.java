@@ -239,6 +239,86 @@ public class RaceResultRepository {
         mExecutor.execute(() -> mPendingMatchDao.markClaimed(matchId, now()));
     }
 
+    /**
+     * Claims a pending match and immediately saves it as a RaceResultEntity in Room.
+     * No API call — all data comes from the pending match itself (already extracted
+     * by the discovery pipeline). The result is saved with isSynced=false so it
+     * will be uploaded to the backend when auth is implemented.
+     */
+    public void claimAndSave(PendingMatchEntity match) {
+        mExecutor.execute(() -> {
+            String timestamp = now();
+
+            // Build a RaceResultEntity from the pending match data
+            RaceResultEntity result = new RaceResultEntity();
+            result.id              = java.util.UUID.randomUUID().toString();
+            result.raceName        = match.raceName;
+            result.raceDate        = match.raceDate;
+            result.distanceLabel   = match.distanceLabel;
+            result.distanceMeters  = match.distanceMeters;
+            result.finishTime      = match.finishTime;
+            result.finishSeconds   = match.finishSeconds;
+            result.overallPlace    = match.overallPlace > 0 ? match.overallPlace : null;
+            result.overallTotal    = match.overallTotal > 0 ? match.overallTotal : null;
+            result.bibNumber       = match.bibNumber;
+            result.sourceUrl       = match.resultsUrl;
+            result.notes           = match.notes;
+            result.status          = "active";
+            result.isSynced        = false;
+            result.recordedAt      = timestamp;
+            result.updatedAt       = timestamp;
+
+            // Parse city/state from location "City, State"
+            if (match.location != null && match.location.contains(",")) {
+                String[] parts = match.location.split(",", 2);
+                result.raceCity  = parts[0].trim();
+                result.raceState = parts[1].trim();
+            }
+
+            // Canonical race name slug for grouping (e.g. "boston-marathon")
+            if (match.raceName != null) {
+                result.raceNameCanonical = match.raceName
+                    .toLowerCase(java.util.Locale.US)
+                    .replaceAll("\\b(20\\d{2})\\b", "")
+                    .replaceAll("[^a-z0-9 ]", "")
+                    .trim()
+                    .replaceAll("\\s+", "-");
+            }
+
+            mDao.insertOrReplace(result);
+
+            // Mark pending match as claimed
+            mPendingMatchDao.markClaimed(match.id, timestamp);
+
+            // Recalculate PR for this distance
+            if (result.distanceMeters > 0) {
+                recalculatePR(result.distanceMeters);
+            }
+
+            // Update pending count on profile
+            int remaining = mPendingMatchDao.getPendingCountSync();
+            mProfileDao.updateDiscoverStats(timestamp, remaining);
+        });
+    }
+
+    /**
+     * Marks the fastest result for a given distance as isPR=true, all others false.
+     * Uses chip time when available, otherwise finish time.
+     */
+    private void recalculatePR(double distanceMeters) {
+        // Allow ±5% tolerance for distance matching
+        double tolerance = distanceMeters * 0.05;
+        List<RaceResultEntity> results = mDao.getActiveByDistanceRange(
+            distanceMeters - tolerance, distanceMeters + tolerance);
+        if (results == null || results.isEmpty()) return;
+
+        results.sort((a, b) -> Integer.compare(a.getBestSeconds(), b.getBestSeconds()));
+        String timestamp = now();
+        for (int i = 0; i < results.size(); i++) {
+            mDao.updateIsPR(results.get(i).id, i == 0, timestamp);
+        }
+    }
+
     /** Synchronous pending count — for use in background workers only. */
     public int getPendingMatchCountSync() {
         return mPendingMatchDao.getPendingCountSync();

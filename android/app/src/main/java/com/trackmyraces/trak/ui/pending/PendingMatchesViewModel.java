@@ -32,10 +32,9 @@ public class PendingMatchesViewModel extends AndroidViewModel {
     }
 
     /**
-     * Mark as claimed and trigger AI extraction for this match.
-     * Returns the match so the fragment can navigate to AddResultFragment with the URL.
+     * Saves the pending match as a RaceResultEntity and marks it claimed — no API call.
      */
-    public void claim(PendingMatchEntity match) {
-        mRepo.claimPendingMatch(match.id);
+    public void claimAndSave(PendingMatchEntity match) {
+        mRepo.claimAndSave(match);
     }
 }
