@@ -66,15 +66,19 @@ Android App (Java, offline-first)
         ▼
 AWS API Gateway
   └── Lambda (Node.js 20)
-        ├── /discover  — public, no auth — searches default sites
-        ├── /extract   — JWT required — AI extraction from a URL
-        ├── /claims    — JWT required — claim management
-        ├── /results   — JWT required — result CRUD
-        └── /profile   — JWT required — profile management
+        ├── /discover      — public, no auth — searches default sites
+        ├── /extract       — JWT required — AI extraction from a URL
+        ├── /claims        — JWT required — claim management
+        ├── /results       — JWT required — result CRUD
+        ├── /profile       — JWT required — profile management
+        ├── /sources       — GET public, POST/PUT admin — source catalog
+        └── /subscriptions — JWT required — runner ↔ source subscriptions
               │
               ├── Anthropic API (claude-sonnet-4-20250514 + web_search)
               ├── Athlinks direct API (free, no Claude)
-              └── DynamoDB — result cache + user data
+              ├── DynamoDB — hot per-user data (results, profile, views)
+              └── Aurora PostgreSQL Serverless v2 (via RDS Proxy)
+                    └── race_source catalog + runner_source_subscription
 ```
 
 **Offline-first design**: Everything the user sees comes from Room DB. Network calls update Room in the background. The app is fully functional without internet — it just won't find new results until it reconnects.
@@ -96,9 +100,12 @@ AWS API Gateway
 - Free count pre-check — skips Claude entirely if site result counts haven't changed
 - Incremental `sinceDate` filtering on subsequent discovery runs
 - Manage Sources — hide/show default sites, add/hide/delete custom sources
+- Source GUIDs — stable UUIDs for all default and custom sources
 - Dashboard stats and pending match banner
 - History list with filter/sort
 - Debug build uses 60-second rate limit instead of 48 hours for testing
+- Aurora PostgreSQL source catalog (`/sources`, `/subscriptions` endpoints)
+- NetworkAwareFragment base class — all fragments react to connectivity changes
 
 ### Pending (auth required)
 - User registration and login (JWT)
@@ -111,6 +118,7 @@ AWS API Gateway
 
 ### Planned
 - Parkrun integration (public API)
+- Automated poll scheduler (EventBridge cron — off by default to avoid cost)
 - Social share card (race result image)
 - Coach read-only access
 - Club leaderboards
@@ -125,6 +133,7 @@ AWS API Gateway
 ```
 trak/
 ├── CLAUDE.md                 ← AI coding assistant instructions
+├── SOURCES_REDESIGN.md       ← Aurora source catalog architecture spec
 ├── README.md                 ← this file
 ├── .github/workflows/        ← CI/CD (GitHub Actions)
 │   ├── backend-ci.yml        ← test + SAM deploy on merge
@@ -133,16 +142,21 @@ trak/
 │   ├── template.yaml         ← SAM / CloudFormation
 │   ├── samconfig.toml        ← deploy config (dev + prod)
 │   ├── Makefile              ← SAM layer build
-│   ├── functions/            ← discover, extract, claims, results, profile, views, auth
-│   ├── shared/               ← db client, raceLogic, response helpers, anthropic, defaultSites
+│   ├── functions/            ← discover, extract, claims, results, profile,
+│   │                            views, auth, sources, subscriptions
+│   ├── shared/
+│   │   ├── db/client.js      ← DynamoDB single-table client
+│   │   ├── db/postgres.js    ← Aurora PostgreSQL client (IAM auth via RDS Proxy)
+│   │   ├── db/migrations/    ← SQL migration files
+│   │   └── db/seed/          ← Source catalog seed data
 │   └── tests/                ← unit + integration tests
 ├── android/                  ← Android app (Java, min SDK 26)
 │   └── app/src/main/java/com/trackmyraces/trak/
 │       ├── data/             ← Room DB, Retrofit, repositories
-│       ├── ui/               ← Fragments, ViewModels, adapters
+│       ├── ui/               ← Fragments (extend NetworkAwareFragment), ViewModels
 │       ├── sync/             ← PollScheduler, ResultPollWorker (WorkManager)
 │       ├── credential/       ← CredentialManager, KeystoreHelper
-│       └── util/             ← DistanceNormalizer, AgeGroupCalc, etc.
+│       └── util/             ← DistanceNormalizer, AgeGroupCalc, NetworkStateManager
 ├── docs/                     ← Architecture docs
 └── scripts/                  ← oidc-roles.yaml, bootstrap-secrets.sh, gen-token.js
 ```
@@ -155,8 +169,9 @@ trak/
 |-----------|-----------|
 | Android   | Java, Room, Retrofit, WorkManager, Android Keystore, Material 3 |
 | Backend   | AWS Lambda (Node.js 20), API Gateway, DynamoDB |
+| Database  | Aurora PostgreSQL Serverless v2 (via RDS Proxy) |
 | AI        | Anthropic claude-sonnet-4-20250514 + web_search tool |
-| Secrets   | AWS Secrets Manager |
+| Secrets   | AWS Secrets Manager (API keys), SSM Parameter Store (VPC config) |
 | IaC       | AWS SAM / CloudFormation |
 | CI/CD     | GitHub Actions (OIDC — no stored access keys) |
 
@@ -169,6 +184,67 @@ trak/
 - Node.js 20+ and AWS SAM CLI (for backend)
 - AWS CLI configured (`aws configure`)
 - An Anthropic API key
+- An existing AWS VPC with two private subnets in different AZs
+
+### One-time AWS setup (run with admin credentials before first deploy)
+
+#### 1. Create application secrets
+
+```bash
+# Anthropic API key
+aws secretsmanager create-secret --region us-east-1 \
+  --name trak/anthropic-api-key \
+  --secret-string '{"apiKey":"sk-ant-YOUR_KEY_HERE"}'
+
+# JWT signing secret
+aws secretsmanager create-secret --region us-east-1 \
+  --name trak/jwt-secret \
+  --secret-string '{"secret":"your-strong-random-secret-here"}'
+```
+
+#### 2. Store VPC configuration in SSM Parameter Store
+
+```bash
+# Find your VPC and private subnet IDs first:
+aws ec2 describe-vpcs --region us-east-1 \
+  --query 'Vpcs[*].{Id:VpcId,Name:Tags[?Key==`Name`].Value|[0]}' \
+  --output table
+
+aws ec2 describe-subnets --region us-east-1 \
+  --query 'Subnets[*].{Id:SubnetId,AZ:AvailabilityZone,Public:MapPublicIpOnLaunch,Name:Tags[?Key==`Name`].Value|[0]}' \
+  --output table
+
+# Store the values (pick two private subnets — MapPublicIpOnLaunch=False — in different AZs)
+aws ssm put-parameter --region us-east-1 \
+  --name /trak/dev/vpc-id \
+  --value vpc-YOURVALUE \
+  --type String
+
+aws ssm put-parameter --region us-east-1 \
+  --name /trak/dev/db-subnet-ids \
+  --value "subnet-YOURVALUE1,subnet-YOURVALUE2" \
+  --type String
+```
+
+#### 3. Deploy CI/CD IAM roles (OIDC — no stored secrets in GitHub)
+
+```bash
+aws cloudformation deploy \
+  --template-file scripts/oidc-roles.yaml \
+  --stack-name trak-github-oidc \
+  --capabilities CAPABILITY_NAMED_IAM \
+  --region us-east-1
+```
+
+This creates three scoped roles — no GitHub secrets needed after this:
+
+| Role | Branch | Permissions |
+|---|---|---|
+| `trak-github-validate` | any | `cloudformation:ValidateTemplate` only |
+| `trak-github-deploy-dev` | `develop` | Lambda, DynamoDB, API Gateway, RDS, EC2, Secrets Manager, SSM — dev resources |
+| `trak-github-deploy-prod` | `main` | Lambda, DynamoDB, API Gateway, RDS, EC2, Secrets Manager, SSM — prod resources |
+
+> **Re-run this command whenever you update `scripts/oidc-roles.yaml`** — CloudFormation handles the diff.
 
 ### Backend setup
 
@@ -176,15 +252,32 @@ trak/
 cd backend
 npm install
 
-# Create secrets in AWS Secrets Manager (one-time)
-../scripts/bootstrap-secrets.sh
-
 # Build and deploy to dev
 sam build && sam deploy --config-env dev
 
 # Run backend tests
 npm test
 ```
+
+### After first deploy — run DB migrations
+
+Aurora takes ~5 minutes to start on first deploy. Once the stack is `UPDATE_COMPLETE`, connect to the Aurora cluster and run the migration:
+
+```bash
+# Get the Aurora writer endpoint from CloudFormation outputs
+aws cloudformation describe-stacks --stack-name trak-dev \
+  --query 'Stacks[0].Outputs[?OutputKey==`AuroraEndpoint`].OutputValue' \
+  --output text
+
+# Connect and run migrations (requires network access to Aurora — use a bastion or Cloud9)
+psql -h <AURORA_ENDPOINT> -U trakadmin -d trak \
+  -f backend/shared/db/migrations/001_initial.sql
+
+psql -h <AURORA_ENDPOINT> -U trakadmin -d trak \
+  -f backend/shared/db/seed/sources.sql
+```
+
+> For ongoing development, migrations run against the Aurora endpoint directly. A migration runner Lambda is planned for Phase 2.
 
 ### Android setup
 
@@ -233,26 +326,6 @@ sudo xattr -dr com.apple.quarantine ~/Library/Android/sdk/platform-tools
 
 ---
 
-## CI/CD (one-time setup per environment)
-
-```bash
-aws cloudformation deploy \
-  --template-file scripts/oidc-roles.yaml \
-  --stack-name trak-github-oidc \
-  --capabilities CAPABILITY_NAMED_IAM \
-  --region us-east-1
-```
-
-Three scoped roles are created — no GitHub secrets needed after this:
-
-| Role | Branch | Permissions |
-|---|---|---|
-| `trak-github-validate` | any | `cloudformation:ValidateTemplate` only |
-| `trak-github-deploy-dev` | `develop` | Lambda, DynamoDB, API Gateway — dev resources |
-| `trak-github-deploy-prod` | `main` | Lambda, DynamoDB, API Gateway — prod resources |
-
----
-
 ## Monetisation model
 
 | Tier | Price | Limits |
@@ -261,6 +334,8 @@ Three scoped roles are created — no GitHub secrets needed after this:
 | Pro | $2.99/mo or $19.99/yr | Unlimited claims, all views, export, PR tracking |
 | Club | $9.99/mo | Up to 20 members, leaderboards, coach access |
 | Lifetime | $29.99 one-time | Everything in Pro, forever |
+
+**Source limits**: Free=5 active sources, Pro=25, Club=unlimited. Enforced in `/subscriptions`.
 
 **Estimated Anthropic API cost per active Pro user/month** (with all cost mitigations):
 - Light user (1–2 searches/month): ~$0.51
@@ -273,4 +348,4 @@ Three scoped roles are created — no GitHub secrets needed after this:
 
 - Web / API: `trackmyraces.com`
 - Android package: `com.trackmyraces.trak`
-- API base: `https://api.trackmyraces.com/{stage}`
+- API base: `https://api.trackmyraces.com` (prod) / `https://dev.api.trackmyraces.com` (dev)
