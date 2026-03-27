@@ -114,12 +114,16 @@ public class RaceResultRepository {
     public void discoverResults(String runnerName, String dateOfBirth,
                                 List<String> interests,
                                 List<String> excludeSiteIds,
+                                boolean extractResults,
+                                String sinceDate,
                                 RepositoryCallback<DiscoverResponse> callback) {
         DiscoverRequest request = new DiscoverRequest();
         request.runnerName     = runnerName;
         request.dateOfBirth    = dateOfBirth;
         request.interests      = interests;
         request.excludeSiteIds = excludeSiteIds;
+        request.extractResults = extractResults;
+        request.sinceDate      = sinceDate;
 
         mApi.discoverResults(request).enqueue(new Callback<DiscoverResponse>() {
             @Override

@@ -5,17 +5,20 @@ import android.app.Application;
 import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
+import androidx.work.WorkInfo;
 
 import com.trackmyraces.trak.data.db.entity.RunnerProfileEntity;
 import com.trackmyraces.trak.data.repository.RaceResultRepository;
 import com.trackmyraces.trak.data.repository.RunnerProfileRepository;
 import com.trackmyraces.trak.data.repository.SourcesRepository;
+import com.trackmyraces.trak.sync.PollScheduler;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+
 import com.trackmyraces.trak.data.repository.RaceResultRepository.RepositoryCallback;
 
 public class ProfileViewModel extends AndroidViewModel {
@@ -38,6 +41,12 @@ public class ProfileViewModel extends AndroidViewModel {
      */
     public final LiveData<Integer> hiddenDefaultSiteCount;
 
+    /**
+     * LiveData of WorkInfo for the pending delayed poll.
+     * ENQUEUED → user sees "Search scheduled"; SUCCEEDED/CANCELLED → button resets.
+     */
+    public final LiveData<List<WorkInfo>> pendingPollWorkInfo;
+
     public ProfileViewModel(@NonNull Application application) {
         super(application);
         mRepo        = new RunnerProfileRepository(application);
@@ -45,6 +54,7 @@ public class ProfileViewModel extends AndroidViewModel {
         profile                = mRepo.getProfile();
         hiddenSiteIds          = mSourcesRepo.getHiddenDefaultSiteIdsLive();
         hiddenDefaultSiteCount = mSourcesRepo.getHiddenDefaultSiteCount();
+        pendingPollWorkInfo    = PollScheduler.getPendingPollWorkInfo(application);
     }
 
     /** Returns the current hidden site IDs synchronously for use at navigation time. */

@@ -105,11 +105,14 @@
     <string name="poll_section_header">Search for results</string>
     <string name="poll_now_button">Search all sources now</string>
     <string name="poll_now_button_counted">Search all (%1$d) enabled sources now</string>
-    <string name="poll_schedule_hint">Automatically search in background</string>
+    <string name="poll_schedule_hint">Automatically check for new results in background</string>
     <string name="poll_off">Off</string>
-    <string name="poll_daily">Daily</string>
     <string name="poll_weekly">Weekly</string>
     <string name="poll_searching">Searching sources…</string>
+    <string name="poll_scheduled_button">Search scheduled…</string>
+    <string name="poll_scheduled_status">Scheduled · runs at %1$s</string>
+    <string name="poll_scheduled_status_soon">Scheduled · runs soon</string>
+    <string name="poll_already_scheduled">Search already scheduled — check back later</string>
 
     <!-- Onboarding -->
     <string name="profile_setup_prompt">Welcome to Trak! Please enter your name and date of birth to get started. Your name is used to find your results, and your date of birth is needed for age group calculation.</string>

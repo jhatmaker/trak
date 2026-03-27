@@ -177,7 +177,14 @@ function secondsToTimeStr(s) {
 exports.handler = wrap(async (event) => {
   const body = parseBody(event);
 
-  const { runnerName, dateOfBirth = null, interests = [], excludeSiteIds = [] } = body;
+  const {
+    runnerName,
+    dateOfBirth    = null,
+    interests      = [],
+    excludeSiteIds = [],
+    extractResults = true,   // false → cheap check only (background worker)
+    sinceDate      = null,   // YYYY-MM-DD — incremental: only return results after this date
+  } = body;
 
   if (!runnerName || typeof runnerName !== 'string' || runnerName.trim().length < 2) {
     return errors.badRequest('runnerName is required (minimum 2 characters)');
@@ -202,17 +209,18 @@ exports.handler = wrap(async (event) => {
   const [directResults, claudeRaw] = await Promise.all([
     Promise.all(directSites.map(s => callDirectApi(s))),
     searchSites.length > 0
-      ? discoverRunner({ runnerName: name, approximateAge, sites: searchSites })
+      ? discoverRunner({ runnerName: name, approximateAge, sites: searchSites, extractResults, sinceDate })
       : Promise.resolve([]),
   ]);
 
-  // Normalise Claude results — pass through individual results array
+  // Normalise Claude results.
+  // Cheap-check responses have no results array; full-extract responses do.
   const claudeResults = (Array.isArray(claudeRaw) ? claudeRaw : []).map(r => ({
     siteId:      r.siteId,
     found:       !!r.found,
     resultsUrl:  r.athleteUrl  ?? r.resultsUrl ?? null,
     resultCount: Array.isArray(r.results) ? r.results.length : (r.resultCount ?? 0),
-    results:     Array.isArray(r.results)
+    results:     extractResults && Array.isArray(r.results)
       ? r.results.map(rec => ({
           resultId:      rec.resultId      ?? null,
           raceName:      rec.raceName      ?? null,

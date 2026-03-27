@@ -155,12 +155,54 @@ async function extractRaceResult(params) {
   return parsed;
 }
 
-// ─── Discovery prompt ─────────────────────────────────────────────────────────
+// ─── Discovery prompts ────────────────────────────────────────────────────────
 
-function buildDiscoveryPrompt({ runnerName, approximateAge, sites }) {
-  const ageNote = approximateAge
-    ? ` (approximate age: ${approximateAge})`
+/**
+ * Cheap "check" prompt — used by the weekly background worker.
+ * Confirms whether the runner exists on each site and returns a count.
+ * Does NOT extract individual race records — minimises tokens and cost.
+ */
+function buildDiscoveryCheckPrompt({ runnerName, approximateAge, sites }) {
+  const ageNote = approximateAge ? ` (approximate age: ${approximateAge})` : '';
+  const siteList = sites.map((s, i) => `${i + 1}. ${s.name} — search query: ${s.searchQuery}`).join('\n');
+
+  return `You are checking whether a runner has results on popular running websites.
+
+Runner: "${runnerName}"${ageNote}
+
+For each site below, call web_search with the provided query. Determine only whether this
+runner has a profile or results on that site — do NOT extract individual race records.
+
+${siteList}
+
+Return ONLY a valid JSON array — no markdown, no explanation:
+
+[
+  { "siteId": "ultrasignup", "found": true,  "resultsUrl": "https://...", "resultCount": 23, "notes": "Jane Smith, age 38, Boston MA" },
+  { "siteId": "runsignup",   "found": false, "resultsUrl": null, "resultCount": 0, "notes": null }
+]
+
+Rules:
+- One object per site, same order as listed.
+- found: true only if you are confident this specific runner has results on that site.
+- resultsUrl: direct link to runner's profile/results page (not the search page), or null.
+- resultCount: approximate total, 0 if unknown.
+- Return ONLY the JSON array.`;
+}
+
+/**
+ * Full extraction prompt — used for user-triggered "Search all sources now".
+ * Navigates each athlete profile and returns every visible race result.
+ * sinceDate (optional YYYY-MM-DD) limits to results newer than that date for incremental updates.
+ */
+function buildDiscoveryPrompt({ runnerName, approximateAge, sites, sinceDate }) {
+  const ageNote    = approximateAge ? ` (approximate age: ${approximateAge})` : '';
+  const sinceNote  = sinceDate
+    ? `\nIMPORTANT: Only return results with a race date AFTER ${sinceDate}. Skip older results.`
     : '';
+  const capNote    = sinceDate
+    ? ''   // incremental — no cap needed, results will be few
+    : '\nReturn at most 50 results per site, newest first.';
 
   const siteList = sites.map((s, i) =>
     `${i + 1}. ${s.name} — search query: ${s.searchQuery}`
@@ -168,17 +210,17 @@ function buildDiscoveryPrompt({ runnerName, approximateAge, sites }) {
 
   return `You are helping a runner find their complete race history on popular running websites.
 
-Runner: "${runnerName}"${ageNote}
+Runner: "${runnerName}"${ageNote}${sinceNote}${capNote}
 
 For each site listed below, call web_search with the provided query. If the runner is found,
-navigate to their athlete profile page and extract ALL individual race results listed there.
+navigate to their athlete profile page and extract individual race results listed there.
 If multiple people share the same name, use the approximate age to select the correct person.
 
 Search each site now:
 ${siteList}
 
 For each site, return an object. If the runner was found, populate the "results" array with
-one object per race result listed on their profile page.
+one object per qualifying race result.
 
 Return ONLY a valid JSON array — no markdown, no explanation:
 
@@ -218,33 +260,39 @@ Rules:
 - Return one object per site in the same order they were listed above.
 - If the runner is NOT found, set found: false, results: [], athleteUrl: null.
 - athleteUrl is the runner's profile/results page — NOT the search results page.
-- results array must contain one entry per individual race result on that page.
-  Include as many results as are visible — do not truncate.
-- resultId should be a stable unique identifier for this specific result; use a combination
-  of site IDs and race/event IDs if visible; null if no stable ID is available.
-- finishSeconds must be an integer (e.g. 3:45:22 = 13522).
-- distanceMeters: standard values — 5K=5000, 10K=10000, HM=21097, Marathon=42195, 50K=50000.
-  Use 0 if truly unknown.
-- resultsUrl should point to this specific result entry, not the athlete profile page.
-  If only the athlete page is available, use that URL.
+- results array must contain one entry per qualifying race result.
+- resultId: stable unique identifier combining site + event/runner IDs if visible; null otherwise.
+- finishSeconds: integer (e.g. 3:45:22 = 13522).
+- distanceMeters: standard values — 5K=5000, 10K=10000, HM=21097, Marathon=42195, 50K=50000. 0 if unknown.
+- resultsUrl: direct link to this specific result entry; fall back to athleteUrl if unavailable.
 - Return ONLY the JSON array. No markdown fences. No explanation.`;
 }
 
 /**
  * Search multiple running result sites for a runner.
- * @param {Object} params
- * @param {string} params.runnerName
- * @param {number} [params.approximateAge]
- * @param {Array}  params.sites  — from resolveSiteUrls()
+ *
+ * @param {Object}  params
+ * @param {string}  params.runnerName
+ * @param {number}  [params.approximateAge]
+ * @param {Array}   params.sites         — from resolveSiteUrls()
+ * @param {boolean} [params.extractResults=true]
+ *   true  → full extraction: navigate each athlete profile and return individual race records.
+ *   false → cheap check: confirm existence and result count only (no individual records).
+ * @param {string}  [params.sinceDate]   — YYYY-MM-DD; if set, only return results after this date.
  * @returns {Array} Parsed discovery result array
  */
 async function discoverRunner(params) {
+  const { extractResults = true, ...rest } = params;
   const client = await getClient();
-  const prompt = buildDiscoveryPrompt(params);
+
+  // Cheap check uses a smaller token budget; full extraction needs room for many result records.
+  const prompt     = extractResults ? buildDiscoveryPrompt(rest) : buildDiscoveryCheckPrompt(rest);
+  const maxTokens  = extractResults ? 8000 : 1500;
+  const operation  = extractResults ? 'discover_extract' : 'discover_check';
 
   const message = await client.messages.create({
     model:      'claude-sonnet-4-20250514',
-    max_tokens: 8000,   // individual results per site can be many rows
+    max_tokens: maxTokens,
     tools: [{
       type: 'web_search_20250305',
       name: 'web_search',
@@ -271,7 +319,9 @@ async function discoverRunner(params) {
 
   console.log(JSON.stringify({
     type:          'ANTHROPIC_USAGE',
-    operation:     'discover',
+    operation,
+    extractResults,
+    sinceDate:     params.sinceDate ?? null,
     inputTokens:   message.usage?.input_tokens,
     outputTokens:  message.usage?.output_tokens,
     runnerName:    params.runnerName,

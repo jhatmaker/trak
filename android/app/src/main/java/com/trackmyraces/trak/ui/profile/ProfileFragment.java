@@ -24,6 +24,7 @@ import com.trackmyraces.trak.data.db.entity.RunnerProfileEntity;
 import com.trackmyraces.trak.databinding.FragmentProfileBinding;
 import com.trackmyraces.trak.data.repository.SourcesRepository;
 import com.trackmyraces.trak.sync.PollScheduler;
+import androidx.work.WorkInfo;
 
 import java.util.Calendar;
 import java.util.Locale;
@@ -166,8 +167,32 @@ public class ProfileFragment extends Fragment {
         mViewModel.hiddenDefaultSiteCount.observe(getViewLifecycleOwner(), hiddenCount -> {
             int hidden  = hiddenCount != null ? hiddenCount : 0;
             int enabled = SourcesRepository.TOTAL_DEFAULT_SITES - hidden;
-            mBinding.btnPollNow.setText(
-                getString(R.string.poll_now_button_counted, enabled));
+            // Only update label if not currently showing scheduled state
+            java.util.List<WorkInfo> workInfos = mViewModel.pendingPollWorkInfo.getValue();
+            boolean isScheduled = isPollScheduled(workInfos);
+            if (!isScheduled) {
+                mBinding.btnPollNow.setText(getString(R.string.poll_now_button_counted, enabled));
+            }
+        });
+
+        // Observe pending poll scheduled state — update button text and status line
+        mViewModel.pendingPollWorkInfo.observe(getViewLifecycleOwner(), workInfos -> {
+            boolean scheduled = isPollScheduled(workInfos);
+            if (scheduled) {
+                mBinding.btnPollNow.setText(getString(R.string.poll_scheduled_button));
+                long nextMs = PollScheduler.getNextScheduledExtractMs(requireContext());
+                String timeStr = nextMs > 0 ? formatTime(nextMs) : null;
+                mBinding.tvPollStatus.setText(timeStr != null
+                    ? getString(R.string.poll_scheduled_status, timeStr)
+                    : getString(R.string.poll_scheduled_status_soon));
+                mBinding.tvPollStatus.setVisibility(android.view.View.VISIBLE);
+            } else {
+                // Reset to normal label (re-read from hiddenDefaultSiteCount)
+                java.lang.Integer hidden = mViewModel.hiddenDefaultSiteCount.getValue();
+                int enabled = SourcesRepository.TOTAL_DEFAULT_SITES - (hidden != null ? hidden : 0);
+                mBinding.btnPollNow.setText(getString(R.string.poll_now_button_counted, enabled));
+                mBinding.tvPollStatus.setVisibility(android.view.View.GONE);
+            }
         });
 
         mViewModel.profile.observe(getViewLifecycleOwner(), profile -> {
@@ -223,28 +248,25 @@ public class ProfileFragment extends Fragment {
     }
 
     private void setupPollSection() {
-        // Restore saved schedule chip
+        // Restore saved schedule chip — weekly or off only (daily option removed)
         String saved = PollScheduler.getSchedule(requireContext());
-        if (PollScheduler.SCHEDULE_DAILY.equals(saved))        mBinding.chipPollDaily.setChecked(true);
-        else if (PollScheduler.SCHEDULE_WEEKLY.equals(saved))  mBinding.chipPollWeekly.setChecked(true);
-        else                                                    mBinding.chipPollOff.setChecked(true);
+        if (PollScheduler.SCHEDULE_WEEKLY.equals(saved)) mBinding.chipPollWeekly.setChecked(true);
+        else                                              mBinding.chipPollOff.setChecked(true);
 
         // Schedule chip changes
         mBinding.chipGroupPollSchedule.setOnCheckedStateChangeListener((group, checkedIds) -> {
             if (checkedIds.isEmpty()) return;
             int id = checkedIds.get(0);
-            String schedule;
-            if (id == R.id.chip_poll_daily)       schedule = PollScheduler.SCHEDULE_DAILY;
-            else if (id == R.id.chip_poll_weekly)  schedule = PollScheduler.SCHEDULE_WEEKLY;
-            else                                   schedule = PollScheduler.SCHEDULE_OFF;
-
-            if (!PollScheduler.SCHEDULE_OFF.equals(schedule)) {
+            String schedule = (id == R.id.chip_poll_weekly)
+                ? PollScheduler.SCHEDULE_WEEKLY
+                : PollScheduler.SCHEDULE_OFF;
+            if (PollScheduler.SCHEDULE_WEEKLY.equals(schedule)) {
                 requestNotificationPermissionIfNeeded();
             }
             PollScheduler.setSchedule(requireContext(), schedule);
         });
 
-        // Poll now — navigate to DiscoverFragment with current profile
+        // "Search all sources now" — full extraction, rate-limited to once per 48h
         mBinding.btnPollNow.setOnClickListener(v -> {
             RunnerProfileEntity profile = mViewModel.profile.getValue();
             if (profile == null || profile.name == null || profile.name.isEmpty()) {
@@ -252,15 +274,33 @@ public class ProfileFragment extends Fragment {
                     "Save your profile first", Toast.LENGTH_SHORT).show();
                 return;
             }
-            String excludeCsv = android.text.TextUtils.join(",",
-                mViewModel.getHiddenSiteIdsNow());
-            Bundle args = new Bundle();
-            args.putString("runnerName",    profile.name);
-            args.putString("dateOfBirth",   profile.dateOfBirth != null ? profile.dateOfBirth : "");
-            args.putString("interests",     profile.interests   != null ? profile.interests   : "");
-            args.putString("excludeSiteIds", excludeCsv);
-            Navigation.findNavController(requireView())
-                .navigate(R.id.action_profile_to_discover, args);
+
+            // If a poll is already scheduled, just inform the user
+            java.util.List<WorkInfo> infos = mViewModel.pendingPollWorkInfo.getValue();
+            if (isPollScheduled(infos)) {
+                Toast.makeText(requireContext(),
+                    getString(R.string.poll_already_scheduled), Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            String sinceDate  = profile.lastDiscoverAt; // null on first run → full history
+            PollScheduler.PollDecision decision =
+                PollScheduler.requestManualPoll(requireContext(), sinceDate);
+
+            if (decision == PollScheduler.PollDecision.NOW) {
+                // Run immediately — navigate to DiscoverFragment
+                PollScheduler.stampLastExtract(requireContext());
+                String excludeCsv = android.text.TextUtils.join(",", mViewModel.getHiddenSiteIdsNow());
+                Bundle args = new Bundle();
+                args.putString("runnerName",     profile.name);
+                args.putString("dateOfBirth",    profile.dateOfBirth != null ? profile.dateOfBirth : "");
+                args.putString("interests",      profile.interests   != null ? profile.interests   : "");
+                args.putString("excludeSiteIds", excludeCsv);
+                args.putString("sinceDate",      sinceDate != null ? sinceDate : "");
+                Navigation.findNavController(requireView())
+                    .navigate(R.id.action_profile_to_discover, args);
+            }
+            // If SCHEDULED: WorkManager handles it; pendingPollWorkInfo observer updates button state
         });
     }
 
@@ -283,6 +323,23 @@ public class ProfileFragment extends Fragment {
         builder.setMessage("Site credential management coming in the next build.");
         builder.setPositiveButton(getString(R.string.ok), null);
         builder.show();
+    }
+
+    /** Returns true if a pending poll OneTimeWorkRequest is ENQUEUED or RUNNING. */
+    private boolean isPollScheduled(java.util.List<WorkInfo> infos) {
+        if (infos == null || infos.isEmpty()) return false;
+        for (WorkInfo info : infos) {
+            WorkInfo.State s = info.getState();
+            if (s == WorkInfo.State.ENQUEUED || s == WorkInfo.State.RUNNING) return true;
+        }
+        return false;
+    }
+
+    /** Format an epoch-ms timestamp as a short clock string e.g. "3:45 PM". */
+    private String formatTime(long epochMs) {
+        java.text.SimpleDateFormat sdf =
+            new java.text.SimpleDateFormat("h:mm a", java.util.Locale.US);
+        return sdf.format(new java.util.Date(epochMs));
     }
 
     private String getText(com.google.android.material.textfield.TextInputEditText et) {

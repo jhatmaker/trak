@@ -12,7 +12,6 @@ import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
 import com.trackmyraces.trak.R;
-import com.trackmyraces.trak.TrakApplication;
 import com.trackmyraces.trak.data.db.entity.RunnerProfileEntity;
 import com.trackmyraces.trak.data.network.dto.DiscoverResponse;
 import com.trackmyraces.trak.data.network.dto.DiscoverSiteResult;
@@ -32,14 +31,26 @@ import java.util.concurrent.TimeUnit;
  * Background WorkManager worker that searches configured running sites for
  * the runner's results. Sends a notification if any site returns a match.
  *
- * Scheduled via PollScheduler (daily or weekly) or run immediately via
- * PollScheduler.pollNow(). Requires network connectivity.
+ * Two modes (controlled by input data):
+ *
+ *   Cheap check (extractResults=false, default):
+ *     Confirms runner existence on each site; does NOT extract individual results.
+ *     Rate-limited to once every 7 days (SharedPreferences).
+ *     Scheduled via PollScheduler (weekly periodic work).
+ *
+ *   Full extraction (extractResults=true):
+ *     Extracts all individual race results, with optional sinceDate for incremental updates.
+ *     Rate-limited to once every 48 hours (SharedPreferences).
+ *     Scheduled via PollScheduler.requestManualPoll() — immediate or delayed out-of-cycle.
  */
 public class ResultPollWorker extends Worker {
 
-    private static final String TAG          = "ResultPollWorker";
-    public static final  String CHANNEL_ID   = "trak_new_results";
-    private static final int    NOTIF_ID     = 1001;
+    private static final String TAG        = "ResultPollWorker";
+    public static final  String CHANNEL_ID = "trak_new_results";
+    private static final int    NOTIF_ID   = 1001;
+
+    /** 7 days in milliseconds — minimum gap between background cheap checks. */
+    private static final long CHECK_GAP_MS   = 7L * 24 * 60 * 60 * 1000;
 
     public ResultPollWorker(@NonNull Context context, @NonNull WorkerParameters params) {
         super(context, params);
@@ -48,10 +59,15 @@ public class ResultPollWorker extends Worker {
     @NonNull
     @Override
     public Result doWork() {
-        Log.d(TAG, "Result poll starting");
+        boolean extractResults = getInputData().getBoolean(PollScheduler.DATA_EXTRACT_RESULTS, false);
+        String  sinceDate      = getInputData().getString(PollScheduler.DATA_SINCE_DATE);
+        if (sinceDate != null && sinceDate.isEmpty()) sinceDate = null;
+
+        Log.d(TAG, "Poll starting — extractResults=" + extractResults
+            + (sinceDate != null ? " sinceDate=" + sinceDate : ""));
 
         try {
-            // ── 1. Load runner profile ─────────────────────────────────────
+            // ── 1. Load runner profile ────────────────────────────────────────
             android.app.Application app =
                 (android.app.Application) getApplicationContext();
 
@@ -63,55 +79,67 @@ public class ResultPollWorker extends Worker {
                 return Result.success();
             }
 
-            // ── Rate-limit: skip if polled within the last 6 hours ─────────
-            if (profile.lastDiscoverAt != null) {
-                try {
-                    java.text.SimpleDateFormat sdf =
-                        new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", java.util.Locale.US);
-                    long lastMs = sdf.parse(profile.lastDiscoverAt).getTime();
-                    long ageHours = (System.currentTimeMillis() - lastMs) / 3_600_000L;
-                    if (ageHours < 6) {
-                        Log.d(TAG, "Polled " + ageHours + "h ago — skipping");
-                        return Result.success();
-                    }
-                } catch (Exception ignored) { /* malformed date — proceed */ }
+            // ── 2. Rate-limit check ──────────────────────────────────────────
+            if (extractResults) {
+                // Full extraction: enforce 48h gap via SharedPreferences timestamp
+                long lastMs  = getLastExtractMs();
+                long ageMs   = System.currentTimeMillis() - lastMs;
+                if (lastMs > 0 && ageMs < PollScheduler.EXTRACT_GAP_MS) {
+                    Log.d(TAG, "Full extraction ran " + (ageMs / 3_600_000L) + "h ago — skipping");
+                    return Result.success();
+                }
+            } else {
+                // Cheap check: enforce 7-day gap via SharedPreferences timestamp
+                long lastMs = getLastCheckMs();
+                long ageMs  = System.currentTimeMillis() - lastMs;
+                if (lastMs > 0 && ageMs < CHECK_GAP_MS) {
+                    Log.d(TAG, "Cheap check ran " + (ageMs / 3_600_000L) + "h ago — skipping");
+                    return Result.success();
+                }
             }
 
             List<String> interests  = profile.getInterestList();
             List<String> excludeIds = new SourcesRepository(app).getHiddenSiteIdsSync();
 
-            // ── 2. Call /discover ──────────────────────────────────────────
+            // ── 3. Call /discover ─────────────────────────────────────────────
             RaceResultRepository repo = new RaceResultRepository(app);
 
             CountDownLatch latch = new CountDownLatch(1);
             final DiscoverResponse[] result = {null};
             final String[]           error  = {null};
 
-            repo.discoverResults(profile.name, profile.dateOfBirth, interests, excludeIds,
+            repo.discoverResults(
+                profile.name, profile.dateOfBirth, interests, excludeIds,
+                extractResults, sinceDate,
                 new RaceResultRepository.RepositoryCallback<DiscoverResponse>() {
                     @Override public void onSuccess(DiscoverResponse r) {
-                        result[0] = r;
-                        latch.countDown();
+                        result[0] = r; latch.countDown();
                     }
                     @Override public void onError(String message) {
-                        error[0] = message;
-                        latch.countDown();
+                        error[0] = message; latch.countDown();
                     }
                 });
 
             latch.await(60, TimeUnit.SECONDS);
+
+            // ── 4. Stamp the appropriate rate-limit timestamp ─────────────────
+            if (extractResults) {
+                PollScheduler.stampLastExtract(getApplicationContext());
+            } else {
+                PollScheduler.stampLastCheck(getApplicationContext());
+            }
 
             if (error[0] != null) {
                 Log.w(TAG, "Discover call failed: " + error[0]);
                 return Result.retry();
             }
 
-            // ── 3. Persist found sites as pending matches ──────────────────
             if (result[0] == null || result[0].sites == null) {
                 Log.d(TAG, "No discover response");
                 return Result.success();
             }
 
+            // ── 5. Persist found results as pending matches ───────────────────
             List<DiscoverSiteResult> foundSites = new ArrayList<>();
             List<String> foundNames = new ArrayList<>();
             for (DiscoverSiteResult site : result[0].sites) {
@@ -121,19 +149,17 @@ public class ResultPollWorker extends Worker {
                 }
             }
 
-            Log.d(TAG, "Poll complete — found on " + foundSites.size() + " site(s)");
+            Log.d(TAG, "Poll complete — found on " + foundSites.size() + " site(s)"
+                + (extractResults ? " (full extraction)" : " (cheap check)"));
 
             if (!foundSites.isEmpty()) {
-                // Get count before insert to detect truly new matches
                 int countBefore = repo.getPendingMatchCountSync();
                 repo.savePendingMatches(foundSites, profile.name);
-                // Small sleep to let the executor finish the DB writes
                 Thread.sleep(500);
                 int countAfter = repo.getPendingMatchCountSync();
 
-                // ── 4. Notify only if new matches were added ───────────────
                 if (countAfter > countBefore) {
-                    sendNotification(foundNames);
+                    sendNotification(foundNames, extractResults);
                 }
             }
 
@@ -148,13 +174,20 @@ public class ResultPollWorker extends Worker {
         }
     }
 
-    private void sendNotification(List<String> foundSites) {
+    private void sendNotification(List<String> foundSites, boolean hasDetails) {
         Context ctx = getApplicationContext();
 
         String siteList = android.text.TextUtils.join(", ", foundSites);
-        String body = foundSites.size() == 1
-            ? "Results found on " + siteList + ". Tap to view."
-            : "Results found on " + foundSites.size() + " sites including " + foundSites.get(0) + ". Tap to view.";
+        String body;
+        if (hasDetails) {
+            body = foundSites.size() == 1
+                ? "New race results found on " + siteList + ". Tap to review."
+                : "New race results found on " + foundSites.size() + " sites. Tap to review.";
+        } else {
+            body = foundSites.size() == 1
+                ? "Results found on " + siteList + ". Tap to view details."
+                : "Results found on " + foundSites.size() + " sites. Tap to view details.";
+        }
 
         Intent intent = new Intent(ctx, MainActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
@@ -174,5 +207,17 @@ public class ResultPollWorker extends Worker {
         NotificationManager nm =
             (NotificationManager) ctx.getSystemService(Context.NOTIFICATION_SERVICE);
         nm.notify(NOTIF_ID, notification.build());
+    }
+
+    private long getLastExtractMs() {
+        return getApplicationContext()
+            .getSharedPreferences("trak_poll_prefs", Context.MODE_PRIVATE)
+            .getLong(PollScheduler.KEY_LAST_EXTRACT_MS_PREF, 0L);
+    }
+
+    private long getLastCheckMs() {
+        return getApplicationContext()
+            .getSharedPreferences("trak_poll_prefs", Context.MODE_PRIVATE)
+            .getLong(PollScheduler.KEY_LAST_CHECK_MS_PREF, 0L);
     }
 }

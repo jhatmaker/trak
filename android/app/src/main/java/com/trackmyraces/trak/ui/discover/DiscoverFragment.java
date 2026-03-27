@@ -66,6 +66,7 @@ public class DiscoverFragment extends Fragment {
         String dateOfBirth     = args != null ? args.getString("dateOfBirth",   "") : "";
         String interestsCsv    = args != null ? args.getString("interests",     "") : "";
         String excludeCsv      = args != null ? args.getString("excludeSiteIds","") : "";
+        String sinceDate       = args != null ? args.getString("sinceDate",     "") : "";
 
         List<String> interests = new ArrayList<>();
         if (!interestsCsv.isEmpty()) {
@@ -82,16 +83,20 @@ public class DiscoverFragment extends Fragment {
         }
 
         mRunnerName = runnerName;
-        startDiscovery(runnerName, dateOfBirth, interests, excludeIds);
+        String sinceDateArg = (sinceDate != null && !sinceDate.isEmpty()) ? sinceDate : null;
+        startDiscovery(runnerName, dateOfBirth, interests, excludeIds, sinceDateArg);
     }
 
     private void startDiscovery(String runnerName, String dateOfBirth,
-                                List<String> interests, List<String> excludeIds) {
+                                List<String> interests, List<String> excludeIds,
+                                String sinceDate) {
         mBinding.layoutSearching.setVisibility(View.VISIBLE);
         mBinding.layoutSites.setVisibility(View.GONE);
         mBinding.tvError.setVisibility(View.GONE);
 
-        mRepo.discoverResults(runnerName, dateOfBirth, interests, excludeIds,
+        // DiscoverFragment always does a full extraction (extractResults=true).
+        // sinceDate is null on first run (full history, capped at 50) or set for incremental updates.
+        mRepo.discoverResults(runnerName, dateOfBirth, interests, excludeIds, true, sinceDate,
             new RaceResultRepository.RepositoryCallback<DiscoverResponse>() {
                 @Override
                 public void onSuccess(DiscoverResponse response) {
