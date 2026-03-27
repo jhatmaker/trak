@@ -240,6 +240,11 @@ Resources:
                   - rds:DescribeDBClusterParameters
                   - rds:DescribeEngineDefaultClusterParameters
                 Resource: '*'
+              - Sid: RDSServiceLinkedRole
+                Effect: Allow
+                Action:
+                  - iam:CreateServiceLinkedRole
+                Resource: !Sub arn:aws:iam::${AWS::AccountId}:role/aws-service-role/rds.amazonaws.com/AWSServiceRoleForRDS
               - Sid: SecretsManager
                 Effect: Allow
                 Action:
@@ -432,6 +437,11 @@ Resources:
                   - rds:DescribeDBClusterParameters
                   - rds:DescribeEngineDefaultClusterParameters
                 Resource: '*'
+              - Sid: RDSServiceLinkedRole
+                Effect: Allow
+                Action:
+                  - iam:CreateServiceLinkedRole
+                Resource: !Sub arn:aws:iam::${AWS::AccountId}:role/aws-service-role/rds.amazonaws.com/AWSServiceRoleForRDS
               - Sid: SecretsManager
                 Effect: Allow
                 Action:
