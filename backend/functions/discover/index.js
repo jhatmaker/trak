@@ -71,85 +71,97 @@ async function callDirectApi(site) {
 /**
  * Parse an Athlinks search API response into individual race result records.
  *
- * The Athlinks search endpoint returns athlete(s) matching the name, each with
- * a nested array of race results. We take the first athlete match and map
- * their results to the DiscoverResultRecord shape.
+ * The Athlinks /Result/api/Search endpoint returns:
+ *   Result.TotalCount  — total athletes matching the name
+ *   Result.OverLimit   — true when name is too common to identify one person
+ *   Result.RaceList    — list of groups, each group is a list of race entries
+ *
+ * Each race entry has: Name, StartDateTime, StateProv, Country, Time,
+ * EntryId, EventId, CourseId, EventCourseId, BibNum, DisplayName, Age, Gender.
  */
 function parseAthlinksDirect(site, data) {
-  const total = data?.Result?.TotalCount ?? 0;
+  const total     = data?.Result?.TotalCount ?? 0;
+  const overLimit = data?.Result?.OverLimit === true || data?.Result?.OverLimit === 'True';
+
   if (total === 0) {
     return { siteId: site.id, found: false, resultsUrl: null, resultCount: 0, results: [], notes: null };
   }
 
-  // Try to extract individual results from the first athlete match
-  const athletes = data?.Result?.Results;
-  const athlete  = Array.isArray(athletes) && athletes.length > 0 ? athletes[0] : null;
+  if (overLimit) {
+    // Name matches too many athletes — can't identify the specific runner.
+    // Return not-found so the user knows Athlinks has records but needs a more specific name.
+    return {
+      siteId:      site.id,
+      found:       false,
+      resultsUrl:  site.resultsUrl ?? null,
+      resultCount: 0,
+      results:     [],
+      notes:       `Name too common — ${total} athletes found on Athlinks. Try adding a middle name or initial.`,
+    };
+  }
 
-  if (!athlete) {
-    // Found count > 0 but can't parse structure — return placeholder
+  // Flatten RaceList (list of groups, each group is a list of race entries)
+  const raceListGroups = Array.isArray(data?.Result?.RaceList) ? data.Result.RaceList : [];
+  const allRaces = [];
+  for (const group of raceListGroups) {
+    if (Array.isArray(group)) allRaces.push(...group);
+    else if (group)           allRaces.push(group);
+  }
+
+  if (allRaces.length === 0) {
     return {
       siteId:      site.id,
       found:       true,
       resultsUrl:  site.resultsUrl ?? null,
       resultCount: total,
       results:     [],
-      notes:       `${total} results found`,
+      notes:       `${total} races found on Athlinks`,
     };
   }
 
-  const athleteId  = athlete.ID ?? athlete.AthleteId ?? null;
-  const athleteUrl = athleteId
-    ? `https://www.athlinks.com/athletes/${athleteId}/results`
+  // Build a results-page URL from the matched alias name (most accurate for this person)
+  const aliasName     = data?.Result?.Aliases?.[0]?.Name ?? null;
+  const aliasEncoded  = aliasName ? encodeURIComponent(aliasName) : null;
+  const athleteUrl    = aliasEncoded
+    ? `https://www.athlinks.com/search/unclaimed?category=unclaimed&term=${aliasEncoded}`
     : (site.resultsUrl ?? null);
 
-  // Map each race entry to a DiscoverResultRecord
-  const raceEntries = athlete.Races ?? athlete.Results ?? athlete.Events ?? [];
   const results = [];
 
-  for (const race of raceEntries) {
-    // Athlinks date is sometimes a .NET JSON Date string: "/Date(1713225600000)/"
-    let raceDate = null;
-    const rawDate = race.EventDate ?? race.RaceDate ?? race.Date ?? null;
-    if (rawDate) {
-      const dotNetMatch = String(rawDate).match(/\/Date\((\d+)\)\//);
-      if (dotNetMatch) {
-        raceDate = new Date(parseInt(dotNetMatch[1])).toISOString().slice(0, 10);
-      } else if (/^\d{4}-\d{2}-\d{2}/.test(rawDate)) {
-        raceDate = rawDate.slice(0, 10);
-      }
-    }
+  for (const race of allRaces) {
+    // Date: "2025-06-28T08:00:00" → "2025-06-28"
+    const raceDate = race.StartDateTime ? race.StartDateTime.slice(0, 10) : null;
 
-    const eventId   = race.EventID   ?? race.EventId   ?? null;
-    const courseId  = race.CourseID  ?? race.CourseId  ?? null;
-    const resultId  = athleteId && eventId ? `athlinks-${athleteId}-${eventId}${courseId ? '-' + courseId : ''}` : null;
+    // Stable dedup ID: prefer EntryId, fallback to EventId+CourseId
+    const entryId  = race.EntryId   ?? null;
+    const eventId  = race.EventId   ?? null;
+    const courseId = race.CourseId  ?? null;
+    const resultId = entryId
+      ? `athlinks-entry-${entryId}`
+      : (eventId && courseId ? `athlinks-${eventId}-${courseId}` : null);
 
-    const finishSeconds = race.RaceTime ?? race.FinishSeconds ?? race.NetTime ?? 0;
-    const overallPlace  = race.OverallRank ?? race.OverallPlace ?? race.Place ?? 0;
-    const overallTotal  = race.FieldSize   ?? race.TotalEntrants ?? race.OverallTotal ?? 0;
+    const finishSeconds = race.Time ? timeStrToSeconds(race.Time) : 0;
 
-    const city  = race.EventCity  ?? race.City  ?? athlete.City  ?? null;
-    const state = race.EventState ?? race.State ?? athlete.State ?? null;
-    const location = city && state ? `${city}, ${state}` : (city ?? state ?? null);
+    const state    = race.StateProv ?? null;
+    const country  = race.Country   ?? null;
+    const location = state && country ? `${state}, ${country}` : (state ?? country ?? null);
 
-    const distLabel   = race.CourseName ?? race.DistanceLabel ?? race.Distance ?? null;
-    const distMeters  = race.DistanceInMeters ?? race.DistanceMeters ?? 0;
-
-    const resultUrl = eventId && athleteId
-      ? `https://www.athlinks.com/event/${eventId}/results/runner/${athleteId}`
+    const resultUrl = eventId && entryId
+      ? `https://www.athlinks.com/event/${eventId}/results/entry/${entryId}`
       : athleteUrl;
 
     results.push({
       resultId,
-      raceName:       race.EventName ?? race.RaceName ?? null,
+      raceName:       race.Name         ?? null,
       raceDate,
-      distanceLabel:  distLabel,
-      distanceMeters: typeof distMeters === 'number' ? distMeters : 0,
+      distanceLabel:  race.Name         ?? null, // race name usually contains distance
+      distanceMeters: 0,                          // not available from this endpoint
       location,
-      bibNumber:      race.BibNumber ? String(race.BibNumber) : null,
-      finishTime:     finishSeconds > 0 ? secondsToTimeStr(finishSeconds) : null,
-      finishSeconds:  typeof finishSeconds === 'number' ? finishSeconds : 0,
-      overallPlace:   typeof overallPlace === 'number' ? overallPlace : 0,
-      overallTotal:   typeof overallTotal === 'number' ? overallTotal : 0,
+      bibNumber:      race.BibNum ? String(race.BibNum) : null,
+      finishTime:     race.Time         ?? null,
+      finishSeconds,
+      overallPlace:   0,                          // not available from this endpoint
+      overallTotal:   0,
       resultsUrl:     resultUrl,
     });
   }
@@ -158,19 +170,21 @@ function parseAthlinksDirect(site, data) {
     siteId:      site.id,
     found:       true,
     resultsUrl:  athleteUrl,
-    resultCount: results.length || total,
+    resultCount: results.length,
     results,
     notes:       null,
   };
 }
 
-function secondsToTimeStr(s) {
-  const h = Math.floor(s / 3600);
-  const m = Math.floor((s % 3600) / 60);
-  const sec = s % 60;
-  if (h > 0) return `${h}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
-  return `${m}:${String(sec).padStart(2,'0')}`;
+/** Convert "H:MM:SS" or "M:SS" finish time string to total seconds. */
+function timeStrToSeconds(t) {
+  if (!t) return 0;
+  const parts = String(t).split(':').map(Number);
+  if (parts.length === 3) return (parts[0] * 3600) + (parts[1] * 60) + parts[2];
+  if (parts.length === 2) return (parts[0] * 60) + parts[1];
+  return 0;
 }
+
 
 // ─── Handler ──────────────────────────────────────────────────────────────────
 
