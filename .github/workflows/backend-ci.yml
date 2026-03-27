@@ -1,6 +1,8 @@
 name: Backend CI/CD
 
 on:
+  workflow_dispatch:
+
   push:
     branches: [main, develop]
     paths:
@@ -12,7 +14,6 @@ on:
     paths:
       - 'backend/**'
       - 'scripts/oidc-roles.yaml'
-  workflow_dispatch:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
