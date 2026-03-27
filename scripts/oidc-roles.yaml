@@ -236,10 +236,19 @@ Resources:
                   - rds:DescribeDBProxyTargetGroups
                   - rds:ModifyDBProxyTargetGroup
                   - rds:DescribeDBProxyTargets
-                  - rds:AddTagsToResource
-                  - rds:ListTagsForResource
+                  - rds:CreateDBClusterSnapshot
+                  - rds:DeleteDBClusterSnapshot
+                  - rds:DescribeDBClusterSnapshots
+                  - rds:CreateDBClusterParameterGroup
+                  - rds:DeleteDBClusterParameterGroup
+                  - rds:DescribeDBClusterParameterGroups
+                  - rds:ModifyDBClusterParameterGroup
                   - rds:DescribeDBClusterParameters
                   - rds:DescribeEngineDefaultClusterParameters
+                  - rds:DescribeOrderableDBInstanceOptions
+                  - rds:AddTagsToResource
+                  - rds:RemoveTagsFromResource
+                  - rds:ListTagsForResource
                 Resource: '*'
               - Sid: RDSServiceLinkedRole
                 Effect: Allow
@@ -434,10 +443,19 @@ Resources:
                   - rds:DescribeDBProxyTargetGroups
                   - rds:ModifyDBProxyTargetGroup
                   - rds:DescribeDBProxyTargets
-                  - rds:AddTagsToResource
-                  - rds:ListTagsForResource
+                  - rds:CreateDBClusterSnapshot
+                  - rds:DeleteDBClusterSnapshot
+                  - rds:DescribeDBClusterSnapshots
+                  - rds:CreateDBClusterParameterGroup
+                  - rds:DeleteDBClusterParameterGroup
+                  - rds:DescribeDBClusterParameterGroups
+                  - rds:ModifyDBClusterParameterGroup
                   - rds:DescribeDBClusterParameters
                   - rds:DescribeEngineDefaultClusterParameters
+                  - rds:DescribeOrderableDBInstanceOptions
+                  - rds:AddTagsToResource
+                  - rds:RemoveTagsFromResource
+                  - rds:ListTagsForResource
                 Resource: '*'
               - Sid: RDSServiceLinkedRole
                 Effect: Allow
