@@ -9,4 +9,6 @@ public class DiscoverRequest {
     public boolean                extractResults = true;
     /** YYYY-MM-DD — if set, only return results after this date (incremental update). Null = full history. */
     public String                 sinceDate;
+    /** Last known result count per site (siteId → count). Backend uses this for free pre-check. */
+    public java.util.Map<String, Integer> lastKnownCounts;
 }

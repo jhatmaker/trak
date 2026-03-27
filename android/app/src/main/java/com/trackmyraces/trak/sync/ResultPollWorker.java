@@ -100,6 +100,8 @@ public class ResultPollWorker extends Worker {
 
             List<String> interests  = profile.getInterestList();
             List<String> excludeIds = new SourcesRepository(app).getHiddenSiteIdsSync();
+            java.util.Map<String, Integer> lastKnownCounts =
+                PollScheduler.getLastKnownCounts(getApplicationContext());
 
             // ── 3. Call /discover ─────────────────────────────────────────────
             RaceResultRepository repo = new RaceResultRepository(app);
@@ -110,7 +112,7 @@ public class ResultPollWorker extends Worker {
 
             repo.discoverResults(
                 profile.name, profile.dateOfBirth, interests, excludeIds,
-                extractResults, sinceDate,
+                extractResults, sinceDate, lastKnownCounts,
                 new RaceResultRepository.RepositoryCallback<DiscoverResponse>() {
                     @Override public void onSuccess(DiscoverResponse r) {
                         result[0] = r; latch.countDown();
@@ -139,7 +141,18 @@ public class ResultPollWorker extends Worker {
                 return Result.success();
             }
 
-            // ── 5. Persist found results as pending matches ───────────────────
+            // ── 5. Update stored site counts (always, so next run can compare) ─
+            if (result[0].siteResultCounts != null && !result[0].siteResultCounts.isEmpty()) {
+                PollScheduler.storeSiteCounts(getApplicationContext(), result[0].siteResultCounts);
+            }
+
+            // ── 6. noChange shortcut — backend confirmed nothing changed ───────
+            if (result[0].noChange) {
+                Log.d(TAG, "No change detected — skipping pending match update");
+                return Result.success();
+            }
+
+            // ── 7. Persist found results as pending matches ───────────────────
             List<DiscoverSiteResult> foundSites = new ArrayList<>();
             List<String> foundNames = new ArrayList<>();
             for (DiscoverSiteResult site : result[0].sites) {

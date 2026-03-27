@@ -179,11 +179,12 @@ exports.handler = wrap(async (event) => {
 
   const {
     runnerName,
-    dateOfBirth    = null,
-    interests      = [],
-    excludeSiteIds = [],
-    extractResults = true,   // false → cheap check only (background worker)
-    sinceDate      = null,   // YYYY-MM-DD — incremental: only return results after this date
+    dateOfBirth     = null,
+    interests       = [],
+    excludeSiteIds  = [],
+    extractResults  = true,   // false → cheap check only (background worker)
+    sinceDate       = null,   // YYYY-MM-DD — incremental: only return results after this date
+    lastKnownCounts = {},     // siteId → last known result count for free pre-check
   } = body;
 
   if (!runnerName || typeof runnerName !== 'string' || runnerName.trim().length < 2) {
@@ -205,13 +206,36 @@ exports.handler = wrap(async (event) => {
   const directSites = sites.filter(s => s.directApiUrl);
   const searchSites = sites.filter(s => !s.directApiUrl && s.searchQuery);
 
-  // Run direct API calls and Claude search in parallel
-  const [directResults, claudeRaw] = await Promise.all([
-    Promise.all(directSites.map(s => callDirectApi(s))),
-    searchSites.length > 0
-      ? discoverRunner({ runnerName: name, approximateAge, sites: searchSites, extractResults, sinceDate })
-      : Promise.resolve([]),
-  ]);
+  // Run direct API calls first (free — no Claude tokens)
+  const directResults = await Promise.all(directSites.map(s => callDirectApi(s)));
+
+  // Build current site counts from direct results for the response
+  const siteResultCounts = {};
+  for (const r of directResults) siteResultCounts[r.siteId] = r.resultCount ?? 0;
+
+  // ── Free pre-check (cheap mode only) ──────────────────────────────────────
+  // If the caller supplied lastKnownCounts and we're doing a cheap check,
+  // compare each direct-API site's current count to the stored value.
+  // If ALL direct sites are unchanged, skip Claude entirely — nothing new to find.
+  if (!extractResults && Object.keys(lastKnownCounts).length > 0) {
+    const allUnchanged = directResults.every(r => {
+      const known = lastKnownCounts[r.siteId];
+      return known !== undefined && r.resultCount === known;
+    });
+    if (allUnchanged && directResults.length > 0) {
+      console.log(JSON.stringify({
+        type:   'DISCOVER_NO_CHANGE',
+        runner: name,
+        counts: siteResultCounts,
+      }));
+      return ok({ noChange: true, sites: [], siteResultCounts });
+    }
+  }
+
+  // Call Claude for search sites (or when pre-check determined something changed)
+  const claudeRaw = searchSites.length > 0
+    ? await discoverRunner({ runnerName: name, approximateAge, sites: searchSites, extractResults, sinceDate })
+    : [];
 
   // Normalise Claude results.
   // Cheap-check responses have no results array; full-extract responses do.
@@ -251,6 +275,9 @@ exports.handler = wrap(async (event) => {
     ...(resultMap[s.id] ?? { found: false, resultsUrl: null, resultCount: 0, results: [], notes: null }),
   }));
 
+  // Accumulate Claude site counts into siteResultCounts for Android to store
+  for (const r of claudeResults) siteResultCounts[r.siteId] = r.resultCount ?? 0;
+
   const totalResults = results.reduce((n, r) => n + (Array.isArray(r.results) ? r.results.length : 0), 0);
   console.log(JSON.stringify({
     type:         'DISCOVER_COMPLETE',
@@ -261,5 +288,5 @@ exports.handler = wrap(async (event) => {
     totalResults,
   }));
 
-  return ok({ sites: results });
+  return ok({ noChange: false, sites: results, siteResultCounts });
 });

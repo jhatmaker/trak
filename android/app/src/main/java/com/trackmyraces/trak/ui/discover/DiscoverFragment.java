@@ -19,6 +19,7 @@ import com.trackmyraces.trak.data.network.dto.DiscoverResponse;
 import com.trackmyraces.trak.data.network.dto.DiscoverSiteResult;
 import com.trackmyraces.trak.data.repository.RaceResultRepository;
 import com.trackmyraces.trak.databinding.FragmentDiscoverBinding;
+import com.trackmyraces.trak.sync.PollScheduler;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -96,7 +97,9 @@ public class DiscoverFragment extends Fragment {
 
         // DiscoverFragment always does a full extraction (extractResults=true).
         // sinceDate is null on first run (full history, capped at 50) or set for incremental updates.
+        // Full extraction from UI — pass empty lastKnownCounts (no pre-check, always extract)
         mRepo.discoverResults(runnerName, dateOfBirth, interests, excludeIds, true, sinceDate,
+            java.util.Collections.emptyMap(),
             new RaceResultRepository.RepositoryCallback<DiscoverResponse>() {
                 @Override
                 public void onSuccess(DiscoverResponse response) {
@@ -119,6 +122,11 @@ public class DiscoverFragment extends Fragment {
         if (response.sites == null || response.sites.isEmpty()) {
             showError(getString(R.string.discover_no_results));
             return;
+        }
+
+        // Store updated site counts for future cheap pre-check comparisons
+        if (response.siteResultCounts != null && !response.siteResultCounts.isEmpty()) {
+            PollScheduler.storeSiteCounts(requireContext(), response.siteResultCounts);
         }
 
         // Persist found sites as pending matches (idempotent — safe to call on re-poll)

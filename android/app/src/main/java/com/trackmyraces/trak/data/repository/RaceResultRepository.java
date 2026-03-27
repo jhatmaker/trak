@@ -116,14 +116,16 @@ public class RaceResultRepository {
                                 List<String> excludeSiteIds,
                                 boolean extractResults,
                                 String sinceDate,
+                                java.util.Map<String, Integer> lastKnownCounts,
                                 RepositoryCallback<DiscoverResponse> callback) {
         DiscoverRequest request = new DiscoverRequest();
-        request.runnerName     = runnerName;
-        request.dateOfBirth    = dateOfBirth;
-        request.interests      = interests;
-        request.excludeSiteIds = excludeSiteIds;
-        request.extractResults = extractResults;
-        request.sinceDate      = sinceDate;
+        request.runnerName      = runnerName;
+        request.dateOfBirth     = dateOfBirth;
+        request.interests       = interests;
+        request.excludeSiteIds  = excludeSiteIds;
+        request.extractResults  = extractResults;
+        request.sinceDate       = sinceDate;
+        request.lastKnownCounts = lastKnownCounts;
 
         mApi.discoverResults(request).enqueue(new Callback<DiscoverResponse>() {
             @Override

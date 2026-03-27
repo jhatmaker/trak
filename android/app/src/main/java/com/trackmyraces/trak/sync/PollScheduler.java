@@ -14,7 +14,9 @@ import androidx.work.PeriodicWorkRequest;
 import androidx.work.WorkInfo;
 import androidx.work.WorkManager;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -170,6 +172,39 @@ public class PollScheduler {
     }
 
     public enum PollDecision { NOW, SCHEDULED }
+
+    // ── Per-site result count storage ─────────────────────────────────────────
+
+    private static final String SITE_COUNT_PREFIX = "site_count_";
+
+    /**
+     * Stores the current result count for each site in SharedPreferences.
+     * Called after a successful discovery run so the next cheap check can compare.
+     */
+    public static void storeSiteCounts(Context ctx, Map<String, Integer> counts) {
+        if (counts == null || counts.isEmpty()) return;
+        SharedPreferences.Editor editor = prefs(ctx).edit();
+        for (Map.Entry<String, Integer> entry : counts.entrySet()) {
+            editor.putInt(SITE_COUNT_PREFIX + entry.getKey(), entry.getValue());
+        }
+        editor.apply();
+    }
+
+    /**
+     * Returns the last known result counts for all sites previously stored,
+     * keyed by siteId. Returns an empty map if nothing has been stored yet.
+     */
+    public static Map<String, Integer> getLastKnownCounts(Context ctx) {
+        Map<String, ?> all = prefs(ctx).getAll();
+        Map<String, Integer> counts = new HashMap<>();
+        for (Map.Entry<String, ?> entry : all.entrySet()) {
+            if (entry.getKey().startsWith(SITE_COUNT_PREFIX) && entry.getValue() instanceof Integer) {
+                String siteId = entry.getKey().substring(SITE_COUNT_PREFIX.length());
+                counts.put(siteId, (Integer) entry.getValue());
+            }
+        }
+        return counts;
+    }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
