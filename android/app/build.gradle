@@ -3,6 +3,11 @@ plugins {
     id 'androidx.room'
 }
 
+// Load API keys from local.properties (gitignored)
+def localProps = new Properties()
+def localPropsFile = rootProject.file('local.properties')
+if (localPropsFile.exists()) localPropsFile.withInputStream { localProps.load(it) }
+
 room {
     schemaDirectory "$projectDir/schemas"
 }
@@ -18,6 +23,7 @@ android {
         versionCode 1
         versionName "1.0.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        manifestPlaceholders = [mapsApiKey: localProps.getProperty('MAPS_API_KEY', '')]
 
         // API base URL injected at build time — override in local.properties or CI
         buildConfigField "String", "API_BASE_URL", "\"${project.findProperty('trak.api.url') ?: 'https://api.trackmyraces.com'}\""
@@ -101,6 +107,9 @@ dependencies {
 
     // ── Charts ────────────────────────────────────────────────────────────
     implementation 'com.github.PhilJay:MPAndroidChart:v3.1.0'
+
+    // ── Google Maps ────────────────────────────────────────────────────────
+    implementation 'com.google.android.gms:play-services-maps:19.0.0'
 
     // ── Gson ──────────────────────────────────────────────────────────────
     implementation 'com.google.code.gson:gson:2.10.1'

@@ -234,8 +234,13 @@
     <string name="edit_repopulate_button">Re-populate from race info</string>
     <string name="edit_repopulate_hint">Fills in distance, elevation, and weather automatically using the race name and location.</string>
     <string name="edit_repopulate_done">Fields updated from race info</string>
-    <string name="edit_set_location_button">Search race location…</string>
-    <string name="edit_set_location_hint">Search for the city where the race took place. We\'ll fill in elevation, temperature, and weather for race day.</string>
+    <string name="edit_set_location_button">Set race location…</string>
+    <string name="edit_set_location_hint">Drop a pin on the race start to fill in elevation, temperature, and weather for race day.</string>
+    <string name="map_picker_title">Set race location</string>
+    <string name="map_search_hint">Search for a city or place…</string>
+    <string name="map_tap_instruction">Search for a place above, or tap the map to drop a pin at the exact race start location.</string>
+    <string name="map_no_pin">No location selected</string>
+    <string name="map_use_location">Use this location</string>
     <string name="edit_section_timing">Timing</string>
     <string name="edit_section_distance">Distance</string>
     <string name="edit_section_placement">Placement</string>

@@ -110,6 +110,53 @@ public class EditResultFragment extends NetworkAwareFragment {
 
         mViewModel.getEnriched().observe(getViewLifecycleOwner(), this::applyEnrichResponse);
 
+        // Observe map picker result (returned via savedStateHandle when user confirms a pin)
+        Navigation.findNavController(view)
+            .getCurrentBackStackEntry()
+            .getSavedStateHandle()
+            .<Double>getLiveData(MapPickerFragment.RESULT_LAT)
+            .observe(getViewLifecycleOwner(), lat -> {
+                if (lat == null || lat == 0) return;
+                Double lon     = Navigation.findNavController(view)
+                    .getCurrentBackStackEntry()
+                    .getSavedStateHandle()
+                    .get(MapPickerFragment.RESULT_LON);
+                String city    = Navigation.findNavController(view)
+                    .getCurrentBackStackEntry()
+                    .getSavedStateHandle()
+                    .get(MapPickerFragment.RESULT_CITY);
+                String state   = Navigation.findNavController(view)
+                    .getCurrentBackStackEntry()
+                    .getSavedStateHandle()
+                    .get(MapPickerFragment.RESULT_STATE);
+                String country = Navigation.findNavController(view)
+                    .getCurrentBackStackEntry()
+                    .getSavedStateHandle()
+                    .get(MapPickerFragment.RESULT_COUNTRY);
+
+                if (lon == null) return;
+
+                // Fill location fields with what the map returned
+                setText(mBinding.etCity,    city);
+                setText(mBinding.etState,   state);
+                setText(mBinding.etCountry, country);
+
+                // Fetch elevation + weather for the exact pin coordinates
+                RaceResultEntity r = mViewModel.result.getValue();
+                if (r != null) {
+                    r.raceCity    = city;
+                    r.raceState   = state;
+                    r.raceCountry = country;
+                    mViewModel.enrichAtCoords(lat, lon, r);
+                }
+
+                // Clear so it doesn't re-fire on rotation
+                Navigation.findNavController(view)
+                    .getCurrentBackStackEntry()
+                    .getSavedStateHandle()
+                    .set(MapPickerFragment.RESULT_LAT, 0.0);
+            });
+
         mViewModel.getEnriching().observe(getViewLifecycleOwner(), enriching -> {
             mBinding.btnRepopulate.setEnabled(!Boolean.TRUE.equals(enriching));
             mBinding.btnRepopulate.setText(Boolean.TRUE.equals(enriching)
@@ -224,23 +271,8 @@ public class EditResultFragment extends NetworkAwareFragment {
     // ── Location search ───────────────────────────────────────────────────
 
     private void showLocationSearch() {
-        LocationSearchBottomSheet sheet = new LocationSearchBottomSheet();
-        sheet.setOnLocationPickedListener((city, state, country, lat, lon) -> {
-            // Fill location fields (overwrite — user explicitly picked this location)
-            setText(mBinding.etCity,    city);
-            setText(mBinding.etState,   state);
-            setText(mBinding.etCountry, country);
-
-            // Enrich with known coordinates — skips geocoding, gets elevation + weather
-            RaceResultEntity r = mViewModel.result.getValue();
-            if (r != null) {
-                r.raceCity    = city;
-                r.raceState   = state;
-                r.raceCountry = country;
-                mViewModel.enrichAtCoords(lat, lon, r);
-            }
-        });
-        sheet.show(getChildFragmentManager(), "location_search");
+        Navigation.findNavController(requireView())
+            .navigate(R.id.action_edit_to_map_picker);
     }
 
     // ── Enrich response ───────────────────────────────────────────────────

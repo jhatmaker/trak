@@ -36,6 +36,11 @@
             android:theme="@style/Theme.Trak.NoActionBar"
             android:windowSoftInputMode="adjustResize" />
 
+        <!-- Google Maps API key (value injected from local.properties at build time) -->
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="${mapsApiKey}" />
+
         <!-- WorkManager sync worker -->
         <provider
             android:name="androidx.startup.InitializationProvider"

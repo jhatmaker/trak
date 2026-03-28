@@ -215,6 +215,17 @@
             android:name="resultId"
             app:argType="string" />
 
+        <action
+            android:id="@+id/action_edit_to_map_picker"
+            app:destination="@id/mapPickerFragment" />
+
     </fragment>
+
+    <!-- Map location picker — drop a pin to get exact lat/lon for elevation + weather -->
+    <fragment
+        android:id="@+id/mapPickerFragment"
+        android:name="com.trackmyraces.trak.ui.results.MapPickerFragment"
+        android:label="@string/map_picker_title"
+        tools:layout="@layout/fragment_map_picker" />
 
 </navigation>
