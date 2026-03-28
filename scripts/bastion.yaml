@@ -1,0 +1,120 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  Trak temporary bastion — SSM port-forward tunnel to Aurora.
+  Deploy when you need DB access, delete when done.
+  No SSH key, no public IP. Uses AWS Systems Manager Session Manager.
+
+Parameters:
+  Stage:
+    Type: String
+    Default: dev
+    AllowedValues: [dev, prod]
+  VpcId:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::VPC::Id>
+    Default: /trak/dev/vpc-id
+  SubnetId:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Subnet::Id>
+    Description: SSM path to one private subnet (e.g. /trak/dev/db-subnet-id-1)
+    Default: /trak/dev/db-subnet-id-1
+  AuroraSecurityGroupId:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: SSM path to Aurora security group ID
+    Default: /trak/dev/aurora-sg-id
+
+Resources:
+
+  # ── IAM role + instance profile for SSM access ────────────────────────────
+  BastionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub trak-bastion-${Stage}
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+      Tags:
+        - Key: Project
+          Value: Trak
+        - Key: Stage
+          Value: !Ref Stage
+
+  BastionInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      InstanceProfileName: !Sub trak-bastion-${Stage}
+      Roles:
+        - !Ref BastionRole
+
+  # ── Security group — no inbound needed (SSM is outbound HTTPS) ────────────
+  BastionSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub trak-bastion-sg-${Stage}
+      GroupDescription: Trak bastion - outbound only for SSM
+      VpcId: !Ref VpcId
+      SecurityGroupEgress:
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+          Description: HTTPS outbound for SSM agent
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          CidrIp: 0.0.0.0/0
+          Description: PostgreSQL outbound to Aurora
+      Tags:
+        - Key: Project
+          Value: Trak
+        - Key: Stage
+          Value: !Ref Stage
+        - Key: Name
+          Value: !Sub trak-bastion-sg-${Stage}
+
+  # ── Allow bastion SG into Aurora SG ───────────────────────────────────────
+  AuroraIngressFromBastion:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref AuroraSecurityGroupId
+      IpProtocol: tcp
+      FromPort: 5432
+      ToPort: 5432
+      SourceSecurityGroupId: !Ref BastionSecurityGroup
+      Description: Allow bastion port-forward tunnel to Aurora
+
+  # ── EC2 instance ───────────────────────────────────────────────────────────
+  BastionInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      # Amazon Linux 2023 — SSM agent pre-installed
+      ImageId: !Sub '{{resolve:ssm:/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64}}'
+      InstanceType: t3.micro
+      SubnetId: !Ref SubnetId
+      IamInstanceProfile: !Ref BastionInstanceProfile
+      SecurityGroupIds:
+        - !Ref BastionSecurityGroup
+      UserData:
+        Fn::Base64: |
+          #!/bin/bash
+          dnf install -y postgresql15
+      Tags:
+        - Key: Project
+          Value: Trak
+        - Key: Stage
+          Value: !Ref Stage
+        - Key: Name
+          Value: !Sub trak-bastion-${Stage}
+
+Outputs:
+  InstanceId:
+    Description: Bastion instance ID — use this with aws ssm start-session
+    Value: !Ref BastionInstance
+
+  AuroraEndpoint:
+    Description: Run this to get Aurora endpoint - aws cloudformation describe-stacks --stack-name trak-dev --query 'Stacks[0].Outputs[?OutputKey==`AuroraEndpoint`].OutputValue' --output text
+    Value: "see description"

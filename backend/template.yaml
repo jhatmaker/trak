@@ -653,3 +653,15 @@ Outputs:
     Value: !GetAtt RdsProxy.Endpoint
     Export:
       Name: !Sub TrakRdsProxyEndpoint-${Stage}
+
+  AuroraSecurityGroupId:
+    Description: Aurora cluster security group ID (used by bastion stack)
+    Value: !Ref AuroraSecurityGroup
+    Export:
+      Name: !Sub TrakAuroraSecurityGroup-${Stage}
+
+  VpcId:
+    Description: VPC ID (used by bastion stack)
+    Value: !Ref VpcId
+    Export:
+      Name: !Sub TrakVpcId-${Stage}
