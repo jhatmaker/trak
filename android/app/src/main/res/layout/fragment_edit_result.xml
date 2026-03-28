@@ -12,20 +12,20 @@
         android:orientation="vertical"
         android:padding="16dp">
 
-        <!-- Re-populate button + spinner -->
+        <!-- Set location button — primary way to fill elevation, weather, city/state/country -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_repopulate"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="4dp"
-            android:text="@string/edit_repopulate_button"
+            android:text="@string/edit_set_location_button"
             style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
 
         <TextView
             android:id="@+id/tv_repopulate_hint"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/edit_repopulate_hint"
+            android:text="@string/edit_set_location_hint"
             android:textSize="12sp"
             android:textColor="@color/text_secondary"
             android:layout_marginBottom="20dp" />
@@ -206,13 +206,6 @@
                 android:imeOptions="actionNext" />
         </com.google.android.material.textfield.TextInputLayout>
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_search_location"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/location_search_button_short"
-            android:layout_marginBottom="20dp"
-            style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
 
         <!-- Section: Race details -->
         <TextView

@@ -99,6 +99,9 @@ public interface RaceResultDao {
     @Query("SELECT * FROM race_result WHERE is_synced = 0 AND status != 'deleted'")
     List<RaceResultEntity> getUnsynced();
 
+    @Query("SELECT * FROM race_result WHERE status != 'deleted'")
+    List<RaceResultEntity> getAllActiveSync();
+
     // ── Stats queries (for dashboard) ─────────────────────────────────────
 
     @Query("SELECT COUNT(*) FROM race_result WHERE status != 'deleted'")

@@ -114,21 +114,11 @@ public class EditResultFragment extends NetworkAwareFragment {
             mBinding.btnRepopulate.setEnabled(!Boolean.TRUE.equals(enriching));
             mBinding.btnRepopulate.setText(Boolean.TRUE.equals(enriching)
                 ? getString(R.string.loading)
-                : getString(R.string.edit_repopulate_button));
+                : getString(R.string.edit_set_location_button));
         });
 
-        mBinding.btnRepopulate.setOnClickListener(v -> {
-            RaceResultEntity r = mViewModel.result.getValue();
-            if (r != null) {
-                // Pass any in-form edits to location for better weather lookup
-                r.raceCity    = str(mBinding.etCity);
-                r.raceState   = str(mBinding.etState);
-                r.raceCountry = str(mBinding.etCountry);
-                mViewModel.enrich(r);
-            }
-        });
-
-        mBinding.btnSearchLocation.setOnClickListener(v -> showLocationSearch());
+        // "Set race location" — open geocoding search; on pick, fills location + fetches elevation/weather
+        mBinding.btnRepopulate.setOnClickListener(v -> showLocationSearch());
 
         // Clear estimated flag when user manually changes the canonical dropdown
         mBinding.etDistanceCanonical.setOnItemClickListener((parent, v2, pos, id) ->

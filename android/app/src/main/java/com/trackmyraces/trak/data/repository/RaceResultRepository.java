@@ -398,6 +398,50 @@ public class RaceResultRepository {
         }
     }
 
+    /**
+     * One-time fix: backfill distanceMeters, distanceCanonical, and pacePerKmSeconds
+     * on any existing claimed result that has those fields missing/zero.
+     * Safe to call on every startup — only touches records that actually need it.
+     */
+    public void backfillDistanceAndPace() {
+        mExecutor.execute(() -> {
+            List<RaceResultEntity> all = mDao.getAllActiveSync();
+            if (all == null || all.isEmpty()) return;
+
+            String timestamp = now();
+            for (RaceResultEntity r : all) {
+                boolean changed = false;
+
+                // Infer missing distance
+                if (r.distanceMeters <= 0 || r.distanceCanonical == null) {
+                    DistanceNormalizer.Result dist =
+                        DistanceNormalizer.resolve(r.distanceLabel, r.distanceMeters);
+                    if (dist.meters > 0 && r.distanceMeters <= 0) {
+                        r.distanceMeters = dist.meters;
+                        changed = true;
+                    }
+                    if (dist.key != null && r.distanceCanonical == null) {
+                        r.distanceCanonical = dist.key;
+                        changed = true;
+                    }
+                }
+
+                // Compute missing pace
+                if ((r.pacePerKmSeconds == null || r.pacePerKmSeconds <= 0)
+                        && r.distanceMeters > 0 && r.finishSeconds > 0) {
+                    r.pacePerKmSeconds = (int) Math.round(
+                        r.finishSeconds / (r.distanceMeters / 1000.0));
+                    changed = true;
+                }
+
+                if (changed) {
+                    r.updatedAt = timestamp;
+                    mDao.update(r);
+                }
+            }
+        });
+    }
+
     /** Synchronous pending count — for use in background workers only. */
     public int getPendingMatchCountSync() {
         return mPendingMatchDao.getPendingCountSync();

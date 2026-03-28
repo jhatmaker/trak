@@ -84,8 +84,14 @@ public class LocationSearchBottomSheet extends BottomSheetDialogFragment {
 
         mExecutor.execute(() -> {
             try {
+                // Open-Meteo only accepts a plain city name — strip ", State/Country" suffix
+                // so "Bainbridge, GA" searches as "Bainbridge" and returns all matching cities.
+                String cityName = query.contains(",")
+                    ? query.substring(0, query.indexOf(',')).trim()
+                    : query;
+
                 String url = "https://geocoding-api.open-meteo.com/v1/search"
-                    + "?name=" + java.net.URLEncoder.encode(query, "UTF-8")
+                    + "?name=" + java.net.URLEncoder.encode(cityName, "UTF-8")
                     + "&count=6&language=en&format=json";
 
                 Request request = new Request.Builder().url(url).build();

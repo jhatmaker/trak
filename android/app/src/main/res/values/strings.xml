@@ -234,6 +234,8 @@
     <string name="edit_repopulate_button">Re-populate from race info</string>
     <string name="edit_repopulate_hint">Fills in distance, elevation, and weather automatically using the race name and location.</string>
     <string name="edit_repopulate_done">Fields updated from race info</string>
+    <string name="edit_set_location_button">Search race location…</string>
+    <string name="edit_set_location_hint">Search for the city where the race took place. We\'ll fill in elevation, temperature, and weather for race day.</string>
     <string name="edit_section_timing">Timing</string>
     <string name="edit_section_distance">Distance</string>
     <string name="edit_section_placement">Placement</string>

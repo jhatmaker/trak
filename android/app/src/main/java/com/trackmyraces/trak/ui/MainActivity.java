@@ -15,6 +15,7 @@ import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.trackmyraces.trak.R;
 import com.trackmyraces.trak.TrakApplication;
 import com.trackmyraces.trak.data.db.entity.RunnerProfileEntity;
+import com.trackmyraces.trak.data.repository.RaceResultRepository;
 import com.trackmyraces.trak.databinding.ActivityMainBinding;
 import com.trackmyraces.trak.ui.profile.ProfileViewModel;
 
@@ -84,6 +85,9 @@ public class MainActivity extends AppCompatActivity {
                 }
             });
         }
+
+        // One-time backfill: fix any existing results missing distanceMeters / pace
+        new RaceResultRepository(getApplication()).backfillDistanceAndPace();
 
         // Kick off background sync on launch
         TrakApplication.getInstance().getSyncManager().syncIfOnline((success, message) ->
