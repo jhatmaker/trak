@@ -12,4 +12,8 @@ public class EnrichResponse {
     public Double  temperatureCelsius;
     public String  weatherCondition;
     public Boolean distanceIsEstimated;
+    /** Geocoding resolved location — populated when backend looked up city/state/country */
+    public String  resolvedCity;
+    public String  resolvedState;
+    public String  resolvedCountry;
 }

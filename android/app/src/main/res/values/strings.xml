@@ -228,6 +228,7 @@
     <string name="edit_hint_elevation_gain">Elevation gain</string>
     <string name="edit_hint_temperature">Temperature</string>
     <string name="edit_hint_weather">Weather description</string>
+    <string name="edit_hint_chip_time_helper">Leave blank if the same as finish time</string>
     <string name="edit_hint_notes">Notes</string>
     <string name="edit_repopulate_button">Re-populate from race info</string>
     <string name="edit_repopulate_hint">Fills in distance, elevation, and weather automatically using the race name and location.</string>
@@ -241,6 +242,13 @@
     <string name="edit_hint_age_group">Age group label</string>
     <string name="edit_hint_age_group_eg">e.g. 40–44</string>
     <string name="edit_hint_elevation_start">Start elevation</string>
+    <string name="location_search_title">Search race location</string>
+    <string name="location_search_hint">Enter the city and country where the race took place. We\'ll look up the start elevation and race-day weather.</string>
+    <string name="location_search_field_hint">City, state or country</string>
+    <string name="location_search_button">Search</string>
+    <string name="location_search_button_short">Search location for elevation &amp; weather…</string>
+    <string name="location_search_no_results">No locations found. Try a different spelling or add the country name.</string>
+    <string name="location_search_fetching">Looking up elevation and weather…</string>
     <string name="edit_hint_age_at_race">Age at race: %1$d</string>
     <string name="edit_distance_estimated">Distance estimated from race name</string>
 

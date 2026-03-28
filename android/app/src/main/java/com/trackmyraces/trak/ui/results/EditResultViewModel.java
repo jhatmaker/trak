@@ -67,6 +67,34 @@ public class EditResultViewModel extends AndroidViewModel {
         });
     }
 
+    /** Call /enrich with known lat/lon — skips geocoding, goes straight to elevation+weather. */
+    public void enrichAtCoords(double lat, double lon, RaceResultEntity r) {
+        mEnriching.setValue(true);
+        EnrichRequest req  = new EnrichRequest();
+        req.raceName       = r.raceName;
+        req.distanceLabel  = r.distanceLabel;
+        req.raceDate       = r.raceDate;
+        req.lat            = lat;
+        req.lon            = lon;
+
+        mApi.enrich(req).enqueue(new Callback<EnrichResponse>() {
+            @Override
+            public void onResponse(Call<EnrichResponse> call, Response<EnrichResponse> response) {
+                mEnriching.postValue(false);
+                if (response.isSuccessful() && response.body() != null) {
+                    mEnriched.postValue(response.body());
+                } else {
+                    mError.postValue("Location lookup failed: HTTP " + response.code());
+                }
+            }
+            @Override
+            public void onFailure(Call<EnrichResponse> call, Throwable t) {
+                mEnriching.postValue(false);
+                mError.postValue("Location lookup failed: " + t.getMessage());
+            }
+        });
+    }
+
     /** Call /enrich with current result data to infer missing fields. */
     public void enrich(RaceResultEntity r) {
         mEnriching.setValue(true);

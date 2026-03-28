@@ -128,6 +128,8 @@ public class EditResultFragment extends NetworkAwareFragment {
             }
         });
 
+        mBinding.btnSearchLocation.setOnClickListener(v -> showLocationSearch());
+
         // Clear estimated flag when user manually changes the canonical dropdown
         mBinding.etDistanceCanonical.setOnItemClickListener((parent, v2, pos, id) ->
             setDistanceEstimated(false));
@@ -229,6 +231,28 @@ public class EditResultFragment extends NetworkAwareFragment {
         if (mProfile != null) showAgeAtRace(mProfile, r.raceDate);
     }
 
+    // ── Location search ───────────────────────────────────────────────────
+
+    private void showLocationSearch() {
+        LocationSearchBottomSheet sheet = new LocationSearchBottomSheet();
+        sheet.setOnLocationPickedListener((city, state, country, lat, lon) -> {
+            // Fill location fields (overwrite — user explicitly picked this location)
+            setText(mBinding.etCity,    city);
+            setText(mBinding.etState,   state);
+            setText(mBinding.etCountry, country);
+
+            // Enrich with known coordinates — skips geocoding, gets elevation + weather
+            RaceResultEntity r = mViewModel.result.getValue();
+            if (r != null) {
+                r.raceCity    = city;
+                r.raceState   = state;
+                r.raceCountry = country;
+                mViewModel.enrichAtCoords(lat, lon, r);
+            }
+        });
+        sheet.show(getChildFragmentManager(), "location_search");
+    }
+
     // ── Enrich response ───────────────────────────────────────────────────
 
     private void applyEnrichResponse(EnrichResponse resp) {
@@ -243,6 +267,16 @@ public class EditResultFragment extends NetworkAwareFragment {
             if (Boolean.TRUE.equals(resp.distanceIsEstimated)) {
                 setDistanceEstimated(true);
             }
+        }
+        // Fill resolved location from geocoding if fields are still blank
+        if (resp.resolvedCity != null && str(mBinding.etCity) == null) {
+            setText(mBinding.etCity, resp.resolvedCity);
+        }
+        if (resp.resolvedState != null && str(mBinding.etState) == null) {
+            setText(mBinding.etState, resp.resolvedState);
+        }
+        if (resp.resolvedCountry != null && str(mBinding.etCountry) == null) {
+            setText(mBinding.etCountry, resp.resolvedCountry);
         }
         if (resp.elevationStartMeters != null && str(mBinding.etElevationStart) == null) {
             boolean imperial = mProfile != null && "imperial".equalsIgnoreCase(mProfile.preferredUnits);

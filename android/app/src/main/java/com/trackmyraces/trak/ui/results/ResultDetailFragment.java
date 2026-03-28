@@ -120,10 +120,16 @@ public class ResultDetailFragment extends NetworkAwareFragment {
                 : r.ageGroupCalc != null ? r.ageGroupCalc : getString(R.string.detail_age_group));
         }
 
-        // Detail rows
-        mBinding.tvChipTimeRow.setText(
-            getString(R.string.detail_chip_time) + ":  "
-            + (r.chipTime != null ? r.chipTime : "—"));
+        // Detail rows — hide chip time if null or identical to finish time
+        boolean hasDistinctChipTime = r.chipTime != null
+            && !r.chipTime.equals(r.finishTime);
+        if (hasDistinctChipTime) {
+            mBinding.tvChipTimeRow.setText(
+                getString(R.string.detail_chip_time) + ":  " + r.chipTime);
+            mBinding.tvChipTimeRow.setVisibility(View.VISIBLE);
+        } else {
+            mBinding.tvChipTimeRow.setVisibility(View.GONE);
+        }
 
         mBinding.tvAgeAtRaceRow.setText(
             getString(R.string.detail_age_at_race) + ":  "

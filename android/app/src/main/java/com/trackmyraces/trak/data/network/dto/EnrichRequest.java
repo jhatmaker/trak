@@ -11,4 +11,7 @@ public class EnrichRequest {
     public String raceCity;
     public String raceState;
     public String raceCountry;
+    /** Optional — when set, backend skips geocoding and uses these coordinates directly. */
+    public Double lat;
+    public Double lon;
 }

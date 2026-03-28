@@ -58,6 +58,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="@string/detail_chip_time"
+            app:helperText="@string/edit_hint_chip_time_helper"
             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
             android:layout_marginBottom="20dp">
             <com.google.android.material.textfield.TextInputEditText
@@ -196,7 +197,7 @@
             android:layout_height="wrap_content"
             android:hint="@string/edit_hint_country"
             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-            android:layout_marginBottom="20dp">
+            android:layout_marginBottom="8dp">
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/et_country"
                 android:layout_width="match_parent"
@@ -204,6 +205,14 @@
                 android:inputType="textCapWords"
                 android:imeOptions="actionNext" />
         </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_search_location"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/location_search_button_short"
+            android:layout_marginBottom="20dp"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
 
         <!-- Section: Race details -->
         <TextView

@@ -34,25 +34,48 @@ const WMO_CODES = {
   95: 'Thunderstorm', 96: 'Thunderstorm', 99: 'Thunderstorm',
 };
 
-async function fetchRaceWeather(raceCity, raceState, raceCountry, raceDate) {
+async function fetchRaceWeather(raceCity, raceState, raceCountry, raceDate, providedLat, providedLon) {
   try {
-    const place = [raceCity, raceState, raceCountry].filter(Boolean).join(', ');
-    if (!place) return null;
+    let latitude, longitude, elevation;
+    let resolvedCity = null, resolvedState = null, resolvedCountry = null;
 
-    const geoRes  = await fetch(
-      `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(place)}&count=1&language=en&format=json`
-    );
-    const geoJson = await geoRes.json();
-    if (!geoJson.results?.length) return null;
+    if (providedLat != null && providedLon != null) {
+      // Coordinates supplied directly — skip geocoding
+      latitude  = providedLat;
+      longitude = providedLon;
+      elevation = null; // will be fetched below via Open-Meteo elevation API
+    } else {
+      const place = [raceCity, raceState, raceCountry].filter(Boolean).join(', ');
+      if (!place) return null;
 
-    const { latitude, longitude, elevation } = geoJson.results[0];
+      const geoRes  = await fetch(
+        `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(place)}&count=1&language=en&format=json`
+      );
+      const geoJson = await geoRes.json();
+      if (!geoJson.results?.length) return null;
+
+      ({ latitude, longitude, elevation } = geoJson.results[0]);
+      resolvedCity    = geoJson.results[0].name    ?? null;
+      resolvedState   = geoJson.results[0].admin1  ?? null;
+      resolvedCountry = geoJson.results[0].country ?? null;
+    }
+
+    // Fetch elevation from Open-Meteo elevation API when not returned by geocoding
+    if (elevation == null) {
+      try {
+        const elevRes  = await fetch(
+          `https://api.open-meteo.com/v1/elevation?latitude=${latitude}&longitude=${longitude}`
+        );
+        const elevJson = await elevRes.json();
+        elevation = elevJson.elevation?.[0] ?? null;
+      } catch { /* non-fatal */ }
+    }
 
     // Can only fetch historical weather if we have a past date
     let temperatureCelsius  = null;
     let weatherCondition    = null;
 
     if (raceDate) {
-      const today = new Date().toISOString().slice(0, 10);
       // Open-Meteo archive only covers dates before ~5 days ago
       const raceDateObj = new Date(raceDate);
       const cutoff      = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000);
@@ -79,6 +102,9 @@ async function fetchRaceWeather(raceCity, raceState, raceCountry, raceDate) {
       elevationStartMeters: elevation != null ? Math.round(elevation) : null,
       temperatureCelsius,
       weatherCondition,
+      resolvedCity,
+      resolvedState,
+      resolvedCountry,
     };
   } catch (err) {
     console.warn(JSON.stringify({ type: 'ENRICH_WEATHER_FAILED', error: err.message }));
@@ -100,6 +126,8 @@ exports.handler = wrap(async (event) => {
     raceCity      = null,
     raceState     = null,
     raceCountry   = null,
+    lat           = null,   // optional: skip geocoding when coordinates are known
+    lon           = null,
   } = body;
 
   // ── Distance inference ────────────────────────────────────────────────────
@@ -115,8 +143,8 @@ exports.handler = wrap(async (event) => {
   const distanceIsEstimated       = !distanceLabel && inferredDistanceCanonical !== null;
 
   // ── Weather + elevation ───────────────────────────────────────────────────
-  const weather = (raceCity || raceState || raceCountry)
-    ? await fetchRaceWeather(raceCity, raceState, raceCountry, raceDate)
+  const weather = (lat != null && lon != null) || (raceCity || raceState || raceCountry)
+    ? await fetchRaceWeather(raceCity, raceState, raceCountry, raceDate, lat, lon)
     : null;
 
   console.log(JSON.stringify({
@@ -134,5 +162,9 @@ exports.handler = wrap(async (event) => {
     elevationStartMeters: weather?.elevationStartMeters ?? null,
     temperatureCelsius:   weather?.temperatureCelsius   ?? null,
     weatherCondition:     weather?.weatherCondition     ?? null,
+    // Filled when geocoding resolved a location from city/state/country or lat/lon
+    resolvedCity:         weather?.resolvedCity    ?? null,
+    resolvedState:        weather?.resolvedState   ?? null,
+    resolvedCountry:      weather?.resolvedCountry ?? null,
   });
 });
