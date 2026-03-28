@@ -198,6 +198,23 @@
             android:name="resultId"
             app:argType="string" />
 
+        <action
+            android:id="@+id/action_detail_to_edit"
+            app:destination="@id/editResultFragment" />
+
+    </fragment>
+
+    <!-- Edit result — fill in or correct supplementary fields -->
+    <fragment
+        android:id="@+id/editResultFragment"
+        android:name="com.trackmyraces.trak.ui.results.EditResultFragment"
+        android:label="@string/edit_result_title"
+        tools:layout="@layout/fragment_edit_result">
+
+        <argument
+            android:name="resultId"
+            app:argType="string" />
+
     </fragment>
 
 </navigation>

@@ -126,7 +126,6 @@
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:orientation="vertical" android:padding="16dp">
 
-                <!-- Detail rows generated programmatically in Fragment -->
                 <TextView android:id="@+id/tv_chip_time_row"
                     android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:textSize="14sp" android:textColor="@color/text_primary"
@@ -161,6 +160,89 @@
             </LinearLayout>
         </androidx.cardview.widget.CardView>
 
+        <!-- More details — collapsible -->
+        <LinearLayout
+            android:id="@+id/btn_more_details"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingStart="20dp" android:paddingEnd="16dp"
+            android:paddingTop="16dp" android:paddingBottom="8dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?attr/selectableItemBackground">
+
+            <TextView
+                android:layout_width="0dp" android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/detail_more_details"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:textColor="@color/text_secondary"
+                android:letterSpacing="0.08" />
+
+            <TextView
+                android:id="@+id/tv_more_details_chevron"
+                android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="▸"
+                android:textSize="14sp"
+                android:textColor="@color/text_secondary" />
+
+        </LinearLayout>
+
+        <androidx.cardview.widget.CardView
+            android:id="@+id/card_more_details"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp" android:layout_marginEnd="16dp"
+            android:layout_marginBottom="4dp"
+            style="@style/Trak.Card"
+            android:visibility="gone">
+
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical" android:padding="16dp">
+
+                <TextView android:id="@+id/tv_location_row"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:textSize="14sp" android:textColor="@color/text_primary"
+                    android:paddingTop="6dp" android:paddingBottom="6dp" />
+
+                <View android:layout_width="match_parent" android:layout_height="1dp"
+                    android:background="@color/divider" />
+
+                <TextView android:id="@+id/tv_bib_row"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:textSize="14sp" android:textColor="@color/text_primary"
+                    android:paddingTop="6dp" android:paddingBottom="6dp" />
+
+                <View android:layout_width="match_parent" android:layout_height="1dp"
+                    android:background="@color/divider" />
+
+                <TextView android:id="@+id/tv_surface_row"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:textSize="14sp" android:textColor="@color/text_primary"
+                    android:paddingTop="6dp" android:paddingBottom="6dp" />
+
+                <View android:layout_width="match_parent" android:layout_height="1dp"
+                    android:background="@color/divider" />
+
+                <TextView android:id="@+id/tv_elevation_row"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:textSize="14sp" android:textColor="@color/text_primary"
+                    android:paddingTop="6dp" android:paddingBottom="6dp" />
+
+                <View android:layout_width="match_parent" android:layout_height="1dp"
+                    android:background="@color/divider" />
+
+                <TextView android:id="@+id/tv_weather_row"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:textSize="14sp" android:textColor="@color/text_primary"
+                    android:paddingTop="6dp" android:paddingBottom="6dp" />
+
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
         <!-- Splits section -->
         <TextView
             android:id="@+id/tv_splits_header"
@@ -169,7 +251,7 @@
             android:text="@string/detail_splits"
             style="@style/Trak.SectionHeader"
             android:layout_marginStart="20dp"
-            android:layout_marginTop="24dp"
+            android:layout_marginTop="16dp"
             android:layout_marginBottom="8dp"
             android:visibility="gone" />
 
@@ -194,18 +276,6 @@
             android:textColor="@color/text_secondary"
             android:textSize="14sp"
             android:visibility="gone" />
-
-        <!-- Source link -->
-        <TextView
-            android:id="@+id/tv_source"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="20dp"
-            android:layout_marginEnd="20dp"
-            android:layout_marginTop="16dp"
-            android:textColor="@color/info"
-            android:textSize="12sp"
-            android:autoLink="web" />
 
     </LinearLayout>
 </ScrollView>

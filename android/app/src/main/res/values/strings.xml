@@ -210,6 +210,26 @@
     <string name="dismissed_view_all_button">View dismissed results</string>
     <string name="source_view_dismissed">Dismissed</string>
 
+    <!-- Result detail — more details / edit -->
+    <string name="detail_more_details">MORE DETAILS</string>
+    <string name="detail_location">Location</string>
+    <string name="detail_bib">Bib number</string>
+    <string name="detail_surface">Surface</string>
+    <string name="detail_elevation">Elevation</string>
+    <string name="detail_weather">Weather</string>
+    <string name="edit_result_title">Edit result</string>
+    <string name="edit_section_location">Location</string>
+    <string name="edit_section_race">Race details</string>
+    <string name="edit_section_conditions">Conditions</string>
+    <string name="edit_hint_city">City</string>
+    <string name="edit_hint_state">State / region</string>
+    <string name="edit_hint_country">Country</string>
+    <string name="edit_hint_surface">Surface type</string>
+    <string name="edit_hint_elevation_gain">Elevation gain (meters)</string>
+    <string name="edit_hint_temperature">Temperature (°C)</string>
+    <string name="edit_hint_weather">Weather description</string>
+    <string name="edit_hint_notes">Notes</string>
+
     <!-- Common -->
     <string name="ok">OK</string>
     <string name="cancel">Cancel</string>

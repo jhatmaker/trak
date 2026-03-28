@@ -484,6 +484,25 @@ public class RaceResultRepository {
         });
     }
 
+    // ── Update supplementary fields ───────────────────────────────────────
+
+    /**
+     * Save user edits to supplementary fields (location, bib, surface, conditions, notes).
+     * Always writes locally; marks isSynced=false for later backend sync.
+     */
+    @OfflineCapability(available = true)
+    public void updateResult(RaceResultEntity entity, RepositoryCallback<Void> callback) {
+        mExecutor.execute(() -> {
+            try {
+                mDao.update(entity);
+                callback.onSuccess(null);
+            } catch (Exception e) {
+                Log.e(TAG, "Failed to update result", e);
+                callback.onError(e.getMessage());
+            }
+        });
+    }
+
     // ── Delete ────────────────────────────────────────────────────────────
 
     @OfflineCapability(available = false, reason = "Requires backend — calls DELETE /results/{id}")

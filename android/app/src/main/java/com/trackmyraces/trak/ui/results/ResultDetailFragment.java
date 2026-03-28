@@ -2,6 +2,9 @@ package com.trackmyraces.trak.ui.results;
 
 import android.os.Bundle;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 
@@ -28,6 +31,14 @@ public class ResultDetailFragment extends NetworkAwareFragment {
 
     private FragmentResultDetailBinding mBinding;
     private ResultDetailViewModel       mViewModel;
+    private String                      mResultId;
+    private boolean                     mMoreDetailsExpanded = false;
+
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setHasOptionsMenu(true);
+    }
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
@@ -40,15 +51,22 @@ public class ResultDetailFragment extends NetworkAwareFragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        // Get resultId from navigation args
-        String resultId = null;
-        if (getArguments() != null) resultId = getArguments().getString("resultId");
+        mResultId = null;
+        if (getArguments() != null) mResultId = getArguments().getString("resultId");
 
         mViewModel = new ViewModelProvider(this,
-            new ResultDetailViewModel.Factory(requireActivity().getApplication(), resultId))
+            new ResultDetailViewModel.Factory(requireActivity().getApplication(), mResultId))
             .get(ResultDetailViewModel.class);
 
+        mBinding.btnMoreDetails.setOnClickListener(v -> toggleMoreDetails());
+
         observeViewModel();
+    }
+
+    private void toggleMoreDetails() {
+        mMoreDetailsExpanded = !mMoreDetailsExpanded;
+        mBinding.cardMoreDetails.setVisibility(mMoreDetailsExpanded ? View.VISIBLE : View.GONE);
+        mBinding.tvMoreDetailsChevron.setText(mMoreDetailsExpanded ? "▾" : "▸");
     }
 
     private void observeViewModel() {
@@ -121,17 +139,82 @@ public class ResultDetailFragment extends NetworkAwareFragment {
             mBinding.dividerBq.setVisibility(View.VISIBLE);
         }
 
+        // More details card
+        bindMoreDetails(r);
+
         // Notes
         if (r.notes != null && !r.notes.isEmpty()) {
             mBinding.tvNotes.setText(r.notes);
             mBinding.tvNotes.setVisibility(View.VISIBLE);
+        } else {
+            mBinding.tvNotes.setVisibility(View.GONE);
         }
+    }
 
-        // Source URL
-        if (r.sourceUrl != null) {
-            mBinding.tvSource.setText(r.sourceUrl);
-            mBinding.tvSource.setVisibility(View.VISIBLE);
+    private void bindMoreDetails(RaceResultEntity r) {
+        // Location
+        StringBuilder loc = new StringBuilder(getString(R.string.detail_location)).append(":  ");
+        boolean hasLocation = r.raceCity != null || r.raceState != null || r.raceCountry != null;
+        if (hasLocation) {
+            if (r.raceCity    != null) loc.append(r.raceCity);
+            if (r.raceState   != null) { if (r.raceCity != null) loc.append(", "); loc.append(r.raceState); }
+            if (r.raceCountry != null) { if (r.raceCity != null || r.raceState != null) loc.append(", "); loc.append(r.raceCountry); }
+        } else {
+            loc.append("—");
         }
+        mBinding.tvLocationRow.setText(loc.toString());
+
+        // Bib
+        mBinding.tvBibRow.setText(getString(R.string.detail_bib) + ":  "
+            + (r.bibNumber != null ? r.bibNumber : "—"));
+
+        // Surface
+        mBinding.tvSurfaceRow.setText(getString(R.string.detail_surface) + ":  "
+            + (r.surfaceType != null ? capitalize(r.surfaceType) : "—"));
+
+        // Elevation
+        StringBuilder elev = new StringBuilder(getString(R.string.detail_elevation)).append(":  ");
+        if (r.elevationGainMeters != null) {
+            elev.append(r.elevationGainMeters).append("m gain");
+            if (r.elevationStartMeters != null) {
+                elev.append("  ·  ").append(r.elevationStartMeters).append("m start");
+            }
+        } else if (r.elevationStartMeters != null) {
+            elev.append(r.elevationStartMeters).append("m start elevation");
+        } else {
+            elev.append("—");
+        }
+        mBinding.tvElevationRow.setText(elev.toString());
+
+        // Weather
+        StringBuilder weather = new StringBuilder(getString(R.string.detail_weather)).append(":  ");
+        if (r.temperatureCelsius != null) {
+            weather.append(Math.round(r.temperatureCelsius)).append("°C");
+            if (r.weatherCondition != null) weather.append("  ·  ").append(r.weatherCondition);
+        } else if (r.weatherCondition != null) {
+            weather.append(r.weatherCondition);
+        } else {
+            weather.append("—");
+        }
+        mBinding.tvWeatherRow.setText(weather.toString());
+    }
+
+    @Override
+    public void onCreateOptionsMenu(@NonNull Menu menu, @NonNull MenuInflater inflater) {
+        inflater.inflate(R.menu.detail_menu, menu);
+        super.onCreateOptionsMenu(menu, inflater);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+        if (item.getItemId() == R.id.action_edit_result) {
+            Bundle args = new Bundle();
+            args.putString("resultId", mResultId);
+            Navigation.findNavController(requireView())
+                .navigate(R.id.action_detail_to_edit, args);
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
     }
 
     private String formatDate(String isoDate) {
