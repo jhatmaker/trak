@@ -57,12 +57,12 @@ public class MainActivity extends AppCompatActivity {
                 finish();
                 return;
             }
-            runOnUiThread(this::initMainContent);
+            runOnUiThread(() -> initMainContent(savedInstanceState));
         });
     }
 
     /** Called after the auth check passes. All main-screen setup lives here. */
-    private void initMainContent() {
+    private void initMainContent(Bundle savedInstanceState) {
         setSupportActionBar(mBinding.toolbar);
 
         // Set up Navigation Component
