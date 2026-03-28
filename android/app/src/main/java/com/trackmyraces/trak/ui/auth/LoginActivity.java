@@ -10,6 +10,7 @@ import androidx.lifecycle.ViewModelProvider;
 
 import com.google.android.material.tabs.TabLayout;
 import com.trackmyraces.trak.R;
+import com.trackmyraces.trak.data.db.TrakDatabase;
 import com.trackmyraces.trak.databinding.ActivityLoginBinding;
 import com.trackmyraces.trak.ui.MainActivity;
 
@@ -30,6 +31,23 @@ public class LoginActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        // Check for existing token before showing login UI.
+        // If already authenticated, go straight to MainActivity.
+        TrakDatabase.getInstance(this).getQueryExecutor().execute(() -> {
+            String token = TrakDatabase.getInstance(this).runnerProfileDao().getAuthToken();
+            if (token != null && !token.isEmpty()) {
+                runOnUiThread(() -> {
+                    startActivity(new Intent(this, MainActivity.class));
+                    finish();
+                });
+                return;
+            }
+            runOnUiThread(this::showLoginUi);
+        });
+    }
+
+    private void showLoginUi() {
         mBinding = ActivityLoginBinding.inflate(getLayoutInflater());
         setContentView(mBinding.getRoot());
 

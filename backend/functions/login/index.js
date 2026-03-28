@@ -12,10 +12,9 @@
 
 const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
 const { DynamoDBDocumentClient, GetCommand } = require('@aws-sdk/lib-dynamodb');
-const bcrypt = require('bcryptjs');
-
 const { wrap, parseBody, errors, ok, require: requireFields } = require('/opt/nodejs/shared/utils/response');
 const { generateToken } = require('/opt/nodejs/shared/utils/auth');
+const { verifyPassword } = require('/opt/nodejs/shared/utils/password');
 
 const dynamo = DynamoDBDocumentClient.from(new DynamoDBClient({}));
 const TABLE  = process.env.DYNAMODB_TABLE_NAME;
@@ -38,7 +37,7 @@ exports.handler = wrap(async (event) => {
     return errors.unauthorized(INVALID_MSG);
   }
 
-  const valid = await bcrypt.compare(password, result.Item.passwordHash);
+  const valid = await verifyPassword(password, result.Item.passwordHash);
   if (!valid) {
     return errors.unauthorized(INVALID_MSG);
   }

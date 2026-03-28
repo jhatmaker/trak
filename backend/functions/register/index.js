@@ -13,11 +13,11 @@
 
 const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
 const { DynamoDBDocumentClient, GetCommand, PutCommand } = require('@aws-sdk/lib-dynamodb');
-const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 
 const { wrap, parseBody, errors, created, require: requireFields } = require('/opt/nodejs/shared/utils/response');
 const { generateToken } = require('/opt/nodejs/shared/utils/auth');
+const { hashPassword } = require('/opt/nodejs/shared/utils/password');
 
 const dynamo = DynamoDBDocumentClient.from(new DynamoDBClient({}));
 const TABLE  = process.env.DYNAMODB_TABLE_NAME;
@@ -43,7 +43,7 @@ exports.handler = wrap(async (event) => {
   }
 
   const runnerId     = crypto.randomUUID();
-  const passwordHash = await bcrypt.hash(password, 10);
+  const passwordHash = await hashPassword(password);
 
   await dynamo.send(new PutCommand({
     TableName: TABLE,

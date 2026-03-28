@@ -17,9 +17,9 @@
         android:theme="@style/Theme.Trak"
         android:networkSecurityConfig="@xml/network_security_config">
 
-        <!-- Main entry point -->
+        <!-- Auth entry point — checks token, forwards to MainActivity or shows login -->
         <activity
-            android:name=".ui.MainActivity"
+            android:name=".ui.auth.LoginActivity"
             android:exported="true"
             android:theme="@style/Theme.Trak.NoActionBar"
             android:windowSoftInputMode="adjustResize">
@@ -29,9 +29,9 @@
             </intent-filter>
         </activity>
 
-        <!-- Auth screen — shown when no token is present -->
+        <!-- Main app — only reached after auth -->
         <activity
-            android:name=".ui.auth.LoginActivity"
+            android:name=".ui.MainActivity"
             android:exported="false"
             android:theme="@style/Theme.Trak.NoActionBar"
             android:windowSoftInputMode="adjustResize" />
