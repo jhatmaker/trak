@@ -11,27 +11,8 @@
  * For prod: swap in AWS Cognito or Auth0 and verify RS256 tokens.
  */
 
-const { SecretsManagerClient, GetSecretValueCommand } = require('@aws-sdk/client-secrets-manager');
 const crypto = require('crypto');
-
-const smClient = new SecretsManagerClient({ region: process.env.AWS_REGION || 'us-east-1' });
-
-let _jwtSecret        = null;
-let _secretFetchedAt  = 0;
-const SECRET_TTL_MS   = 5 * 60 * 1000;
-
-async function getJwtSecret() {
-  const now = Date.now();
-  if (_jwtSecret && (now - _secretFetchedAt) < SECRET_TTL_MS) return _jwtSecret;
-
-  const { SecretString } = await smClient.send(new GetSecretValueCommand({
-    SecretId: process.env.JWT_SECRET_NAME,
-  }));
-  const parsed = JSON.parse(SecretString);
-  _jwtSecret       = parsed.secret;
-  _secretFetchedAt = now;
-  return _jwtSecret;
-}
+const { getJwtSecret, generateToken } = require('/opt/nodejs/shared/utils/auth');
 
 // ─── Minimal HMAC-SHA256 JWT implementation ───────────────────────────────────
 
@@ -110,19 +91,5 @@ exports.handler = async (event) => {
     throw new Error('Unauthorized');
   }
 };
-
-// ─── Token generation utility (call from profile creation / login) ────────────
-// Not exposed as an API endpoint — call this from a separate auth flow or CLI tool.
-
-function generateToken(runnerId, secret, expiresInSeconds = 86400 * 30) {
-  const header  = b64url(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
-  const payload = b64url(JSON.stringify({
-    sub: runnerId,
-    iat: Math.floor(Date.now() / 1000),
-    exp: Math.floor(Date.now() / 1000) + expiresInSeconds,
-  }));
-  const sig = crypto.createHmac('sha256', secret).update(`${header}.${payload}`).digest('base64url');
-  return `${header}.${payload}.${sig}`;
-}
 
 module.exports = { handler: exports.handler, generateToken };

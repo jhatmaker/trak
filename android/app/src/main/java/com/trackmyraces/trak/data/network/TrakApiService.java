@@ -1,5 +1,7 @@
 package com.trackmyraces.trak.data.network;
 
+import com.trackmyraces.trak.data.network.dto.AuthRequest;
+import com.trackmyraces.trak.data.network.dto.AuthResponse;
 import com.trackmyraces.trak.data.network.dto.ClaimRequest;
 import com.trackmyraces.trak.data.network.dto.DiscoverRequest;
 import com.trackmyraces.trak.data.network.dto.DiscoverResponse;
@@ -32,6 +34,16 @@ import retrofit2.http.QueryMap;
  * Auth: Authorization header added by AuthInterceptor for all requests.
  */
 public interface TrakApiService {
+
+    // ── Auth ──────────────────────────────────────────────────────────────
+
+    /** POST /auth/register — public, no auth required */
+    @POST("auth/register")
+    Call<AuthResponse> register(@Body AuthRequest request);
+
+    /** POST /auth/login — public, no auth required */
+    @POST("auth/login")
+    Call<AuthResponse> login(@Body AuthRequest request);
 
     // ── Discovery ─────────────────────────────────────────────────────────
 

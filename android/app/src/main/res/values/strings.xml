@@ -3,6 +3,19 @@
     <!-- App -->
     <string name="app_name">Trak</string>
     <string name="app_tagline">Track every race. Own your history.</string>
+    <string name="tagline">Track every race. Own your history.</string>
+
+    <!-- Auth -->
+    <string name="tab_login">Log In</string>
+    <string name="tab_register">Create Account</string>
+    <string name="action_login">Log In</string>
+    <string name="action_register">Create Account</string>
+    <string name="hint_email">Email address</string>
+    <string name="hint_password">Password</string>
+    <string name="error_email_required">Email is required</string>
+    <string name="error_email_invalid">Enter a valid email address</string>
+    <string name="error_password_required">Password is required</string>
+    <string name="error_password_length">Password must be at least 8 characters</string>
 
     <!-- Bottom nav -->
     <string name="nav_dashboard">Dashboard</string>

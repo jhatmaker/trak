@@ -29,6 +29,13 @@
             </intent-filter>
         </activity>
 
+        <!-- Auth screen — shown when no token is present -->
+        <activity
+            android:name=".ui.auth.LoginActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Trak.NoActionBar"
+            android:windowSoftInputMode="adjustResize" />
+
         <!-- WorkManager sync worker -->
         <provider
             android:name="androidx.startup.InitializationProvider"

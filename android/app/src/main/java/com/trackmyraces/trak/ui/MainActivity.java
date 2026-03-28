@@ -1,5 +1,6 @@
 package com.trackmyraces.trak.ui;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.MenuItem;
 import android.view.View;
@@ -7,6 +8,9 @@ import android.view.View;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.Observer;
+
+import com.trackmyraces.trak.data.db.TrakDatabase;
+import com.trackmyraces.trak.ui.auth.LoginActivity;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavController;
 import androidx.navigation.fragment.NavHostFragment;
@@ -44,6 +48,21 @@ public class MainActivity extends AppCompatActivity {
         mBinding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(mBinding.getRoot());
 
+        // Auth gate — redirect to login if no token is stored.
+        // Runs on a background thread since Room queries must not block the main thread.
+        TrakDatabase.getInstance(this).getQueryExecutor().execute(() -> {
+            String token = TrakDatabase.getInstance(this).runnerProfileDao().getAuthToken();
+            if (token == null || token.isEmpty()) {
+                startActivity(new Intent(this, LoginActivity.class));
+                finish();
+                return;
+            }
+            runOnUiThread(this::initMainContent);
+        });
+    }
+
+    /** Called after the auth check passes. All main-screen setup lives here. */
+    private void initMainContent() {
         setSupportActionBar(mBinding.toolbar);
 
         // Set up Navigation Component

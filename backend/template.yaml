@@ -286,6 +286,44 @@ Resources:
             Path: /profile
             Method: DELETE
 
+  # ── Lambda: Register ─────────────────────────────────────────────────────
+  RegisterFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub trak-register-${Stage}
+      CodeUri: functions/register/
+      Handler: index.handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Description: User registration — create account and return JWT
+      Events:
+        Register:
+          Type: Api
+          Properties:
+            RestApiId: !Ref TrakApi
+            Path: /auth/register
+            Method: POST
+            Auth:
+              Authorizer: NONE
+
+  # ── Lambda: Login ─────────────────────────────────────────────────────────
+  LoginFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub trak-login-${Stage}
+      CodeUri: functions/login/
+      Handler: index.handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Description: User login — verify credentials and return JWT
+      Events:
+        Login:
+          Type: Api
+          Properties:
+            RestApiId: !Ref TrakApi
+            Path: /auth/login
+            Method: POST
+            Auth:
+              Authorizer: NONE
+
   # ── Lambda: Discover ─────────────────────────────────────────────────────
   DiscoverFunction:
     Type: AWS::Serverless::Function
