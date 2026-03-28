@@ -48,9 +48,9 @@ function buildPolicy(runnerId, effect, methodArn) {
   const region    = arnParts[3];
   const accountId = arnParts[4];
   const apiParts  = arnParts[5].split('/');
-  const apiId     = apiParts[0].replace('apigateway', '');
-  const stage     = apiParts[1];
-  const wildcardArn = `arn:aws:execute-api:${region}:${accountId}:${apiId.replace('apigateway','').replace('execute-api','*')}/${stage}/*/*`;
+  const apiId       = apiParts[0];
+  const stage       = apiParts[1];
+  const wildcardArn = `arn:aws:execute-api:${region}:${accountId}:${apiId}/${stage}/*/*`;
 
   return {
     principalId: runnerId,
@@ -59,7 +59,7 @@ function buildPolicy(runnerId, effect, methodArn) {
       Statement: [{
         Action:   'execute-api:Invoke',
         Effect:   effect,
-        Resource: methodArn, // could use wildcardArn to cache policy across routes
+        Resource: wildcardArn, // wildcard covers all routes so cached policy works across endpoints
       }],
     },
     context: {

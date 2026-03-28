@@ -118,10 +118,10 @@ exports.handler = wrap(async (event) => {
     : null;
 
   console.log(JSON.stringify({
-    type:    'ENRICH',
+    type:              'ENRICH',
     runnerId,
     distanceCanonical: inferredDistanceCanonical,
-    hasWeather: !!weather,
+    hasWeather:        !!weather,
   }));
 
   return ok({
