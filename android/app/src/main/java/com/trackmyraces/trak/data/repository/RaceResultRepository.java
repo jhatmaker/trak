@@ -16,6 +16,7 @@ import com.trackmyraces.trak.data.network.TrakApiService;
 import com.trackmyraces.trak.data.network.dto.ClaimRequest;
 import com.trackmyraces.trak.data.network.dto.ClaimResponse;
 import com.trackmyraces.trak.data.network.dto.DiscoverRequest;
+import com.trackmyraces.trak.util.DistanceNormalizer;
 import com.trackmyraces.trak.util.OfflineCapability;
 import com.trackmyraces.trak.data.network.dto.DiscoverResponse;
 import com.trackmyraces.trak.data.network.dto.DiscoverSiteResult;
@@ -114,6 +115,11 @@ public class RaceResultRepository {
     @OfflineCapability(available = true)
     public LiveData<Double> getTotalDistanceMeters() {
         return mDao.getTotalDistanceMeters();
+    }
+
+    @OfflineCapability(available = true)
+    public LiveData<Double> getAveragePacePerKm() {
+        return mDao.getAveragePacePerKm();
     }
 
     // ── Discovery (online only) ───────────────────────────────────────────
@@ -311,7 +317,13 @@ public class RaceResultRepository {
             result.raceName        = match.raceName;
             result.raceDate        = match.raceDate;
             result.distanceLabel   = match.distanceLabel;
-            result.distanceMeters  = match.distanceMeters;
+
+            // Resolve canonical key + infer meters from label when the value is 0
+            DistanceNormalizer.Result dist =
+                DistanceNormalizer.resolve(match.distanceLabel, match.distanceMeters);
+            result.distanceCanonical = dist.key;
+            result.distanceMeters    = dist.meters;
+
             result.finishTime      = match.finishTime;
             result.finishSeconds   = match.finishSeconds;
             result.overallPlace    = match.overallPlace > 0 ? match.overallPlace : null;
@@ -344,6 +356,12 @@ public class RaceResultRepository {
                     .replaceAll("[^a-z0-9 ]", "")
                     .trim()
                     .replaceAll("\\s+", "-");
+            }
+
+            // Pace in seconds-per-km
+            if (result.distanceMeters > 0 && result.finishSeconds > 0) {
+                result.pacePerKmSeconds = (int) Math.round(
+                    result.finishSeconds / (result.distanceMeters / 1000.0));
             }
 
             mDao.insertOrReplace(result);

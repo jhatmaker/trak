@@ -110,6 +110,10 @@ public interface RaceResultDao {
     @Query("SELECT SUM(distance_meters) FROM race_result WHERE status != 'deleted'")
     LiveData<Double> getTotalDistanceMeters();
 
+    /** Average pace (seconds/km) across results that have pace data. */
+    @Query("SELECT AVG(pace_per_km_seconds) FROM race_result WHERE status != 'deleted' AND pace_per_km_seconds > 0")
+    LiveData<Double> getAveragePacePerKm();
+
     @Query("SELECT MIN(COALESCE(chip_seconds, finish_seconds)) FROM race_result WHERE status != 'deleted' AND distance_canonical = :distanceCanonical")
     LiveData<Integer> getFastestSecondsForDistance(String distanceCanonical);
 

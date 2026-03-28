@@ -28,6 +28,7 @@
     <string name="dashboard_total_races">Total races</string>
     <string name="dashboard_total_distance">Total distance</string>
     <string name="dashboard_unique_races">Unique races</string>
+    <string name="dashboard_avg_pace">Avg pace</string>
     <string name="dashboard_pr_board">Personal records</string>
     <string name="dashboard_recent">Recent results</string>
     <string name="dashboard_empty">No results yet.\nTap + to add your first race.</string>

@@ -79,8 +79,13 @@ public class DashboardFragment extends NetworkAwareFragment {
         mViewModel.totalDistanceMeters.observe(getViewLifecycleOwner(), meters ->
             updateDistanceDisplay(meters, mViewModel.profile.getValue()));
 
-        mViewModel.profile.observe(getViewLifecycleOwner(), profile ->
-            updateDistanceDisplay(mViewModel.totalDistanceMeters.getValue(), profile));
+        mViewModel.averagePacePerKm.observe(getViewLifecycleOwner(), pace ->
+            updateAvgPaceDisplay(pace, mViewModel.profile.getValue()));
+
+        mViewModel.profile.observe(getViewLifecycleOwner(), profile -> {
+            updateDistanceDisplay(mViewModel.totalDistanceMeters.getValue(), profile);
+            updateAvgPaceDisplay(mViewModel.averagePacePerKm.getValue(), profile);
+        });
 
         mViewModel.uniqueRaceCount.observe(getViewLifecycleOwner(), count -> {
             mBinding.tvUniqueRaces.setText(count != null ? String.valueOf(count) : "0");
@@ -126,6 +131,18 @@ public class DashboardFragment extends NetworkAwareFragment {
         } else {
             mBinding.tvTotalDistance.setText(TimeFormatter.formatDistance(meters, unitPref));
         }
+    }
+
+    private void updateAvgPaceDisplay(Double pacePerKmSeconds, RunnerProfileEntity profile) {
+        if (pacePerKmSeconds == null || pacePerKmSeconds <= 0) {
+            mBinding.tvAvgPace.setText("—");
+            return;
+        }
+        int rounded = (int) Math.round(pacePerKmSeconds);
+        boolean imperial = profile != null && "imperial".equalsIgnoreCase(profile.preferredUnits);
+        mBinding.tvAvgPace.setText(imperial
+            ? TimeFormatter.pacePerMile(rounded)
+            : TimeFormatter.pacePerKm(rounded));
     }
 
     private void navigateToDetail(String resultId) {

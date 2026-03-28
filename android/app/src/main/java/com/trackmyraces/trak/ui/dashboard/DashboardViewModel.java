@@ -36,6 +36,7 @@ public class DashboardViewModel extends AndroidViewModel {
     public final LiveData<RunnerProfileEntity>     profile;
     public final LiveData<Integer>                 totalRaceCount;
     public final LiveData<Double>                  totalDistanceMeters;
+    public final LiveData<Double>                  averagePacePerKm;
     public final LiveData<Integer>                 uniqueRaceCount;
     public final LiveData<List<RaceResultEntity>>  prList;
     public final LiveData<List<RaceResultEntity>>  recentResults;
@@ -53,6 +54,7 @@ public class DashboardViewModel extends AndroidViewModel {
         profile             = mProfileRepo.getProfile();
         totalRaceCount      = mResultRepo.getTotalCount();
         totalDistanceMeters = mResultRepo.getTotalDistanceMeters();
+        averagePacePerKm    = mResultRepo.getAveragePacePerKm();
         uniqueRaceCount     = mResultRepo.getUniqueRaceCount();
         prList              = mResultRepo.getPRs();
         recentResults       = mResultRepo.getRecentResults(5);
