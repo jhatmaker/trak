@@ -2,6 +2,8 @@ package com.trackmyraces.trak.data.network;
 
 import com.trackmyraces.trak.data.network.dto.AuthRequest;
 import com.trackmyraces.trak.data.network.dto.AuthResponse;
+import com.trackmyraces.trak.data.network.dto.EnrichRequest;
+import com.trackmyraces.trak.data.network.dto.EnrichResponse;
 import com.trackmyraces.trak.data.network.dto.ClaimRequest;
 import com.trackmyraces.trak.data.network.dto.DiscoverRequest;
 import com.trackmyraces.trak.data.network.dto.DiscoverResponse;
@@ -44,6 +46,16 @@ public interface TrakApiService {
     /** POST /auth/login — public, no auth required */
     @POST("auth/login")
     Call<AuthResponse> login(@Body AuthRequest request);
+
+    // ── Enrich ────────────────────────────────────────────────────────────
+
+    /**
+     * POST /enrich
+     * Infer missing fields (distance, elevation, weather) from race name + location.
+     * Free — uses Open-Meteo geocoding, no Claude tokens.
+     */
+    @POST("enrich")
+    Call<EnrichResponse> enrich(@Body EnrichRequest request);
 
     // ── Discovery ─────────────────────────────────────────────────────────
 

@@ -229,6 +229,18 @@
     <string name="edit_hint_temperature">Temperature (°C)</string>
     <string name="edit_hint_weather">Weather description</string>
     <string name="edit_hint_notes">Notes</string>
+    <string name="edit_repopulate_button">Re-populate from race info</string>
+    <string name="edit_repopulate_hint">Fills in distance, elevation, and weather automatically using the race name and location.</string>
+    <string name="edit_repopulate_done">Fields updated from race info</string>
+    <string name="edit_section_timing">Timing</string>
+    <string name="edit_section_distance">Distance</string>
+    <string name="edit_section_placement">Placement</string>
+    <string name="edit_hint_distance_label">Distance label (e.g. Marathon, 10K)</string>
+    <string name="edit_hint_distance_canonical">Canonical distance</string>
+    <string name="edit_hint_gender">Gender (M / F / NB)</string>
+    <string name="edit_hint_age_group">Age group label</string>
+    <string name="edit_hint_age_group_eg">e.g. 40–44</string>
+    <string name="edit_hint_elevation_start">Start elevation (meters)</string>
 
     <!-- Common -->
     <string name="ok">OK</string>

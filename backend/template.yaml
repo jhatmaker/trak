@@ -257,6 +257,23 @@ Resources:
             Path: /results/{resultId}
             Method: PUT
 
+  # ── Lambda: Enrich ───────────────────────────────────────────────────────
+  EnrichFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub trak-enrich-${Stage}
+      CodeUri: functions/enrich/
+      Handler: index.handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Description: Infer missing result fields from race name + location (distance, elevation, weather)
+      Events:
+        Enrich:
+          Type: Api
+          Properties:
+            RestApiId: !Ref TrakApi
+            Path: /enrich
+            Method: POST
+
   # ── Lambda: Profile ──────────────────────────────────────────────────────
   ProfileFunction:
     Type: AWS::Serverless::Function
