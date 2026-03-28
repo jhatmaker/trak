@@ -53,7 +53,14 @@ public class AddResultFragment extends NetworkAwareFragment {
 
         // Observe profile via activity scope so it's loaded regardless of which tab was visited first
         new ViewModelProvider(requireActivity()).get(ProfileViewModel.class)
-            .profile.observe(getViewLifecycleOwner(), profile -> mProfile = profile);
+            .profile.observe(getViewLifecycleOwner(), profile -> {
+                mProfile = profile;
+                // Pre-fill name field if still blank
+                if (profile != null && profile.name != null && !profile.name.isEmpty()
+                        && getText(mBinding.etName).isEmpty()) {
+                    mBinding.etName.setText(profile.name);
+                }
+            });
 
         // Pre-fill URL if navigated from DiscoverFragment
         if (getArguments() != null) {
