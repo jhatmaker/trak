@@ -37,10 +37,13 @@ public class EditResultViewModel extends AndroidViewModel {
     public LiveData<String>  getError()  { return mError; }
 
     public void save(RaceResultEntity updated) {
-        mRepo.updateResult(updated, (success, message) -> {
-            if (success) {
+        mRepo.updateResult(updated, new RaceResultRepository.RepositoryCallback<Void>() {
+            @Override
+            public void onSuccess(Void v) {
                 mSaved.postValue(true);
-            } else {
+            }
+            @Override
+            public void onError(String message) {
                 mError.postValue(message);
             }
         });
