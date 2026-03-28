@@ -56,7 +56,7 @@ import com.trackmyraces.trak.data.db.entity.SavedViewEntity;
         PendingMatchEntity.class,
         UserSitePrefEntity.class,
     },
-    version = 10,
+    version = 11,
     exportSchema = true
 )
 public abstract class TrakDatabase extends RoomDatabase {
@@ -86,7 +86,7 @@ public abstract class TrakDatabase extends RoomDatabase {
                             TrakDatabase.class,
                             DB_NAME
                         )
-                        .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10)
+                        .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11)
                         .build();
                 }
             }
@@ -239,6 +239,14 @@ public abstract class TrakDatabase extends RoomDatabase {
         public void migrate(@androidx.annotation.NonNull SupportSQLiteDatabase db) {
             // Device-local UUID for backend identification (pre-auth)
             db.execSQL("ALTER TABLE `runner_profile` ADD COLUMN `user_id` TEXT");
+        }
+    };
+
+    static final Migration MIGRATION_10_11 = new Migration(10, 11) {
+        @Override
+        public void migrate(@androidx.annotation.NonNull SupportSQLiteDatabase db) {
+            // Flag distance inferred from race name vs confirmed timing data
+            db.execSQL("ALTER TABLE `race_result` ADD COLUMN `is_distance_estimated` INTEGER NOT NULL DEFAULT 0");
         }
     };
 

@@ -50,7 +50,6 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:inputType="text"
-                android:hint="@string/manual_finish_time_format"
                 android:imeOptions="actionNext" />
         </com.google.android.material.textfield.TextInputLayout>
 
@@ -66,7 +65,6 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:inputType="text"
-                android:hint="@string/manual_finish_time_format"
                 android:imeOptions="actionNext" />
         </com.google.android.material.textfield.TextInputLayout>
 
@@ -134,16 +132,25 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="@string/edit_hint_age_group"
+            app:helperText="@string/edit_hint_age_group_eg"
             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-            android:layout_marginBottom="20dp">
+            android:layout_marginBottom="4dp">
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/et_age_group"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:inputType="text"
-                android:hint="@string/edit_hint_age_group_eg"
                 android:imeOptions="actionNext" />
         </com.google.android.material.textfield.TextInputLayout>
+
+        <TextView
+            android:id="@+id/tv_age_at_race"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="12sp"
+            android:textColor="@color/text_secondary"
+            android:layout_marginBottom="20dp"
+            android:visibility="gone" />
 
         <!-- Section: Location -->
         <TextView

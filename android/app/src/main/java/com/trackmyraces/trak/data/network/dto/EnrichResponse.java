@@ -11,4 +11,5 @@ public class EnrichResponse {
     public Integer elevationStartMeters;
     public Double  temperatureCelsius;
     public String  weatherCondition;
+    public Boolean distanceIsEstimated;
 }

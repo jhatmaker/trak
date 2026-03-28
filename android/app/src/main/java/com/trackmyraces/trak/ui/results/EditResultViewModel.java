@@ -10,11 +10,13 @@ import androidx.lifecycle.ViewModel;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.trackmyraces.trak.data.db.entity.RaceResultEntity;
+import com.trackmyraces.trak.data.db.entity.RunnerProfileEntity;
 import com.trackmyraces.trak.data.network.ApiClient;
 import com.trackmyraces.trak.data.network.TrakApiService;
 import com.trackmyraces.trak.data.network.dto.EnrichRequest;
 import com.trackmyraces.trak.data.network.dto.EnrichResponse;
 import com.trackmyraces.trak.data.repository.RaceResultRepository;
+import com.trackmyraces.trak.data.repository.RunnerProfileRepository;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -29,7 +31,8 @@ import retrofit2.Response;
  */
 public class EditResultViewModel extends AndroidViewModel {
 
-    public final LiveData<RaceResultEntity> result;
+    public final LiveData<RaceResultEntity>    result;
+    public final LiveData<RunnerProfileEntity> profile;
 
     private final RaceResultRepository     mRepo;
     private final TrakApiService           mApi;
@@ -40,9 +43,10 @@ public class EditResultViewModel extends AndroidViewModel {
 
     public EditResultViewModel(@NonNull Application application, String resultId) {
         super(application);
-        mRepo = new RaceResultRepository(application);
-        mApi  = new ApiClient(application).getService();
-        result = mRepo.getResultById(resultId);
+        mRepo   = new RaceResultRepository(application);
+        mApi    = new ApiClient(application).getService();
+        result  = mRepo.getResultById(resultId);
+        profile = new RunnerProfileRepository(application).getProfile();
     }
 
     public LiveData<Boolean>       getSaved()     { return mSaved; }

@@ -196,6 +196,10 @@ public class RaceResultEntity {
     @ColumnInfo(name = "is_synced")
     public boolean isSynced;
 
+    /** True when distanceCanonical was inferred from race name, not confirmed by timing data */
+    @ColumnInfo(name = "is_distance_estimated", defaultValue = "0")
+    public boolean isDistanceEstimated;
+
     // ── Convenience helpers ───────────────────────────────────────────────
 
     /** Returns chip_seconds if available, otherwise finish_seconds. Used for PR comparison. */

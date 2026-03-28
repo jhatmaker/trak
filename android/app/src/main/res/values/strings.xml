@@ -225,8 +225,8 @@
     <string name="edit_hint_state">State / region</string>
     <string name="edit_hint_country">Country</string>
     <string name="edit_hint_surface">Surface type</string>
-    <string name="edit_hint_elevation_gain">Elevation gain (meters)</string>
-    <string name="edit_hint_temperature">Temperature (°C)</string>
+    <string name="edit_hint_elevation_gain">Elevation gain</string>
+    <string name="edit_hint_temperature">Temperature</string>
     <string name="edit_hint_weather">Weather description</string>
     <string name="edit_hint_notes">Notes</string>
     <string name="edit_repopulate_button">Re-populate from race info</string>
@@ -240,7 +240,9 @@
     <string name="edit_hint_gender">Gender (M / F / NB)</string>
     <string name="edit_hint_age_group">Age group label</string>
     <string name="edit_hint_age_group_eg">e.g. 40–44</string>
-    <string name="edit_hint_elevation_start">Start elevation (meters)</string>
+    <string name="edit_hint_elevation_start">Start elevation</string>
+    <string name="edit_hint_age_at_race">Age at race: %1$d</string>
+    <string name="edit_distance_estimated">Distance estimated from race name</string>
 
     <!-- Common -->
     <string name="ok">OK</string>

@@ -111,6 +111,8 @@ exports.handler = wrap(async (event) => {
   const inferredDistanceLabel     = distanceLabel || (dist.key !== 'other' ? dist.key : null);
   const inferredDistanceCanonical = dist.key !== 'other' ? dist.key : null;
   const inferredDistanceMeters    = dist.meters > 0 ? dist.meters : null;
+  // Estimated = distance was derived from race name only, not an explicit distanceLabel
+  const distanceIsEstimated       = !distanceLabel && inferredDistanceCanonical !== null;
 
   // ── Weather + elevation ───────────────────────────────────────────────────
   const weather = (raceCity || raceState || raceCountry)
@@ -128,6 +130,7 @@ exports.handler = wrap(async (event) => {
     distanceLabel:        inferredDistanceLabel,
     distanceCanonical:    inferredDistanceCanonical,
     distanceMeters:       inferredDistanceMeters,
+    distanceIsEstimated:  distanceIsEstimated,
     elevationStartMeters: weather?.elevationStartMeters ?? null,
     temperatureCelsius:   weather?.temperatureCelsius   ?? null,
     weatherCondition:     weather?.weatherCondition     ?? null,
