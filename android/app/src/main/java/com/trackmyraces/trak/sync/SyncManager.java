@@ -64,7 +64,11 @@ public class SyncManager {
     // ── Sync triggers ─────────────────────────────────────────────────────
 
     /**
-     * Trigger a full sync from the backend if online.
+     * Trigger a full sync if online:
+     *   1. Push any locally-claimed results (isSynced=false) to the backend.
+     *   2. Pull all results from the backend to refresh the local cache.
+     *
+     * Step 1 is a no-op when there are no unsynced results or no auth token.
      * Safe to call from any thread — delegates to repository callbacks.
      */
     public void syncIfOnline(SyncCallback callback) {
@@ -74,17 +78,45 @@ public class SyncManager {
             return;
         }
 
-        Log.d(TAG, "Online — starting sync");
-        mResultRepo.syncAllFromBackend(new RaceResultRepository.RepositoryCallback<Integer>() {
+        Log.d(TAG, "Online — pushing unsynced results then pulling");
+
+        // Step 1: push locally-claimed results to backend
+        mResultRepo.pushUnsyncedResults(new RaceResultRepository.RepositoryCallback<Integer>() {
             @Override
-            public void onSuccess(Integer count) {
-                Log.d(TAG, "Sync complete — " + count + " results updated");
-                if (callback != null) callback.onComplete(true, count + " results synced");
+            public void onSuccess(Integer pushed) {
+                if (pushed > 0) Log.d(TAG, "Pushed " + pushed + " unsynced results");
+
+                // Step 2: pull all results from backend
+                mResultRepo.syncAllFromBackend(new RaceResultRepository.RepositoryCallback<Integer>() {
+                    @Override
+                    public void onSuccess(Integer count) {
+                        Log.d(TAG, "Sync complete — " + count + " results pulled");
+                        if (callback != null) callback.onComplete(true, count + " results synced");
+                    }
+                    @Override
+                    public void onError(String message) {
+                        Log.e(TAG, "Pull error: " + message);
+                        // Push succeeded even if pull failed — report partial success
+                        if (callback != null) callback.onComplete(pushed > 0, message);
+                    }
+                });
             }
             @Override
             public void onError(String message) {
-                Log.e(TAG, "Sync error: " + message);
-                if (callback != null) callback.onComplete(false, message);
+                Log.w(TAG, "Push error (non-fatal): " + message);
+                // Push failed — still attempt pull
+                mResultRepo.syncAllFromBackend(new RaceResultRepository.RepositoryCallback<Integer>() {
+                    @Override
+                    public void onSuccess(Integer count) {
+                        Log.d(TAG, "Pull complete — " + count + " results");
+                        if (callback != null) callback.onComplete(true, count + " results synced");
+                    }
+                    @Override
+                    public void onError(String err) {
+                        Log.e(TAG, "Sync error: " + err);
+                        if (callback != null) callback.onComplete(false, err);
+                    }
+                });
             }
         });
     }

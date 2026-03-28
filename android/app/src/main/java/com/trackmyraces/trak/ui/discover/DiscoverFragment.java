@@ -15,6 +15,7 @@ import com.trackmyraces.trak.R;
 import com.trackmyraces.trak.data.network.dto.DiscoverResponse;
 import com.trackmyraces.trak.data.network.dto.DiscoverSiteResult;
 import com.trackmyraces.trak.data.repository.RaceResultRepository;
+import com.trackmyraces.trak.data.repository.SourcesRepository;
 import com.trackmyraces.trak.databinding.FragmentDiscoverBinding;
 import com.trackmyraces.trak.sync.PollScheduler;
 
@@ -81,18 +82,27 @@ public class DiscoverFragment extends NetworkAwareFragment {
         mBinding.tvNoResults.setVisibility(View.GONE);
         mBinding.tvError.setVisibility(View.GONE);
 
-        mRepo.discoverResults(mUserId, sourceIds, runnerName, dateOfBirth, true, sinceDate,
-            java.util.Collections.emptyMap(),
-            new RaceResultRepository.RepositoryCallback<DiscoverResponse>() {
-                @Override
-                public void onSuccess(DiscoverResponse response) {
-                    requireActivity().runOnUiThread(() -> handleResults(response));
-                }
-                @Override
-                public void onError(String message) {
-                    requireActivity().runOnUiThread(() -> showError(message));
-                }
-            });
+        // Load custom sources on a background thread, then kick off discovery
+        final SourcesRepository sourcesRepo =
+            new SourcesRepository(requireActivity().getApplication());
+        java.util.concurrent.Executors.newSingleThreadExecutor().execute(() -> {
+            List<com.trackmyraces.trak.data.network.dto.CustomSourceEntry> customSources =
+                sourcesRepo.getEnabledCustomSourcesSync();
+
+            mRepo.discoverResults(mUserId, sourceIds, customSources,
+                runnerName, dateOfBirth, true, sinceDate,
+                java.util.Collections.emptyMap(),
+                new RaceResultRepository.RepositoryCallback<DiscoverResponse>() {
+                    @Override
+                    public void onSuccess(DiscoverResponse response) {
+                        requireActivity().runOnUiThread(() -> handleResults(response));
+                    }
+                    @Override
+                    public void onError(String message) {
+                        requireActivity().runOnUiThread(() -> showError(message));
+                    }
+                });
+        });
     }
 
     private void handleResults(DiscoverResponse response) {

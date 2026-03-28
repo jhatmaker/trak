@@ -99,6 +99,13 @@ public interface TrakApiService {
     Call<ResultResponse> getResult(@Path("resultId") String resultId);
 
     /**
+     * POST /results
+     * Push a locally-claimed result to the backend (sync isSynced=false records).
+     */
+    @POST("results")
+    Call<ResultResponse> pushResult(@Body Map<String, Object> result);
+
+    /**
      * PUT /results/{resultId}
      * Update editable fields on a result (notes, corrections).
      */

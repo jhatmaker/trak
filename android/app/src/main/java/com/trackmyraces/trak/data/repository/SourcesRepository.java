@@ -155,6 +155,26 @@ public class SourcesRepository {
         return guids;
     }
 
+    /**
+     * Returns the enabled custom sources for inclusion in a /discover request.
+     * Only sources with a non-null customUrl and hidden=false are returned.
+     * Must be called on a background thread.
+     */
+    public List<com.trackmyraces.trak.data.network.dto.CustomSourceEntry> getEnabledCustomSourcesSync() {
+        List<UserSitePrefEntity> all = mDao.getAllSync();
+        List<com.trackmyraces.trak.data.network.dto.CustomSourceEntry> result = new ArrayList<>();
+        for (UserSitePrefEntity pref : all) {
+            if (pref.customUrl != null && !pref.customUrl.isEmpty() && !pref.hidden) {
+                result.add(new com.trackmyraces.trak.data.network.dto.CustomSourceEntry(
+                    pref.siteId,
+                    pref.customName != null ? pref.customName : pref.customUrl,
+                    pref.customUrl
+                ));
+            }
+        }
+        return result;
+    }
+
     /** Returns the GUID for a single default site by its siteId. */
     public static String getGuidForSiteId(String siteId) {
         for (DefaultSiteInfo site : DEFAULT_SITES) {

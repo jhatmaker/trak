@@ -173,12 +173,87 @@ function formatBQGap(bqGapSeconds) {
   return bqGapSeconds >= 0 ? `${fmt} under BQ` : `${fmt} over BQ`;
 }
 
+// ─── POST /results — sync a locally-claimed result to DynamoDB ───────────────
+//
+// Called by the Android app to push results that were claimed offline
+// (isSynced=false). The result is upserted verbatim; PR flags are
+// recalculated so the backend stays consistent.
+
+async function handlePost(event) {
+  const runnerId = getRunnerId(event);
+  if (!runnerId) return errors.unauthorized();
+
+  const body = parseBody(event);
+  if (!body.id || !body.raceName || !body.finishSeconds) {
+    return errors.badRequest('id, raceName, and finishSeconds are required');
+  }
+
+  const result = {
+    id:                body.id,
+    claimId:           body.claimId           ?? null,
+    raceEventId:       body.raceEventId        ?? null,
+    raceName:          body.raceName,
+    raceNameCanonical: body.raceNameCanonical  ?? body.raceName.toLowerCase().replace(/\s+/g, '-'),
+    raceDate:          body.raceDate           ?? null,
+    raceCity:          body.raceCity           ?? null,
+    raceState:         body.raceState          ?? null,
+    raceCountry:       body.raceCountry        ?? null,
+    distanceLabel:     body.distanceLabel      ?? null,
+    distanceCanonical: body.distanceCanonical  ?? null,
+    distanceMeters:    body.distanceMeters     ?? 0,
+    surfaceType:       body.surfaceType        ?? 'road',
+    isCertified:       body.isCertified        ?? null,
+    bibNumber:         body.bibNumber          ?? null,
+    finishTime:        body.finishTime         ?? null,
+    finishSeconds:     body.finishSeconds,
+    chipTime:          body.chipTime           ?? null,
+    chipSeconds:       body.chipSeconds        ?? null,
+    pacePerKmSeconds:  body.pacePerKmSeconds   ?? null,
+    overallPlace:      body.overallPlace       ?? null,
+    overallTotal:      body.overallTotal       ?? null,
+    gender:            body.gender             ?? null,
+    genderPlace:       body.genderPlace        ?? null,
+    genderTotal:       body.genderTotal        ?? null,
+    ageGroupLabel:     body.ageGroupLabel      ?? null,
+    ageGroupCalc:      body.ageGroupCalc       ?? null,
+    ageGroupPlace:     body.ageGroupPlace      ?? null,
+    ageGroupTotal:     body.ageGroupTotal      ?? null,
+    ageAtRace:         body.ageAtRace          ?? null,
+    isPR:              false,  // recalculated below
+    isBQ:              body.isBQ               ?? false,
+    bqGapSeconds:      body.bqGapSeconds       ?? null,
+    ageGradePercent:   body.ageGradePercent    ?? null,
+    elevationGainMeters:  body.elevationGainMeters  ?? null,
+    elevationStartMeters: body.elevationStartMeters ?? null,
+    temperatureCelsius:   body.temperatureCelsius   ?? null,
+    weatherCondition:     body.weatherCondition     ?? null,
+    sourceUrl:         body.sourceUrl          ?? null,
+    notes:             body.notes              ?? null,
+    status:            'active',
+    recordedAt:        body.recordedAt         ?? new Date().toISOString(),
+    splits:            Array.isArray(body.splits) ? body.splits : [],
+  };
+
+  await db.results.put(runnerId, result);
+
+  // Recalculate PR flags for this canonical distance
+  if (result.distanceCanonical) {
+    await db.results.recalculatePRs(runnerId, result.distanceCanonical);
+  }
+
+  // Re-fetch the now-updated record (isPR may have changed)
+  const saved = await db.results.get(runnerId, result.id);
+  console.log(JSON.stringify({ type: 'RESULT_SYNCED', runnerId, resultId: result.id }));
+  return ok(formatResult(saved));
+}
+
 // ─── Router ───────────────────────────────────────────────────────────────────
 
 exports.handler = wrap(async (event) => {
   const resultId = getPathParam(event, 'resultId');
   switch (event.httpMethod) {
     case 'GET':    return resultId ? handleGet(event) : handleList(event);
+    case 'POST':   return handlePost(event);
     case 'PUT':    return handleUpdate(event);
     default:       return errors.badRequest(`Method ${event.httpMethod} not supported`);
   }

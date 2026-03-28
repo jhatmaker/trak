@@ -125,6 +125,7 @@ public class RaceResultRepository {
     @OfflineCapability(available = false, reason = "Requires network — calls /discover endpoint")
     public void discoverResults(String userId,
                                 List<String> sourceIds,
+                                List<com.trackmyraces.trak.data.network.dto.CustomSourceEntry> customSources,
                                 String runnerName, String dateOfBirth,
                                 boolean extractResults,
                                 String sinceDate,
@@ -133,6 +134,7 @@ public class RaceResultRepository {
         DiscoverRequest request = new DiscoverRequest();
         request.userId          = userId;
         request.sourceIds       = sourceIds;
+        request.customSources   = customSources;
         request.runnerName      = runnerName;
         request.dateOfBirth     = dateOfBirth;
         request.extractResults  = extractResults;
@@ -482,6 +484,95 @@ public class RaceResultRepository {
                 callback.onError(e.getMessage());
             }
         });
+    }
+
+    // ── Push locally-claimed results to backend ───────────────────────────
+
+    /**
+     * Push all Room results with isSynced=false to the backend.
+     * Skips silently if there are no unsynced results or if the device is offline/unauthenticated.
+     * Marks each result isSynced=true in Room on a successful push.
+     *
+     * Must NOT be called on the main thread — uses synchronous Retrofit execute().
+     */
+    @OfflineCapability(available = false, reason = "Requires backend — calls POST /results")
+    public void pushUnsyncedResults(RepositoryCallback<Integer> callback) {
+        mExecutor.execute(() -> {
+            List<RaceResultEntity> unsynced = mDao.getUnsynced();
+            if (unsynced == null || unsynced.isEmpty()) {
+                callback.onSuccess(0);
+                return;
+            }
+
+            int pushed = 0;
+            for (RaceResultEntity r : unsynced) {
+                try {
+                    Map<String, Object> body = resultToMap(r);
+                    retrofit2.Response<com.trackmyraces.trak.data.network.dto.ResultResponse> resp =
+                        mApi.pushResult(body).execute();
+                    if (resp.isSuccessful()) {
+                        mDao.markSynced(r.id, now());
+                        pushed++;
+                        Log.d(TAG, "Pushed result " + r.id + " to backend");
+                    } else if (resp.code() == 401) {
+                        Log.d(TAG, "Not authenticated — stopping push at result " + r.id);
+                        break;  // No point continuing — all calls will fail
+                    } else {
+                        Log.w(TAG, "Push failed for result " + r.id + ": HTTP " + resp.code());
+                    }
+                } catch (Exception e) {
+                    Log.e(TAG, "Network error pushing result " + r.id, e);
+                }
+            }
+
+            Log.d(TAG, "Pushed " + pushed + " of " + unsynced.size() + " unsynced results");
+            callback.onSuccess(pushed);
+        });
+    }
+
+    /** Converts a RaceResultEntity to a Map for the POST /results body. */
+    private Map<String, Object> resultToMap(RaceResultEntity r) {
+        Map<String, Object> m = new HashMap<>();
+        m.put("id",                   r.id);
+        m.put("claimId",              r.claimId);
+        m.put("raceEventId",          r.raceEventId);
+        m.put("raceName",             r.raceName);
+        m.put("raceNameCanonical",    r.raceNameCanonical);
+        m.put("raceDate",             r.raceDate);
+        m.put("raceCity",             r.raceCity);
+        m.put("raceState",            r.raceState);
+        m.put("raceCountry",          r.raceCountry);
+        m.put("distanceLabel",        r.distanceLabel);
+        m.put("distanceCanonical",    r.distanceCanonical);
+        m.put("distanceMeters",       r.distanceMeters);
+        m.put("surfaceType",          r.surfaceType);
+        m.put("isCertified",          r.isCertified);
+        m.put("bibNumber",            r.bibNumber);
+        m.put("finishTime",           r.finishTime);
+        m.put("finishSeconds",        r.finishSeconds);
+        m.put("chipTime",             r.chipTime);
+        m.put("chipSeconds",          r.chipSeconds);
+        m.put("pacePerKmSeconds",     r.pacePerKmSeconds);
+        m.put("overallPlace",         r.overallPlace);
+        m.put("overallTotal",         r.overallTotal);
+        m.put("gender",               r.gender);
+        m.put("genderPlace",          r.genderPlace);
+        m.put("genderTotal",          r.genderTotal);
+        m.put("ageGroupLabel",        r.ageGroupLabel);
+        m.put("ageGroupCalc",         r.ageGroupCalc);
+        m.put("ageGroupPlace",        r.ageGroupPlace);
+        m.put("ageGroupTotal",        r.ageGroupTotal);
+        m.put("ageAtRace",            r.ageAtRace);
+        m.put("isBQ",                 r.isBQ);
+        m.put("bqGapSeconds",         r.bqGapSeconds);
+        m.put("ageGradePercent",      r.ageGradePercent);
+        m.put("elevationGainMeters",  r.elevationGainMeters);
+        m.put("elevationStartMeters", r.elevationStartMeters);
+        m.put("temperatureCelsius",   r.temperatureCelsius);
+        m.put("weatherCondition",     r.weatherCondition);
+        m.put("notes",                r.notes);
+        m.put("recordedAt",           r.recordedAt);
+        return m;
     }
 
     // ── Update supplementary fields ───────────────────────────────────────

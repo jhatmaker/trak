@@ -98,7 +98,10 @@ public class ResultPollWorker extends Worker {
                 }
             }
 
-            List<String> sourceIds = new SourcesRepository(app).getEnabledSourceGuidsSync();
+            SourcesRepository sourcesRepo = new SourcesRepository(app);
+            List<String> sourceIds = sourcesRepo.getEnabledSourceGuidsSync();
+            List<com.trackmyraces.trak.data.network.dto.CustomSourceEntry> customSources =
+                sourcesRepo.getEnabledCustomSourcesSync();
             java.util.Map<String, Integer> lastKnownCounts =
                 PollScheduler.getLastKnownCounts(getApplicationContext());
 
@@ -110,7 +113,7 @@ public class ResultPollWorker extends Worker {
             final String[]           error  = {null};
 
             repo.discoverResults(
-                profile.userId, sourceIds,
+                profile.userId, sourceIds, customSources,
                 profile.name, profile.dateOfBirth,
                 extractResults, sinceDate, lastKnownCounts,
                 new RaceResultRepository.RepositoryCallback<DiscoverResponse>() {

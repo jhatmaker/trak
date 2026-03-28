@@ -244,6 +244,12 @@ Resources:
             RestApiId: !Ref TrakApi
             Path: /results/{resultId}
             Method: GET
+        Sync:
+          Type: Api
+          Properties:
+            RestApiId: !Ref TrakApi
+            Path: /results
+            Method: POST
         Update:
           Type: Api
           Properties:

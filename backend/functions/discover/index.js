@@ -196,6 +196,7 @@ exports.handler = wrap(async (event) => {
   const {
     userId          = null,   // device-local UUID — used to load/store counts in DynamoDB
     sourceIds       = null,   // array of source GUIDs — when present, overrides interests/excludeSiteIds
+    customSources   = [],     // [{id, name, url}] — user-added sites not in DEFAULT_SITES
     runnerName,
     dateOfBirth     = null,
     interests       = [],
@@ -223,6 +224,24 @@ exports.handler = wrap(async (event) => {
     const cleanInterests = Array.isArray(interests) ? interests.filter(t => validTags.includes(t)) : [];
     const cleanExclude   = Array.isArray(excludeSiteIds) ? excludeSiteIds.filter(s => typeof s === 'string') : [];
     sites = resolveSiteUrls(name, cleanInterests, cleanExclude);
+  }
+
+  // Append user-added custom sources as Claude search targets.
+  // Each becomes a search site with a site:-restricted web query.
+  // They never have a direct API so they always go to Claude.
+  if (Array.isArray(customSources) && customSources.length > 0) {
+    for (const cs of customSources) {
+      if (!cs.id || !cs.url) continue;
+      let hostname = cs.url;
+      try { hostname = new URL(cs.url).hostname; } catch { /* use raw url */ }
+      sites.push({
+        id:          cs.id,
+        name:        cs.name || hostname,
+        description: cs.name || hostname,
+        searchQuery: `"${name}" site:${hostname}`,
+        resultsUrl:  cs.url,
+      });
+    }
   }
 
   // Load stored per-user counts from DynamoDB if userId is present.
