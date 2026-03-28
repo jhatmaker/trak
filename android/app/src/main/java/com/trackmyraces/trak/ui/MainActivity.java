@@ -35,6 +35,7 @@ public class MainActivity extends AppCompatActivity {
 
     private ActivityMainBinding mBinding;
     private NavController       mNavController;
+    private boolean             mWasOffline = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -65,10 +66,14 @@ public class MainActivity extends AppCompatActivity {
         NavigationUI.setupActionBarWithNavController(this, mNavController, appBarConfig);
         NavigationUI.setupWithNavController(mBinding.bottomNav, mNavController);
 
-        // Observe network state — show/hide offline banner
-        TrakApplication.getInstance().getNetworkMonitor().observe(this, isOnline ->
-            mBinding.offlineBanner.setVisibility(isOnline ? View.GONE : View.VISIBLE)
-        );
+        // Observe network state — show/hide offline banner + trigger sync on reconnect
+        TrakApplication.getInstance().getNetworkMonitor().observe(this, isOnline -> {
+            mBinding.offlineBanner.setVisibility(isOnline ? View.GONE : View.VISIBLE);
+            if (isOnline && mWasOffline) {
+                TrakApplication.getInstance().getSyncManager().syncIfOnline(null);
+            }
+            mWasOffline = !isOnline;
+        });
 
         // Profile gate: on fresh launch, navigate to Profile if no profile is set.
         // Uses a one-shot observer so it doesn't fire again after the user saves.

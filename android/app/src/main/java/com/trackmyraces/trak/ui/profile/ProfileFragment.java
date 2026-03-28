@@ -37,6 +37,7 @@ public class ProfileFragment extends NetworkAwareFragment {
     private FragmentProfileBinding mBinding;
     private ProfileViewModel       mViewModel;
     private boolean                mIsNewProfile = false; // true when no profile existed before save
+    private int                    mPendingCount = 0;     // live count of unsynced results
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
@@ -177,6 +178,31 @@ public class ProfileFragment extends NetworkAwareFragment {
     }
 
     private void observeViewModel() {
+        // Track unsynced count for chip label
+        mViewModel.unsyncedCount.observe(getViewLifecycleOwner(), count -> {
+            mPendingCount = (count != null) ? count : 0;
+            ProfileViewModel.SyncState state = mViewModel.syncState.getValue();
+            if (state == ProfileViewModel.SyncState.PENDING) updateSyncChip(state);
+        });
+
+        // Sync state chip
+        mViewModel.syncState.observe(getViewLifecycleOwner(), state -> {
+            RunnerProfileEntity p = mViewModel.profile.getValue();
+            if (p == null || p.userId == null) {
+                mBinding.chipSyncState.setVisibility(View.GONE);
+                return;
+            }
+            mBinding.chipSyncState.setVisibility(View.VISIBLE);
+            updateSyncChip(state);
+        });
+
+        mViewModel.profile.observe(getViewLifecycleOwner(), p -> {
+            if (p != null && p.userId != null) {
+                ProfileViewModel.SyncState state = mViewModel.syncState.getValue();
+                if (state != null) updateSyncChip(state);
+            }
+        });
+
         // Update poll-now button label with live total enabled-source count (defaults + custom)
         mViewModel.enabledSourceCount.observe(getViewLifecycleOwner(), enabled -> {
             int count = enabled != null ? enabled : 0;
@@ -250,6 +276,68 @@ public class ProfileFragment extends NetworkAwareFragment {
             mBinding.chipInterestTrack.setChecked(saved.contains("track"));
             mBinding.chipInterestCrosscountry.setChecked(saved.contains("crosscountry"));
         });
+    }
+
+    private void updateSyncChip(ProfileViewModel.SyncState state) {
+        com.google.android.material.chip.Chip chip = mBinding.chipSyncState;
+        switch (state) {
+            case SYNCED:
+                chip.setChipIcon(androidx.core.content.ContextCompat.getDrawable(
+                    requireContext(), R.drawable.ic_cloud_done));
+                chip.setText(getString(R.string.sync_state_synced));
+                chip.setChipBackgroundColorResource(R.color.badge_bq_bg);
+                chip.setTextColor(androidx.core.content.ContextCompat.getColor(
+                    requireContext(), R.color.success));
+                break;
+            case PENDING:
+                chip.setChipIcon(androidx.core.content.ContextCompat.getDrawable(
+                    requireContext(), R.drawable.ic_sync));
+                chip.setText(getString(R.string.sync_state_pending, mPendingCount));
+                chip.setChipBackgroundColorResource(android.R.color.transparent);
+                chip.setTextColor(androidx.core.content.ContextCompat.getColor(
+                    requireContext(), R.color.warning));
+                break;
+            case OFFLINE:
+            default:
+                chip.setChipIcon(androidx.core.content.ContextCompat.getDrawable(
+                    requireContext(), R.drawable.ic_cloud_off));
+                chip.setText(getString(R.string.sync_state_offline));
+                chip.setChipBackgroundColorResource(android.R.color.transparent);
+                chip.setTextColor(androidx.core.content.ContextCompat.getColor(
+                    requireContext(), R.color.text_hint));
+                break;
+        }
+
+        chip.setOnClickListener(v -> {
+            RunnerProfileEntity p = mViewModel.profile.getValue();
+            String msg;
+            if (p != null && p.lastSyncedAt != null) {
+                msg = getString(R.string.sync_last_synced, formatRelativeTime(p.lastSyncedAt));
+            } else {
+                msg = getString(R.string.sync_never);
+            }
+            Toast.makeText(requireContext(), msg, Toast.LENGTH_SHORT).show();
+        });
+    }
+
+    /** Formats an ISO timestamp as a human-readable relative time string. */
+    private String formatRelativeTime(String isoTimestamp) {
+        try {
+            java.text.SimpleDateFormat sdf =
+                new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US);
+            java.util.Date then = sdf.parse(isoTimestamp);
+            if (then == null) return isoTimestamp;
+            long diffMs = System.currentTimeMillis() - then.getTime();
+            long mins   = diffMs / 60000;
+            if (mins < 1)  return "just now";
+            if (mins < 60) return mins + " minute" + (mins == 1 ? "" : "s") + " ago";
+            long hours = mins / 60;
+            if (hours < 24) return hours + " hour" + (hours == 1 ? "" : "s") + " ago";
+            long days = hours / 24;
+            return days + " day" + (days == 1 ? "" : "s") + " ago";
+        } catch (java.text.ParseException e) {
+            return isoTimestamp;
+        }
     }
 
     /** Returns a comma-separated string of selected interest tags, empty string if none. */

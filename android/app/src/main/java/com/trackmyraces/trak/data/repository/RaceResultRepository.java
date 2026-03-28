@@ -122,6 +122,11 @@ public class RaceResultRepository {
         return mDao.getAveragePacePerKm();
     }
 
+    @OfflineCapability(available = true)
+    public LiveData<Integer> getUnsyncedCountLive() {
+        return mDao.getUnsyncedCountLive();
+    }
+
     // ── Discovery (online only) ───────────────────────────────────────────
 
     /**

@@ -42,4 +42,7 @@ public interface RunnerProfileDao {
 
     @Query("UPDATE runner_profile SET last_discover_at = :timestamp, pending_count = :count WHERE status != 'deleted'")
     void updateDiscoverStats(String timestamp, int count);
+
+    @Query("UPDATE runner_profile SET last_synced_at = :timestamp WHERE status != 'deleted'")
+    void updateLastSyncedAt(String timestamp);
 }

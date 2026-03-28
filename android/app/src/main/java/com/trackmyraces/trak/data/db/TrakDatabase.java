@@ -45,6 +45,7 @@ import com.trackmyraces.trak.data.db.entity.SavedViewEntity;
  *        finish_seconds, overall_place, overall_total, raw_data)
  *  10 — added user_id to runner_profile (device-local UUID for backend identification)
  *  13 — added target_pace_seconds_per_mile to runner_profile
+ *  14 — added last_synced_at to runner_profile (timestamp of last successful backend sync)
  */
 @Database(
     entities = {
@@ -57,7 +58,7 @@ import com.trackmyraces.trak.data.db.entity.SavedViewEntity;
         PendingMatchEntity.class,
         UserSitePrefEntity.class,
     },
-    version = 13,
+    version = 14,
     exportSchema = true
 )
 public abstract class TrakDatabase extends RoomDatabase {
@@ -87,7 +88,7 @@ public abstract class TrakDatabase extends RoomDatabase {
                             TrakDatabase.class,
                             DB_NAME
                         )
-                        .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13)
+                        .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14)
                         .build();
                 }
             }
@@ -258,6 +259,13 @@ public abstract class TrakDatabase extends RoomDatabase {
             db.execSQL("ALTER TABLE `pending_match` ADD COLUMN `race_city` TEXT");
             db.execSQL("ALTER TABLE `pending_match` ADD COLUMN `race_state` TEXT");
             db.execSQL("ALTER TABLE `pending_match` ADD COLUMN `race_country` TEXT");
+        }
+    };
+
+    static final Migration MIGRATION_13_14 = new Migration(13, 14) {
+        @Override
+        public void migrate(@androidx.annotation.NonNull SupportSQLiteDatabase db) {
+            db.execSQL("ALTER TABLE `runner_profile` ADD COLUMN `last_synced_at` TEXT");
         }
     };
 

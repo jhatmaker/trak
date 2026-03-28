@@ -90,6 +90,10 @@ public class RunnerProfileEntity {
     @ColumnInfo(name = "user_id")
     public String userId;
 
+    /** ISO timestamp of the last successful bidirectional sync with the backend. */
+    @ColumnInfo(name = "last_synced_at")
+    public String lastSyncedAt;
+
     /**
      * Runner's typical pace in seconds per mile — used to disambiguate distance
      * when a race has multiple distance options (e.g. "10K / 50K / 100K").

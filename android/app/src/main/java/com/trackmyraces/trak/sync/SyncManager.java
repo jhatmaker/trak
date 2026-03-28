@@ -12,6 +12,7 @@ import androidx.work.PeriodicWorkRequest;
 import androidx.work.WorkManager;
 
 import com.trackmyraces.trak.data.repository.RaceResultRepository;
+import com.trackmyraces.trak.data.repository.RunnerProfileRepository;
 
 import java.util.concurrent.TimeUnit;
 
@@ -32,12 +33,14 @@ public class SyncManager {
     private static final String TAG             = "SyncManager";
     private static final String SYNC_WORK_NAME  = "trak_periodic_sync";
 
-    private final Context               mContext;
-    private final RaceResultRepository  mResultRepo;
+    private final Context                 mContext;
+    private final RaceResultRepository    mResultRepo;
+    private final RunnerProfileRepository mProfileRepo;
 
     public SyncManager(Context context) {
-        mContext    = context.getApplicationContext();
-        mResultRepo = new RaceResultRepository((android.app.Application) mContext);
+        mContext     = context.getApplicationContext();
+        mResultRepo  = new RaceResultRepository((android.app.Application) mContext);
+        mProfileRepo = new RunnerProfileRepository((android.app.Application) mContext);
     }
 
     // ── Connectivity ──────────────────────────────────────────────────────
@@ -91,6 +94,7 @@ public class SyncManager {
                     @Override
                     public void onSuccess(Integer count) {
                         Log.d(TAG, "Sync complete — " + count + " results pulled");
+                        mProfileRepo.stampSyncedNow();
                         if (callback != null) callback.onComplete(true, count + " results synced");
                     }
                     @Override

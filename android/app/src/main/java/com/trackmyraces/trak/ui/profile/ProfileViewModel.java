@@ -8,11 +8,13 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MediatorLiveData;
 import androidx.work.WorkInfo;
 
+import com.trackmyraces.trak.TrakApplication;
 import com.trackmyraces.trak.data.db.entity.RunnerProfileEntity;
 import com.trackmyraces.trak.data.repository.RaceResultRepository;
 import com.trackmyraces.trak.data.repository.RunnerProfileRepository;
 import com.trackmyraces.trak.data.repository.SourcesRepository;
 import com.trackmyraces.trak.sync.PollScheduler;
+import com.trackmyraces.trak.util.NetworkMonitor;
 
 import java.util.Collections;
 import java.util.List;
@@ -23,6 +25,13 @@ import java.util.concurrent.Executors;
 import com.trackmyraces.trak.data.repository.RaceResultRepository.RepositoryCallback;
 
 public class ProfileViewModel extends AndroidViewModel {
+
+    /** Three-state sync indicator for the profile screen chip. */
+    public enum SyncState {
+        SYNCED,   // online, profile synced, zero unsynced results
+        PENDING,  // online but local changes not yet pushed/pulled
+        OFFLINE   // no network connection
+    }
 
     private final RunnerProfileRepository mRepo;
     private final SourcesRepository       mSourcesRepo;
@@ -54,6 +63,15 @@ public class ProfileViewModel extends AndroidViewModel {
      */
     public final LiveData<List<WorkInfo>> pendingPollWorkInfo;
 
+    /** Live count of results not yet synced — used to show "N pending" on the sync chip. */
+    public final LiveData<Integer> unsyncedCount;
+
+    /**
+     * Combined sync state for the profile screen chip.
+     * Hidden for free users (profile.userId == null).
+     */
+    public final LiveData<SyncState> syncState;
+
     public ProfileViewModel(@NonNull Application application) {
         super(application);
         mRepo        = new RunnerProfileRepository(application);
@@ -75,6 +93,29 @@ public class ProfileViewModel extends AndroidViewModel {
         combined.addSource(hiddenDefaultSiteCount, v -> recompute.run());
         combined.addSource(customCount,            v -> recompute.run());
         enabledSourceCount = combined;
+
+        // Sync state — combines network, profile.isSynced, and unsynced result count
+        RaceResultRepository resultRepo = new RaceResultRepository(application);
+        LiveData<Boolean>  networkLive     = TrakApplication.getInstance().getNetworkMonitor();
+        LiveData<Integer>  unsyncedLive    = resultRepo.getUnsyncedCountLive();
+        unsyncedCount = unsyncedLive;
+        MediatorLiveData<SyncState> syncMed = new MediatorLiveData<>();
+        Runnable recomputeSync = () -> {
+            Boolean online   = networkLive.getValue();
+            if (online == null || !online) {
+                syncMed.setValue(SyncState.OFFLINE);
+                return;
+            }
+            RunnerProfileEntity p = profile.getValue();
+            boolean profileSynced = (p == null || p.isSynced);
+            Integer unsynced      = unsyncedLive.getValue();
+            boolean resultsSynced = (unsynced == null || unsynced == 0);
+            syncMed.setValue((profileSynced && resultsSynced) ? SyncState.SYNCED : SyncState.PENDING);
+        };
+        syncMed.addSource(networkLive,   v -> recomputeSync.run());
+        syncMed.addSource(profile,       v -> recomputeSync.run());
+        syncMed.addSource(unsyncedLive,  v -> recomputeSync.run());
+        syncState = syncMed;
     }
 
     /**

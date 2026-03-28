@@ -266,6 +266,13 @@
     <string name="edit_hint_age_at_race">Age at race: %1$d</string>
     <string name="edit_distance_estimated">Distance estimated from race name</string>
 
+    <!-- Sync status chip (profile screen) -->
+    <string name="sync_state_synced">Synced</string>
+    <string name="sync_state_pending">%1$d pending</string>
+    <string name="sync_state_offline">Offline</string>
+    <string name="sync_last_synced">Last synced %1$s</string>
+    <string name="sync_never">Never synced to server</string>
+
     <!-- Common -->
     <string name="ok">OK</string>
     <string name="cancel">Cancel</string>

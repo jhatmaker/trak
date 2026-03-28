@@ -71,6 +71,7 @@ public class RunnerProfileRepository {
                 if (response.isSuccessful()) {
                     mExecutor.execute(() -> {
                         profile.isSynced = true;
+                        profile.lastSyncedAt = nowTimestamp();
                         mDao.insertOrReplace(profile);
                     });
                 }
@@ -101,6 +102,7 @@ public class RunnerProfileRepository {
                 if (response.isSuccessful()) {
                     mExecutor.execute(() -> {
                         updated.isSynced = true;
+                        updated.lastSyncedAt = nowTimestamp();
                         mDao.update(updated);
                     });
                 }
@@ -135,5 +137,18 @@ public class RunnerProfileRepository {
     /** Store auth token locally after login */
     public void saveAuthToken(String profileId, String token) {
         mExecutor.execute(() -> mDao.updateAuthToken(profileId, token));
+    }
+
+    /**
+     * Stamp the last successful bidirectional sync time on the active profile.
+     * Called by SyncManager after both push and pull complete successfully.
+     */
+    public void stampSyncedNow() {
+        mExecutor.execute(() -> mDao.updateLastSyncedAt(nowTimestamp()));
+    }
+
+    private static String nowTimestamp() {
+        return new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", java.util.Locale.US)
+            .format(new java.util.Date());
     }
 }
