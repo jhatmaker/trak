@@ -144,9 +144,10 @@ function parseAthlinksDirect(site, data) {
 
     const finishSeconds = race.Time ? timeStrToSeconds(race.Time) : 0;
 
-    const state    = race.StateProv ?? null;
-    const country  = race.Country   ?? null;
-    const location = state && country ? `${state}, ${country}` : (state ?? country ?? null);
+    const raceState   = race.StateProv ?? null;
+    const raceCountry = race.Country   ?? null;
+    // Combined string kept for display; separate fields used when claiming
+    const location = raceState && raceCountry ? `${raceState}, ${raceCountry}` : (raceState ?? raceCountry ?? null);
 
     const resultUrl = eventId && entryId
       ? `https://www.athlinks.com/event/${eventId}/results/entry/${entryId}`
@@ -159,6 +160,9 @@ function parseAthlinksDirect(site, data) {
       distanceLabel:  race.Name         ?? null, // race name usually contains distance
       distanceMeters: 0,                          // not available from this endpoint
       location,
+      raceCity:       null,                       // Athlinks search API does not return city
+      raceState,
+      raceCountry,
       bibNumber:      race.BibNum ? String(race.BibNum) : null,
       finishTime:     race.Time         ?? null,
       finishSeconds,

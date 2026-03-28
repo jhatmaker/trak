@@ -68,8 +68,9 @@
 
         </LinearLayout>
 
-        <!-- Placement row -->
+        <!-- Placement row — hidden when no placement data is available -->
         <LinearLayout
+            android:id="@+id/placement_row"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"

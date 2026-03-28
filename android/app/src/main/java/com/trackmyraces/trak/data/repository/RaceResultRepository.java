@@ -212,6 +212,9 @@ public class RaceResultRepository {
                         match.distanceLabel    = rec.distanceLabel;
                         match.distanceMeters   = rec.distanceMeters;
                         match.location         = rec.location;
+                        match.raceCity         = rec.raceCity;
+                        match.raceState        = rec.raceState;
+                        match.raceCountry      = rec.raceCountry;
                         match.bibNumber        = rec.bibNumber;
                         match.finishTime       = rec.finishTime;
                         match.finishSeconds    = rec.finishSeconds;
@@ -321,8 +324,13 @@ public class RaceResultRepository {
             result.recordedAt      = timestamp;
             result.updatedAt       = timestamp;
 
-            // Parse city/state from location "City, State"
-            if (match.location != null && match.location.contains(",")) {
+            // Use separate location fields when available (newer records from Athlinks)
+            if (match.raceCity != null || match.raceState != null || match.raceCountry != null) {
+                result.raceCity    = match.raceCity;
+                result.raceState   = match.raceState;
+                result.raceCountry = match.raceCountry;
+            } else if (match.location != null && match.location.contains(",")) {
+                // Fallback: parse legacy combined "City, State" string
                 String[] parts = match.location.split(",", 2);
                 result.raceCity  = parts[0].trim();
                 result.raceState = parts[1].trim();

@@ -97,9 +97,18 @@ public class PendingMatchEntity {
     @ColumnInfo(name = "distance_meters", defaultValue = "0")
     public double distanceMeters;
 
-    /** "City, State" or "City, Country" — null if unknown. */
+    /** "City, State" or "City, Country" — null if unknown. Kept for existing rows. */
     @ColumnInfo(name = "location")
     public String location;
+
+    @ColumnInfo(name = "race_city")
+    public String raceCity;
+
+    @ColumnInfo(name = "race_state")
+    public String raceState;
+
+    @ColumnInfo(name = "race_country")
+    public String raceCountry;
 
     /** Bib number as a string — null if unknown. */
     @ColumnInfo(name = "bib_number")

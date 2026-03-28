@@ -99,18 +99,26 @@ public class ResultDetailFragment extends NetworkAwareFragment {
         mBinding.badgePrDetail.setVisibility(r.isPR ? View.VISIBLE : View.GONE);
         mBinding.badgeBqDetail.setVisibility(r.isBQ ? View.VISIBLE : View.GONE);
 
-        // Placement row
-        mBinding.tvOverall.setText(r.overallPlace != null && r.overallTotal != null
-            ? getString(R.string.place_of, r.overallPlace, r.overallTotal) : "—");
+        // Placement row — only show when at least overall place is known
+        boolean hasPlacement = r.overallPlace != null && r.overallPlace > 0;
+        mBinding.placementRow.setVisibility(hasPlacement ? View.VISIBLE : View.GONE);
 
-        mBinding.tvGenderPlace.setText(r.genderPlace != null && r.genderTotal != null
-            ? getString(R.string.place_of, r.genderPlace, r.genderTotal) : "—");
+        if (hasPlacement) {
+            mBinding.tvOverall.setText(r.overallTotal != null
+                ? getString(R.string.place_of, r.overallPlace, r.overallTotal)
+                : String.valueOf(r.overallPlace));
 
-        mBinding.tvAgPlace.setText(r.ageGroupPlace != null && r.ageGroupTotal != null
-            ? getString(R.string.place_of, r.ageGroupPlace, r.ageGroupTotal) : "—");
+            mBinding.tvGenderPlace.setText(r.genderPlace != null && r.genderPlace > 0
+                ? (r.genderTotal != null ? getString(R.string.place_of, r.genderPlace, r.genderTotal) : String.valueOf(r.genderPlace))
+                : "—");
 
-        mBinding.tvAgLabel.setText(r.ageGroupLabel != null ? r.ageGroupLabel
-            : r.ageGroupCalc != null ? r.ageGroupCalc : getString(R.string.detail_age_group));
+            mBinding.tvAgPlace.setText(r.ageGroupPlace != null && r.ageGroupPlace > 0
+                ? (r.ageGroupTotal != null ? getString(R.string.place_of, r.ageGroupPlace, r.ageGroupTotal) : String.valueOf(r.ageGroupPlace))
+                : "—");
+
+            mBinding.tvAgLabel.setText(r.ageGroupLabel != null ? r.ageGroupLabel
+                : r.ageGroupCalc != null ? r.ageGroupCalc : getString(R.string.detail_age_group));
+        }
 
         // Detail rows
         mBinding.tvChipTimeRow.setText(

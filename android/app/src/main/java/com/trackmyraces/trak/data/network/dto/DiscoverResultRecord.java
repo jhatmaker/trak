@@ -30,8 +30,13 @@ public class DiscoverResultRecord {
     /** Distance in metres — 0 if unknown. */
     public double distanceMeters;
 
-    /** "City, State" or "City, Country" — null if unknown. */
+    /** "City, State" or "City, Country" — null if unknown. Kept for backward compat. */
     public String location;
+
+    /** Separate location fields — preferred over parsing location string when present. */
+    public String raceCity;
+    public String raceState;
+    public String raceCountry;
 
     /** Bib number as a string, or null. */
     public String bibNumber;
