@@ -307,7 +307,7 @@ public class RaceResultRepository {
      * will be uploaded to the backend when auth is implemented.
      */
     @OfflineCapability(available = true)
-    public void claimAndSave(PendingMatchEntity match) {
+    public void claimAndSave(PendingMatchEntity match, int targetPaceSecondsPerMile) {
         mExecutor.execute(() -> {
             String timestamp = now();
 
@@ -321,6 +321,19 @@ public class RaceResultRepository {
             // Resolve canonical key + infer meters from label when the value is 0
             DistanceNormalizer.Result dist =
                 DistanceNormalizer.resolve(match.distanceLabel, match.distanceMeters);
+
+            // If label matching failed and the runner has a target pace set, use
+            // pace × finish time to estimate which distance they actually ran.
+            if ((dist.key == null || dist.meters <= 0) && targetPaceSecondsPerMile > 0
+                    && match.finishSeconds > 0) {
+                DistanceNormalizer.Result paceEst =
+                    DistanceNormalizer.estimateFromPaceAndTime(targetPaceSecondsPerMile, match.finishSeconds);
+                if (paceEst != null) {
+                    dist = paceEst;
+                    result.isDistanceEstimated = true;
+                }
+            }
+
             result.distanceCanonical = dist.key;
             result.distanceMeters    = dist.meters;
 

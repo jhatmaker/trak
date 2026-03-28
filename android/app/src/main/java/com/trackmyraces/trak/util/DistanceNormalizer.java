@@ -128,6 +128,39 @@ public final class DistanceNormalizer {
         return new Result(key, resolvedMeters);
     }
 
+    /**
+     * Estimates the canonical distance using the runner's typical pace and their finish time.
+     *
+     * Logic: estimatedMiles = finishSeconds / targetPaceSecPerMile
+     *        → convert to meters → find closest canonical within ±20%
+     *
+     * Returns null if inputs are invalid or no canonical is close enough.
+     *
+     * Example: 10:30/mile pace (630 sec/mile), finish 5:12:00 (18720 sec)
+     *   → 18720 / 630 ≈ 29.7 miles ≈ 47,800m → closest is 50k (50000m, within 20%) ✓
+     */
+    public static Result estimateFromPaceAndTime(int targetPaceSecPerMile, int finishSeconds) {
+        if (targetPaceSecPerMile <= 0 || finishSeconds <= 0) return null;
+
+        double estimatedMiles  = (double) finishSeconds / targetPaceSecPerMile;
+        double estimatedMeters = estimatedMiles * 1609.344;
+
+        // Find the canonical distance closest to the estimate, within ±20%
+        double bestDelta = Double.MAX_VALUE;
+        int    bestIdx   = -1;
+        for (int i = 0; i < METERS.length; i++) {
+            double delta = Math.abs(METERS[i] - estimatedMeters);
+            double tolerance = METERS[i] * 0.20;
+            if (delta <= tolerance && delta < bestDelta) {
+                bestDelta = delta;
+                bestIdx   = i;
+            }
+        }
+
+        if (bestIdx < 0) return null;
+        return new Result(KEYS[bestIdx], METERS[bestIdx]);
+    }
+
     public static class Result {
         public final String key;
         public final double meters;

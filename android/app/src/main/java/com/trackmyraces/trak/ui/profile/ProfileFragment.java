@@ -125,9 +125,10 @@ public class ProfileFragment extends NetworkAwareFragment {
                             : mBinding.chipBothTemp.isChecked() ? "both"
                             : "fahrenheit";
             String interests = getSelectedInterests();
+            int targetPaceSeconds = parsePaceInput(getText(mBinding.etTargetPace));
 
             boolean isFirstSave = mIsNewProfile;
-            mViewModel.saveProfile(name, dob, gender, units, tempUnit, interests, (success, message) ->
+            mViewModel.saveProfile(name, dob, gender, units, tempUnit, interests, targetPaceSeconds, (success, message) ->
                 requireActivity().runOnUiThread(() -> {
                     if (!success) {
                         Toast.makeText(requireContext(),
@@ -229,6 +230,13 @@ public class ProfileFragment extends NetworkAwareFragment {
             if ("celsius".equals(profile.preferredTempUnit))   mBinding.chipCelsius.setChecked(true);
             else if ("both".equals(profile.preferredTempUnit)) mBinding.chipBothTemp.setChecked(true);
             else                                               mBinding.chipFahrenheit.setChecked(true);
+
+            // Target pace
+            if (profile.targetPaceSecondsPerMile > 0) {
+                int m = profile.targetPaceSecondsPerMile / 60;
+                int s = profile.targetPaceSecondsPerMile % 60;
+                mBinding.etTargetPace.setText(String.format(Locale.US, "%d:%02d", m, s));
+            }
 
             // Restore interest chips
             java.util.List<String> saved = profile.getInterestList();
@@ -364,6 +372,26 @@ public class ProfileFragment extends NetworkAwareFragment {
     private String getText(com.google.android.material.textfield.TextInputEditText et) {
         CharSequence text = et.getText();
         return text != null ? text.toString().trim() : "";
+    }
+
+    /**
+     * Parses a pace string like "10:30" or "10" into total seconds.
+     * Returns 0 if blank or unparseable.
+     */
+    private int parsePaceInput(String input) {
+        if (input == null || input.isEmpty()) return 0;
+        try {
+            if (input.contains(":")) {
+                String[] parts = input.split(":");
+                int minutes = Integer.parseInt(parts[0].trim());
+                int seconds = Integer.parseInt(parts[1].trim());
+                return minutes * 60 + seconds;
+            } else {
+                return (int) (Double.parseDouble(input) * 60);
+            }
+        } catch (NumberFormatException e) {
+            return 0;
+        }
     }
 
     @Override

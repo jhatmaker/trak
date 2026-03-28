@@ -222,6 +222,25 @@
 
         </com.google.android.material.chip.ChipGroup>
 
+        <!-- Target pace — used to disambiguate multi-distance race events -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/til_target_pace"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/profile_target_pace_hint"
+            app:helperText="@string/profile_target_pace_helper"
+            app:suffixText="min/mile"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            android:layout_marginTop="12dp"
+            android:layout_marginBottom="20dp">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/et_target_pace"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="text"
+                android:imeOptions="actionDone" />
+        </com.google.android.material.textfield.TextInputLayout>
+
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_save_profile"
             android:layout_width="match_parent"

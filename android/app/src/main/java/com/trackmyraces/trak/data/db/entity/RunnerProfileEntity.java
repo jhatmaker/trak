@@ -90,6 +90,14 @@ public class RunnerProfileEntity {
     @ColumnInfo(name = "user_id")
     public String userId;
 
+    /**
+     * Runner's typical pace in seconds per mile — used to disambiguate distance
+     * when a race has multiple distance options (e.g. "10K / 50K / 100K").
+     * 0 means not set.  Example: 10 min/mile = 600.
+     */
+    @ColumnInfo(name = "target_pace_seconds_per_mile", defaultValue = "0")
+    public int targetPaceSecondsPerMile;
+
     /** Returns interests as a list, never null. */
     public java.util.List<String> getInterestList() {
         if (interests == null || interests.isEmpty()) return new java.util.ArrayList<>();

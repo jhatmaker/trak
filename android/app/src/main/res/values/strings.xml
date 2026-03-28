@@ -135,6 +135,9 @@
     <string name="onboard_create">Create your profile</string>
     <string name="onboard_dob_required">Date of birth is used to calculate your age group and BQ eligibility.</string>
 
+    <string name="profile_target_pace_hint">Typical pace (optional)</string>
+    <string name="profile_target_pace_helper">e.g. 10:30 — used to identify your distance in multi-race events</string>
+
     <!-- Running interests (profile) -->
     <string name="profile_interests_hint">What do you run? (optional — helps find the right sites)</string>
     <string name="interest_road">Road racing</string>
@@ -247,6 +250,8 @@
     <string name="edit_section_placement">Placement</string>
     <string name="edit_hint_distance_label">Distance label (e.g. Marathon, 10K)</string>
     <string name="edit_hint_distance_canonical">Canonical distance</string>
+    <string name="edit_hint_distance_value">Distance (miles)</string>
+    <string name="edit_hint_distance_value_km">Distance (km)</string>
     <string name="edit_hint_gender">Gender (M / F / NB)</string>
     <string name="edit_hint_age_group">Age group label</string>
     <string name="edit_hint_age_group_eg">e.g. 40–44</string>

@@ -167,9 +167,21 @@ public class EditResultFragment extends NetworkAwareFragment {
         // "Set race location" — open geocoding search; on pick, fills location + fetches elevation/weather
         mBinding.btnRepopulate.setOnClickListener(v -> showLocationSearch());
 
-        // Clear estimated flag when user manually changes the canonical dropdown
-        mBinding.etDistanceCanonical.setOnItemClickListener((parent, v2, pos, id) ->
-            setDistanceEstimated(false));
+        // When user picks a canonical distance, auto-fill the numeric distance field
+        mBinding.etDistanceCanonical.setOnItemClickListener((parent, v2, pos, id) -> {
+            setDistanceEstimated(false);
+            if (pos >= 0 && pos < DISTANCE_CANONICAL.length) {
+                double meters = com.trackmyraces.trak.util.DistanceNormalizer
+                    .metersFromLabel(DISTANCE_CANONICAL[pos]);
+                if (meters > 0) {
+                    boolean imperial = mProfile != null
+                        && "imperial".equalsIgnoreCase(mProfile.preferredUnits);
+                    double displayDist = imperial ? meters / 1609.344 : meters / 1000.0;
+                    setText(mBinding.etDistanceValue,
+                        String.format(Locale.US, "%.2f", displayDist));
+                }
+            }
+        });
 
         mBinding.btnSave.setOnClickListener(v2 -> saveForm());
     }
@@ -200,6 +212,9 @@ public class EditResultFragment extends NetworkAwareFragment {
         mBinding.tilTemperature.setSuffixText(fahrenheit ? "°F" : "°C");
         mBinding.tilElevationGain.setSuffixText(imperial ? "ft" : "m");
         mBinding.tilElevationStart.setSuffixText(imperial ? "ft" : "m");
+        mBinding.tilDistanceValue.setHint(imperial
+            ? getString(R.string.edit_hint_distance_value)
+            : getString(R.string.edit_hint_distance_value_km));
     }
 
     private void showAgeAtRace(RunnerProfileEntity profile, String raceDate) {
@@ -228,6 +243,11 @@ public class EditResultFragment extends NetworkAwareFragment {
         setDropdown(mBinding.etDistanceCanonical, canonicalToLabel(r.distanceCanonical));
         mDistanceIsEstimated = r.isDistanceEstimated;
         updateEstimatedHelperText();
+        if (r.distanceMeters > 0) {
+            boolean imperial = mProfile != null && "imperial".equalsIgnoreCase(mProfile.preferredUnits);
+            double displayDist = imperial ? r.distanceMeters / 1609.344 : r.distanceMeters / 1000.0;
+            setText(mBinding.etDistanceValue, String.format(Locale.US, "%.2f", displayDist));
+        }
 
         // Placement
         setDropdown(mBinding.etGender, r.gender);
@@ -385,6 +405,22 @@ public class EditResultFragment extends NetworkAwareFragment {
         current.distanceLabel     = str(mBinding.etDistanceLabel);
         current.distanceCanonical = labelToCanonical(str(mBinding.etDistanceCanonical));
         current.isDistanceEstimated = mDistanceIsEstimated;
+
+        // Convert display distance back to meters
+        String distValueStr = str(mBinding.etDistanceValue);
+        if (distValueStr != null) {
+            Double distDisplay = parseDouble(distValueStr);
+            if (distDisplay != null && distDisplay > 0) {
+                current.distanceMeters = imperial
+                    ? distDisplay * 1609.344
+                    : distDisplay * 1000.0;
+            }
+        }
+        // Recalculate pace if we have both distance and finish time
+        if (current.distanceMeters > 0 && current.finishSeconds > 0) {
+            current.pacePerKmSeconds = (int) Math.round(
+                current.finishSeconds / (current.distanceMeters / 1000.0));
+        }
 
         // Placement
         current.gender        = str(mBinding.etGender);

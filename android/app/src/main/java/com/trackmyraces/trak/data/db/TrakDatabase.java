@@ -44,6 +44,7 @@ import com.trackmyraces.trak.data.db.entity.SavedViewEntity;
  *        distance_label, distance_meters, location, bib_number, finish_time,
  *        finish_seconds, overall_place, overall_total, raw_data)
  *  10 — added user_id to runner_profile (device-local UUID for backend identification)
+ *  13 — added target_pace_seconds_per_mile to runner_profile
  */
 @Database(
     entities = {
@@ -56,7 +57,7 @@ import com.trackmyraces.trak.data.db.entity.SavedViewEntity;
         PendingMatchEntity.class,
         UserSitePrefEntity.class,
     },
-    version = 12,
+    version = 13,
     exportSchema = true
 )
 public abstract class TrakDatabase extends RoomDatabase {
@@ -86,7 +87,7 @@ public abstract class TrakDatabase extends RoomDatabase {
                             TrakDatabase.class,
                             DB_NAME
                         )
-                        .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12)
+                        .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13)
                         .build();
                 }
             }
@@ -257,6 +258,14 @@ public abstract class TrakDatabase extends RoomDatabase {
             db.execSQL("ALTER TABLE `pending_match` ADD COLUMN `race_city` TEXT");
             db.execSQL("ALTER TABLE `pending_match` ADD COLUMN `race_state` TEXT");
             db.execSQL("ALTER TABLE `pending_match` ADD COLUMN `race_country` TEXT");
+        }
+    };
+
+    static final Migration MIGRATION_12_13 = new Migration(12, 13) {
+        @Override
+        public void migrate(@androidx.annotation.NonNull SupportSQLiteDatabase db) {
+            // Runner's typical pace — used to disambiguate multi-distance race events
+            db.execSQL("ALTER TABLE `runner_profile` ADD COLUMN `target_pace_seconds_per_mile` INTEGER NOT NULL DEFAULT 0");
         }
     };
 
