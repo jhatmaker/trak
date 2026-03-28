@@ -86,6 +86,7 @@ public class ProfileViewModel extends AndroidViewModel {
     }
 
     /** @deprecated Use getEnabledSourceGuidsNow() for the new GUID-based API. */
+    @Deprecated
     public List<String> getHiddenSiteIdsNow() {
         List<String> current = hiddenSiteIds.getValue();
         return current != null ? current : Collections.emptyList();

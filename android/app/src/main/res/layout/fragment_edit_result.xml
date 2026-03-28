@@ -252,6 +252,17 @@
             style="@style/Trak.SectionHeader"
             android:layout_marginBottom="8dp" />
 
+        <!-- Shown only when the race was within the last 7 days -->
+        <TextView
+            android:id="@+id/tv_weather_pending"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:drawablePadding="6dp"
+            android:textSize="12sp"
+            android:textColor="@color/text_secondary"
+            android:layout_marginBottom="12dp"
+            android:visibility="gone" />
+
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/til_elevation_gain"
             android:layout_width="match_parent"

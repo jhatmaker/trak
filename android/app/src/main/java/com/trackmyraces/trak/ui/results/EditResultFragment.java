@@ -261,11 +261,52 @@ public class EditResultFragment extends NetworkAwareFragment {
 
         setText(mBinding.etWeather, r.weatherCondition);
 
+        // Weather-pending note — shown when race was within the last 7 days
+        updateWeatherPendingNote(r.raceDate);
+
         // Notes
         setText(mBinding.etNotes, r.notes);
 
         // Age at race
         if (mProfile != null) showAgeAtRace(mProfile, r.raceDate);
+    }
+
+    // ── Weather-pending note ──────────────────────────────────────────────
+
+    /**
+     * Shows a note below the Conditions section header when weather archive
+     * data is not yet available (race was within the last 7 days).
+     */
+    private void updateWeatherPendingNote(String raceDate) {
+        if (raceDate == null) {
+            mBinding.tvWeatherPending.setVisibility(View.GONE);
+            return;
+        }
+        try {
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
+            Date race = sdf.parse(raceDate);
+            if (race == null) {
+                mBinding.tvWeatherPending.setVisibility(View.GONE);
+                return;
+            }
+            long nowMs   = System.currentTimeMillis();
+            long daysOld = (nowMs - race.getTime()) / (24L * 60 * 60 * 1000);
+
+            if (daysOld < 7) {
+                // Compute the date after which weather becomes available
+                Calendar avail = Calendar.getInstance();
+                avail.setTime(race);
+                avail.add(Calendar.DAY_OF_YEAR, 7);
+                String availStr = new SimpleDateFormat("MMM d", Locale.US).format(avail.getTime());
+                mBinding.tvWeatherPending.setText(
+                    getString(R.string.edit_weather_pending, availStr));
+                mBinding.tvWeatherPending.setVisibility(View.VISIBLE);
+            } else {
+                mBinding.tvWeatherPending.setVisibility(View.GONE);
+            }
+        } catch (ParseException e) {
+            mBinding.tvWeatherPending.setVisibility(View.GONE);
+        }
     }
 
     // ── Location search ───────────────────────────────────────────────────

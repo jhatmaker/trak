@@ -230,6 +230,7 @@
     <string name="edit_hint_temperature">Temperature</string>
     <string name="edit_hint_weather">Weather description</string>
     <string name="edit_hint_chip_time_helper">Leave blank if the same as finish time</string>
+    <string name="edit_weather_pending">Weather data is available 7 days after the race. Come back after %1$s to auto-fill via \"Set race location\", or enter temperature and conditions manually.</string>
     <string name="edit_hint_notes">Notes</string>
     <string name="edit_repopulate_button">Re-populate from race info</string>
     <string name="edit_repopulate_hint">Fills in distance, elevation, and weather automatically using the race name and location.</string>
